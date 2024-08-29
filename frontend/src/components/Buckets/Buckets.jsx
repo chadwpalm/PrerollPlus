@@ -12,14 +12,13 @@ export default class Buckets extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      buckets: [],
+      buckets: this.props.settings.buckets,
       isCreating: false,
       id: "",
       isEdit: false,
       show: false,
       tempID: "",
     };
-    this.state.buckets = this.props.settings.buckets;
   }
 
   handleAddBucket = () => {
@@ -57,8 +56,6 @@ export default class Buckets extends Component {
 
     var settings = { ...this.props.settings };
 
-    console.log("Here: ", this.state.tempID);
-
     const index = settings.buckets.findIndex(({ id }) => id === this.state.tempID);
 
     settings.buckets.splice(index, 1);
@@ -94,7 +91,7 @@ export default class Buckets extends Component {
         </Row>
         <Row xs={2} sm="auto">
           {this.state.buckets?.map((bucket) => (
-            <Col>
+            <Col key={bucket.id}>
               <Bucket
                 settings={this.props.settings}
                 bucket={bucket.name}

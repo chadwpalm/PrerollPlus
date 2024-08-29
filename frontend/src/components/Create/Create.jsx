@@ -15,8 +15,6 @@ export default class Create extends Component {
     if (this.props.isEdit) {
       var info = this.props.settings.buckets.find(({ id }) => id === this.props.id.toString());
 
-      console.log(info.media);
-
       this.state = {
         id: info.id,
         media: info.media,
@@ -169,7 +167,8 @@ export default class Create extends Component {
   };
 
   handleAdd = () => {
-    const newMediaList = this.state.selectedList.map((element) => ({ file: element }));
+    const newDir = "/" + this.state.dirTree.slice(1).join("/");
+    const newMediaList = this.state.selectedList.map((element) => ({ file: element, dir: newDir }));
     this.setState((prevState) => ({
       media: [...prevState.media, ...newMediaList],
     }));
@@ -292,7 +291,7 @@ export default class Create extends Component {
                           return acc;
                         }, {})
                       ).map(([file, count]) => {
-                        const percentage = ((count / this.state.media.length) * 100).toFixed(2);
+                        const percentage = ((count / this.state.media.length) * 100).toFixed(1);
                         return this.state.selectedFileList.includes(file) ? (
                           <ListGroup.Item
                             key={file}
@@ -411,10 +410,6 @@ export default class Create extends Component {
           <></>
         )}
         {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
-        <div style={{ paddingBottom: "0.75rem" }} />
-        <div>Media: {JSON.stringify(this.state.media)}</div>
-        <div>SelectedList: {JSON.stringify(this.state.selectedList)}</div>
-        <div>SelectedFileList: {JSON.stringify(this.state.selectedFileList)}</div>
         <div style={{ paddingBottom: "0.75rem" }} />
       </div>
     );

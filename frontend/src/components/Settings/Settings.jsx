@@ -140,7 +140,6 @@ export default class Settings extends Component {
               cert: `${element.cert}`,
             });
 
-            // console.log(tempList);
             this.setState({ servers: tempList });
           });
 

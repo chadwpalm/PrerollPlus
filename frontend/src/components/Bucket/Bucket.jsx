@@ -11,10 +11,12 @@ export default class Bucket extends Component {
     super(props);
     this.state = {
       id: "",
+      name: "",
       active: true,
     };
 
     this.state.id = this.props.id;
+    this.state.name = this.props.bucket;
     this.handleClick = this.handleClick.bind(this.props.id);
   }
 
@@ -22,7 +24,7 @@ export default class Bucket extends Component {
     this.props.click(e.currentTarget.value);
   };
 
-  handleDelete = (e) => {
+  handleDelete = () => {
     this.props.delete(this.state.id);
   };
 
@@ -47,9 +49,8 @@ export default class Bucket extends Component {
           className="d-flex align-items-center justify-content-center"
           style={{ height: "4rem", paddingLeft: "5px", paddingRight: "5px" }}
         >
-          {this.props.bucket}
+          {this.state.name}
         </Card.Subtitle>
-        {/* <Card.Body style={{ padding: "5px", verticalAlign: "text-bottom" }}>{this.props.id}</Card.Body> */}
         <Card.Footer className="border-top-0" style={{ backgroundColor: "#f8f9fa", padding: "5px" }}>
           <Row>
             <Col></Col>
