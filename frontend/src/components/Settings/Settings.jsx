@@ -4,6 +4,7 @@ import Form from "react-bootstrap/Form";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 import Info from "bootstrap-icons/icons/info-circle.svg";
+import Repeat from "bootstrap-icons/icons/arrow-repeat.svg";
 import Button from "react-bootstrap/Button";
 import Stack from "react-bootstrap/Stack";
 
@@ -12,34 +13,32 @@ export default class Settings extends Component {
     super(props);
     if (this.props.settings.settings) {
       this.state = {
-        transition: this.props.settings.settings.transition ?? "0",
-        startHour: this.props.settings.settings.startHour ?? "1",
-        startMin: this.props.settings.settings.startMin ?? "0",
-        startMed: this.props.settings.settings.startMed ?? "1",
-        endHour: this.props.settings.settings.endHour ?? "1",
-        endMin: this.props.settings.settings.endMin ?? "0",
-        endMed: this.props.settings.settings.startMed ?? "1",
-        latitude: this.props.settings.settings.latitude ?? "",
-        longitude: this.props.settings.settings.longitude ?? "",
-        isLoading: true,
+        ip: this.props.settings.settings.ip,
+        port: this.props.settings.settings.port,
+        ssl: this.props.settings.settings.ssl,
+        loc: this.props.settings.settings.loc,
+        plexLoc: this.props.settings.settings.plexLoc,
+        serverNum: "0",
+        servers: [],
+        isGetting: false,
+        isLoaded: false,
         isError: false,
-        errorRes: "",
-        isEdit: true,
+        isIncomplete: false,
+        isSaved: false,
       };
     } else {
       this.state = {
-        transition: "0",
-        startHour: "1",
-        startMin: "0",
-        startMed: "1",
-        endHour: "1",
-        endMin: "0",
-        endMed: "1",
-        latitude: "",
-        longitude: "",
-        isLoading: true,
-        errorRes: "",
-        isEdit: false,
+        ip: "",
+        port: "",
+        ssl: false,
+        loc: "/prerolls",
+        plexLoc: "",
+        serverNum: "0",
+        servers: [],
+        isGetting: false,
+        isLoaded: false,
+        isIncomplete: false,
+        isSaved: false,
       };
     }
   }
@@ -47,23 +46,29 @@ export default class Settings extends Component {
   handleFormSubmit = (e) => {
     e.preventDefault();
 
+    this.setState({ isIncomplete: false });
+
+    if (this.state.ip === "" || this.state.port === "") {
+      this.setState({ isIncomplete: true });
+      return;
+    }
+
     if (!this.props.settings.settings) this.props.settings.settings = {};
 
-    this.props.settings.settings.transition = this.state.transition;
-    this.props.settings.settings.startHour = this.state.startHour;
-    this.props.settings.settings.startMin = this.state.startMin;
-    this.props.settings.settings.startMed = this.state.startMed;
-    this.props.settings.settings.endHour = this.state.endHour;
-    this.props.settings.settings.endMin = this.state.endMin;
-    this.props.settings.settings.endMed = this.state.endMed;
-    this.props.settings.settings.latitude = this.state.latitude;
-    this.props.settings.settings.longitude = this.state.longitude;
+    this.props.settings.settings.ip = this.state.ip;
+    this.props.settings.settings.port = this.state.port;
+    this.props.settings.settings.ssl = this.state.ssl;
+    this.props.settings.settings.loc = this.state.loc;
+    this.props.settings.settings.plexLoc = this.state.plexLoc;
+    this.props.settings.connected = "true";
+    this.props.connection(1);
 
     var xhr = new XMLHttpRequest();
 
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
+          this.setState({ isSaved: true });
         } else {
           // error
           this.setState({
@@ -76,56 +81,132 @@ export default class Settings extends Component {
     xhr.open("POST", "/backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(this.props.settings));
-
-    this.setState({ isEdit: true });
   };
 
-  handleTransition = (e) => {
-    this.setState({
-      transition: e.target.value.toString(),
+  handleServerGet = () => {
+    var xhr = new XMLHttpRequest();
+
+    this.setState({ isGetting: true });
+    this.setState({ isLoaded: false });
+    this.setState({ isSaved: false });
+
+    xhr.addEventListener("readystatechange", async () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          // request successful
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+
+          var tempList = [];
+          var index = 0;
+
+          json.forEach((element) => {
+            //create local insecure
+            tempList.push({
+              index: ++index,
+              name: `${element.name}`,
+              ip: `${element.localIP}`,
+              location: "local",
+              secure: false,
+              cert: `${element.cert}`,
+            });
+            //create remote insecure
+            tempList.push({
+              index: ++index,
+              name: `${element.name}`,
+              ip: `${element.remoteIP}`,
+              port: `${element.port}`,
+              location: "remote",
+              secure: false,
+              cert: `${element.cert}`,
+            });
+            //create local secure
+            tempList.push({
+              index: ++index,
+              name: `${element.name}`,
+              ip: `${element.localIP}`,
+              location: "local",
+              secure: true,
+              cert: `${element.cert}`,
+            });
+            //create remove secure
+            tempList.push({
+              index: ++index,
+              name: `${element.name}`,
+              ip: `${element.remoteIP}`,
+              port: `${element.port}`,
+              location: "remote",
+              secure: true,
+              cert: `${element.cert}`,
+            });
+
+            // console.log(tempList);
+            this.setState({ servers: tempList });
+          });
+
+          this.setState({ isLoaded: true });
+        } else {
+          // error
+          this.setState({
+            isLoaded: true,
+            error: xhr.responseText,
+          });
+        }
+      }
     });
+
+    xhr.open("POST", "/backend/settings", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(this.props.settings));
   };
 
-  handleTime = (e) => {
-    switch (e.target.name) {
-      case "startHour":
-        this.setState({ startHour: e.target.value.toString() });
-        break;
-      case "startMin":
-        this.setState({ startMin: e.target.value.toString() });
-        break;
-      case "startMed":
-        this.setState({ startMed: e.target.value.toString() });
-        break;
-      case "endHour":
-        this.setState({ endHour: e.target.value.toString() });
-        break;
-      case "endMin":
-        this.setState({ endMin: e.target.value.toString() });
-        break;
-      case "endMed":
-        this.setState({ endMed: e.target.value.toString() });
-        break;
+  handleServers = (e) => {
+    this.setState({ serverNum: e.target.value.toString() });
+  };
+
+  handleServerChange = (e) => {
+    if (e.target.value != 0) {
+      if (this.state.servers[e.target.value - 1].secure) {
+        this.setState({
+          ip: `${this.state.servers[e.target.value - 1].ip.replace(/\./g, "-")}.${
+            this.state.servers[e.target.value - 1].cert
+          }.plex.direct`,
+          ssl: true,
+        });
+      } else {
+        this.setState({ ip: this.state.servers[e.target.value - 1].ip, ssl: false });
+      }
+      if (this.state.servers[e.target.value - 1].location === "remote") {
+        this.setState({ port: this.state.servers[e.target.value - 1].port });
+      } else {
+        this.setState({ port: "32400" });
+      }
     }
+    this.setState({ isSaved: false });
   };
 
-  handleLatitude = (e) => {
-    this.setState({ latitude: e.target.value.toString() });
+  handleIp = (e) => {
+    this.setState({ ip: e.target.value.toString(), isSaved: false });
   };
 
-  handleLongitude = (e) => {
-    this.setState({ longitude: e.target.value.toString() });
+  handlePort = (e) => {
+    this.setState({ port: e.target.value.toString(), isSaved: false });
+  };
+
+  handleSSL = (e) => {
+    // console.log(e.target.checked);
+    this.setState({ ssl: e.target.checked, isSaved: false });
+  };
+
+  handleLoc = (e) => {
+    this.setState({ loc: e.target.value.toString(), isSaved: false });
+  };
+
+  handlePlexLoc = (e) => {
+    this.setState({ plexLoc: e.target.value.toString(), isSaved: false });
   };
 
   render() {
-    const options = [];
-    for (var i = 0; i < 60; i++) {
-      options.push(
-        <option value={i.toString()}>
-          {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
-      );
-    }
     return (
       <>
         <Row>
@@ -135,217 +216,141 @@ export default class Settings extends Component {
         <Row>
           <Form onSubmit={this.handleFormSubmit}>
             <h5>
-              Global Settings &nbsp;&nbsp;
+              Plex Server &nbsp;&nbsp;
               <OverlayTrigger
                 placement="right"
                 overlay={
-                  <Tooltip>These settings will be applied toward profile settings that are set as "global".</Tooltip>
+                  <Tooltip>
+                    Enter the Plex server's IP address and port, or use the search function to list servers associated
+                    with your account.
+                    <br />
+                    <br />
+                    For remote servers, it will be the user's responsibility to set up the remote connection path.
+                  </Tooltip>
                 }
               >
                 <img src={Info} />
               </OverlayTrigger>
             </h5>
             <div style={{ paddingBottom: "0.75rem" }} />
-            <Form.Label for="transition">
-              Scene Transition Time (s) &nbsp;&nbsp;
-              <OverlayTrigger
-                placement="right"
-                overlay={
-                  <Tooltip>
-                    {" "}
-                    This is the time in seconds for the scene to transition.
-                    <br />
-                    <br />
-                    If set to "Default", Lumunarr will use the transition time that is saved in the scene (through a
-                    third-party app). If there is no saved transition time, the Hue default of 0.4 seconds will be used.
-                    <br />
-                    <br />
-                    Setting a specific time will override the transition time saved in the scene and use the selected
-                    time instead.
-                  </Tooltip>
-                }
-              >
-                <img src={Info} alt="Info" />
-              </OverlayTrigger>
-            </Form.Label>
+            {/* Server */}
+            <Form.Label for="serverList">Server &nbsp;&nbsp;</Form.Label>
             <Stack gap={1} direction="horizontal">
-              <Form.Range
-                id="transition"
-                className="me-auto"
-                value={this.state.transition}
-                min={0}
-                max={10}
-                step={0.2}
-                onChange={this.handleTransition}
-              />
-              {this.state.transition === "0" ? (
-                <>
-                  <div style={{ width: 80, textAlign: "right" }}>Default</div>
-                </>
+              {this.state.isLoaded ? (
+                <Form.Select
+                  option={this.state.serverNum}
+                  id="serverList"
+                  name="serverList"
+                  onChange={this.handleServerChange}
+                  size="sm"
+                >
+                  <option value="0">Manual configuration</option>
+                  {this.state.servers.map((server) => (
+                    <>
+                      {server.secure ? (
+                        <option value={server.index}>
+                          {server.name} ({server.ip.replace(/\./g, "-")}.{server.cert}.plex.direct [{server.location}]
+                          [secure])
+                        </option>
+                      ) : (
+                        <option value={server.index}>
+                          {server.name} ({server.ip}) [{server.location}]
+                        </option>
+                      )}
+                    </>
+                  ))}
+                </Form.Select>
               ) : (
                 <>
-                  <div style={{ width: 80, textAlign: "right" }}>{this.state.transition} s</div>
+                  {this.state.isGetting ? (
+                    <Form.Select value="1" id="getting" name="getting" disabled size="sm">
+                      <option value="1">Retrieving servers...</option>
+                    </Form.Select>
+                  ) : (
+                    <Form.Select value="1" id="waitForPress" name="waitForPress" disabled size="sm">
+                      <option value="1">Press the button to load available servers</option>
+                    </Form.Select>
+                  )}
                 </>
               )}
+              <Button variant="outline-light" size="sm" onClick={this.handleServerGet}>
+                <img src={Repeat} />
+              </Button>
             </Stack>
             <div style={{ paddingBottom: "0.75rem" }} />
-            {/* Schedule */}
-            <Form.Label for="schedule">
-              Schedule &nbsp;&nbsp;
-              <OverlayTrigger
-                placement="right"
-                overlay={<Tooltip>Add a global schedule for when the triggers will be active.</Tooltip>}
-              >
-                <img src={Info} alt="Schedule" />
-              </OverlayTrigger>
-            </Form.Label>
+            <Form.Label for="ip">Hostname or IP Address &nbsp;&nbsp;</Form.Label>
+            <Form.Control value={this.state.ip} id="ip" name="ip" onChange={this.handleIp} size="sm" />
             <div style={{ paddingBottom: "0.75rem" }} />
-            <Stack gap={1} direction="horizontal">
-              Start:&nbsp;&nbsp;
-              <Form.Select
-                value={this.state.startHour}
-                id="startHour"
-                name="startHour"
-                onChange={this.handleTime}
-                size="sm"
-                style={{ width: "65px" }}
-              >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </Form.Select>
-              <Form.Select
-                value={this.state.startMin}
-                id="startMin"
-                name="startMin"
-                onChange={this.handleTime}
-                size="sm"
-                style={{ width: "65px" }}
-              >
-                {options}
-              </Form.Select>
-              <Form.Select
-                value={this.state.startMed}
-                id="startMed"
-                name="startMed"
-                onChange={this.handleTime}
-                size="sm"
-                style={{ width: "68px" }}
-              >
-                <option value="1">AM</option>
-                <option value="2">PM</option>
-              </Form.Select>
-            </Stack>
-            <div style={{ paddingBottom: "0.50rem" }} />
-            <Stack gap={1} direction="horizontal">
-              End:&nbsp;&nbsp;&nbsp;&nbsp;
-              <Form.Select
-                value={this.state.endHour}
-                id="endHour"
-                name="endHour"
-                onChange={this.handleTime}
-                size="sm"
-                style={{ width: "65px" }}
-              >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </Form.Select>
-              <Form.Select
-                value={this.state.endMin}
-                id="endMin"
-                name="endMin"
-                onChange={this.handleTime}
-                size="sm"
-                style={{ width: "65px" }}
-              >
-                {options}
-              </Form.Select>
-              <Form.Select
-                value={this.state.endMed}
-                id="endMed"
-                name="endMed"
-                onChange={this.handleTime}
-                size="sm"
-                style={{ width: "68px" }}
-              >
-                <option value="1">AM</option>
-                <option value="2">PM</option>
-              </Form.Select>
-            </Stack>
-            <div style={{ paddingBottom: "1.5rem" }} />
-            {/* Location */}
-            <h5>
-              Geographical Location &nbsp;&nbsp;
-              <OverlayTrigger
-                placement="right"
-                overlay={
-                  <Tooltip>
-                    Enter your location in latitude and longitude. This is required to use sunrise/sunset schedule.
-                  </Tooltip>
-                }
-              >
-                <img src={Info} alt="Location" />
-              </OverlayTrigger>
-            </h5>
+            <Form.Label for="ip">Port &nbsp;&nbsp;</Form.Label>
+            <Form.Control value={this.state.port} id="port" name="port" onChange={this.handlePort} size="sm" />
             <div style={{ paddingBottom: "0.75rem" }} />
-            1. Visit{" "}
-            <a href="https://www.latlong.net/" target="_blank">
-              LatLong.net
-            </a>
-            <br />
-            2. Pinpoint your location using the text box and/or map
-            <br />
-            3. Copy and paste the latitude and longitude into the fields below
-            <br />
-            <br />
-            <Form.Label for="latitude">Latitude</Form.Label>
-            <Form.Control
-              value={this.state.latitude}
-              id="latitude"
-              name="latitude"
-              onChange={this.handleLatitude}
-              size="sm"
-            />
+            <Form.Label for="ssl">Use SSL &nbsp;&nbsp;</Form.Label>
+            <Form.Check checked={this.state.ssl} id="ssl" name="ssl" onChange={this.handleSSL}></Form.Check>
             <div style={{ paddingBottom: "0.75rem" }} />
-            <Form.Label for="longitude">Longitude</Form.Label>
-            <Form.Control
-              value={this.state.longitude}
-              id="longitude"
-              name="longitude"
-              onChange={this.handleLongitude}
-              size="sm"
-            />
+            <Form.Label for="loc">Location of preroll media &nbsp;&nbsp;</Form.Label>
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  This is the root location of your Plex preroll media files.
+                  <br />
+                  <br />
+                  This option is only available when running the application natively. If running from Docker, it will
+                  be grayed out and you can set your root location through mounting the internal /prerolls directory to
+                  the directory of your choosing on your host system.
+                </Tooltip>
+              }
+            >
+              <img src={Info} />
+            </OverlayTrigger>
+            {this.props.settings.build === "Native" ? (
+              <Form.Control value={this.state.loc} id="loc" name="loc" onChange={this.handleLoc} size="sm" />
+            ) : (
+              <Form.Control disabled value={this.state.loc} id="loc" name="loc" onChange={this.handleLoc} size="sm" />
+            )}
+            <div style={{ paddingBottom: "0.75rem" }} />
+            <Form.Label for="plexLoc">Location of preroll media &nbsp;&nbsp;</Form.Label>
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  This is the root location of your Plex preroll media files.
+                  <br />
+                  <br />
+                  This option is only available when running the application natively. If running from Docker, it will
+                  be grayed out and you can set your root location through mounting the internal /prerolls directory to
+                  the directory of your choosing on your host system.
+                </Tooltip>
+              }
+            >
+              <img src={Info} />
+            </OverlayTrigger>
+            {this.props.settings.build === "Native" ? (
+              <Form.Control
+                disabled
+                value={this.state.plexLoc}
+                id="plexLoc"
+                name="plexLoc"
+                onChange={this.handlePlexLoc}
+                size="sm"
+              />
+            ) : (
+              <Form.Control
+                value={this.state.plexLoc}
+                id="plexLoc"
+                name="plexLoc"
+                onChange={this.handlePlexLoc}
+                size="sm"
+              />
+            )}
             <div style={{ paddingBottom: "0.75rem" }} />
             {/* Cancel/Save */}
-            {this.state.isEdit ? (
-              <Button type="submit" variant="secondary">
-                Update
-              </Button>
-            ) : (
-              <Button type="submit" variant="secondary">
-                Save
-              </Button>
-            )}
-            <div style={{ paddingBottom: "1rem" }} />
+            <Button type="submit" variant="secondary">
+              Save
+            </Button>
+            &nbsp;&nbsp;
+            {this.state.isIncomplete ? <i style={{ color: "#f00" }}>&nbsp; IP and Port must be filled. </i> : <></>}
+            {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
           </Form>
         </Row>
       </>

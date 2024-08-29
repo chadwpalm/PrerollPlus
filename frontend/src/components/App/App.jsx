@@ -5,8 +5,8 @@ import Logo from "../../images/lumunarr-logo.png";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../Login/Login";
 import Bridge from "../Bridge/Bridge";
-import Device from "../Device/Device";
-import Server from "../Server/Server";
+import Sequence from "../Sequence/Sequence";
+import Buckets from "../Buckets/Buckets";
 import Settings from "../Settings/Settings";
 import Announce from "./Announce";
 import Container from "react-bootstrap/Container";
@@ -81,9 +81,10 @@ export default class App extends Component {
               .catch(function (error) {});
           }
 
-          if (!online) {
-            this.setState({ isOnline: false });
-          } else {
+          // if (!online) {
+          //   this.setState({ isOnline: false });
+          // } else
+          {
             this.setState({
               isLoaded: true,
               config: json,
@@ -248,38 +249,28 @@ export default class App extends Component {
                         {!this.state.isConnected ? (
                           <>
                             <LinkContainer to="/">
-                              <Nav.Link disabled>Clients</Nav.Link>
+                              <Nav.Link disabled>Sequences</Nav.Link>
                             </LinkContainer>
-                            <LinkContainer to="/server">
-                              <Nav.Link disabled>Server</Nav.Link>
+                            <LinkContainer to="/buckets">
+                              <Nav.Link disabled>Buckets</Nav.Link>
                             </LinkContainer>
                           </>
                         ) : (
                           <>
                             <LinkContainer to="/">
-                              <Nav.Link>Clients</Nav.Link>
+                              <Nav.Link>Sequences</Nav.Link>
                             </LinkContainer>
-                            <LinkContainer to="/server">
-                              <Nav.Link>Server</Nav.Link>
-                            </LinkContainer>
-                          </>
-                        )}
-                        <LinkContainer to="/bridge">
-                          <Nav.Link>Bridge</Nav.Link>
-                        </LinkContainer>
-                        {!this.state.isConnected ? (
-                          <>
-                            <LinkContainer to="/settings">
-                              <Nav.Link disabled>Settings</Nav.Link>
-                            </LinkContainer>
-                          </>
-                        ) : (
-                          <>
-                            <LinkContainer to="/settings">
-                              <Nav.Link>Settings</Nav.Link>
+                            <LinkContainer to="/buckets">
+                              <Nav.Link>Buckets</Nav.Link>
                             </LinkContainer>
                           </>
                         )}
+
+                        <>
+                          <LinkContainer to="/settings">
+                            <Nav.Link>Settings</Nav.Link>
+                          </LinkContainer>
+                        </>
                       </Nav>
                       <Nav className="ms-auto">
                         <NavDropdown
@@ -393,17 +384,19 @@ export default class App extends Component {
                 >
                   <Routes>
                     <Route
-                      path="/bridge"
-                      element={<Bridge settings={this.state.config} connection={this.handleConnectionChange} />}
+                      path="/settings"
+                      element={<Settings settings={this.state.config} connection={this.handleConnectionChange} />}
                     />
 
                     {!this.state.isConnected ? (
-                      <Route path="*" element={<Navigate replace to="/bridge" />} />
+                      <Route path="*" element={<Navigate replace to="/settings" />} />
                     ) : (
                       <>
-                        <Route path="/" element={<Device settings={this.state.config} logout={this.handleLogout} />} />
-                        <Route path="/server" element={<Server settings={this.state.config} />} />
-                        <Route path="/settings" element={<Settings settings={this.state.config} />} />
+                        <Route
+                          path="/"
+                          element={<Sequence settings={this.state.config} logout={this.handleLogout} />}
+                        />
+                        <Route path="/buckets" element={<Buckets settings={this.state.config} />} />
                         <Route path="*" element={<Navigate replace to="/" />} />
                       </>
                     )}

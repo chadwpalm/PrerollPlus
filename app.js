@@ -14,6 +14,8 @@ var discover = require("./backend/discover");
 var thumb = require("./backend/thumb");
 var client = require("./backend/client");
 var server = require("./backend/server");
+var settings = require("./backend/settings");
+var directory = require("./backend/directory");
 
 var app = express();
 
@@ -36,6 +38,8 @@ app.use("/backend/discover", discover);
 app.use("/backend/thumb", thumb);
 app.use("/backend/client", client);
 app.use("/backend/server", server);
+app.use("/backend/settings", settings);
+app.use("/backend/directory", directory);
 app.use("/webhook", webhookRouter);
 app.use("/*", uiRouter);
 

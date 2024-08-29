@@ -2,7 +2,11 @@ FROM node:18.15.0-slim
 
 ARG BUILD
 
+ARG FILEDIR
+
 ENV BUILD=${BUILD}
+
+ENV FILEDIR=${FILEDIR}
 
 COPY . /PrerollPlus
 
