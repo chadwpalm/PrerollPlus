@@ -34,7 +34,7 @@ if (process.env.BUILD) {
 
 var fileData = `{"connected": "false","platform":"${
   os.platform
-}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}"}`;
+}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}", "sequences": [], "buckets": []}`;
 
 try {
   fileData = fs.readFileSync("/config/settings.js");

@@ -1,39 +1,38 @@
 import React, { Component } from "react";
-import Client from "../Client/Client";
+import Sequence from "../Sequence/Sequence";
 import AddIcon from "../../images/add-icon.png";
-import Create from "../Create/Create";
+import CreateSeq from "../CreateSeq/CreateSeq";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 
-export default class Device extends Component {
+export default class Sequences extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      clients: [],
+      sequences: this.props.settings.sequences,
       isCreating: false,
-      uid: "",
+      id: "",
       isEdit: false,
       show: false,
       tempID: "",
     };
-    this.state.clients = this.props.settings.clients;
   }
 
-  handleAddClient = () => {
+  handleAddSequence = () => {
     this.setState({
       isCreating: true,
       isEdit: false,
     });
   };
 
-  handleEditClient = (e) => {
+  handleEditSequence = (e) => {
     this.setState({
       isCreating: true,
       isEdit: true,
-      uid: e,
+      id: e,
     });
   };
 
@@ -57,9 +56,9 @@ export default class Device extends Component {
 
     var settings = { ...this.props.settings };
 
-    const index = settings.clients.findIndex(({ uid }) => uid === this.state.tempID);
+    const index = settings.sequences.findIndex(({ id }) => id === this.state.tempID);
 
-    settings.clients.splice(index, 1);
+    settings.sequences.splice(index, 1);
 
     var xhr = new XMLHttpRequest();
 
@@ -84,57 +83,29 @@ export default class Device extends Component {
     this.handleSaveCreate();
   };
 
-  handleChecked = (checked, id) => {
-    var settings = { ...this.props.settings };
-
-    const index = settings.clients.findIndex(({ uid }) => uid === id);
-
-    var client = settings.clients[index];
-    client.active = checked;
-    settings.clients.splice(index, 1, client);
-
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-        } else {
-          // error
-          this.setState({
-            show: false,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "/backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
-  };
-
   render() {
     return (
       <>
         <Row>
-          <h3>Clients</h3>
+          <h3>Sequences</h3>
         </Row>
         <Row xs={2} sm="auto">
-          {this.state.clients?.map((client) => (
-            <Col>
-              <Client
+          {this.state.sequences?.map((sequence) => (
+            <Col key={sequence.id}>
+              <Sequence
                 settings={this.props.settings}
-                client={client.client.name}
-                user={client.user.name}
-                media={client.media}
-                id={client.uid}
-                click={this.handleEditClient}
+                sequence={sequence.name}
+                schedule={sequence.schedule}
+                startMonth={sequence.startMonth}
+                startDay={sequence.startDay}
+                endMonth={sequence.endMonth}
+                endDay={sequence.endDay}
+                id={sequence.id}
+                click={this.handleEditSequence}
                 saved={this.handleSaveCreate}
                 isEdit={this.state.isEdit}
                 isCreating={this.state.isCreating}
                 delete={this.handleOpen}
-                checked={client.active}
-                isChecked={this.handleChecked}
               />
               <br />
             </Col>
@@ -142,15 +113,15 @@ export default class Device extends Component {
 
           <Col>
             {this.state.isEdit || this.state.isCreating ? (
-              <Card style={{ width: "10rem", height: "14rem", backgroundColor: "#f8f9fa" }}>
+              <Card style={{ width: "12rem", height: "8rem", backgroundColor: "#f8f9fa" }}>
                 <Card.Body className="d-flex align-items-center justify-content-center">
                   <img src={AddIcon} width="100" height="100" />
                 </Card.Body>
               </Card>
             ) : (
               <Card
-                style={{ width: "10rem", height: "14rem", backgroundColor: "#f8f9fa", cursor: "pointer" }}
-                onClick={this.handleAddClient}
+                style={{ width: "12rem", height: "8rem", backgroundColor: "#f8f9fa", cursor: "pointer" }}
+                onClick={this.handleAddSequence}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center">
                   <img src={AddIcon} width="100" height="100" />
@@ -161,16 +132,15 @@ export default class Device extends Component {
         </Row>
         <Row style={{ paddingLeft: "10px", paddingTop: "20px" }}>
           {this.state.isCreating ? (
-            <Create
+            <CreateSeq
               settings={this.props.settings}
               cancel={this.handleCancelCreate}
               saved={this.handleSaveCreate}
-              uid={this.state.uid}
+              id={this.state.id}
               isEdit={this.state.isEdit}
-              logout={this.props.logout}
             />
           ) : (
-            <h6>Click the plus to add a new device.</h6>
+            <h6>Click the plus to add a new Sequence.</h6>
           )}
         </Row>
         <Modal

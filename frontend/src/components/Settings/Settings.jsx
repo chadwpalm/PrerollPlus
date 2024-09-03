@@ -297,6 +297,10 @@ export default class Settings extends Component {
                   This option is only available when running the application natively. If running from Docker, it will
                   be grayed out and you can set your root location through mounting the internal /prerolls directory to
                   the directory of your choosing on your host system.
+                  <br />
+                  <br />
+                  When creating buckets, this is the directory that Preroll Plus will look for preroll media, so make
+                  sure the root location of your media matches this location.
                 </Tooltip>
               }
             >
@@ -308,17 +312,22 @@ export default class Settings extends Component {
               <Form.Control disabled value={this.state.loc} id="loc" name="loc" onChange={this.handleLoc} size="sm" />
             )}
             <div style={{ paddingBottom: "0.75rem" }} />
-            <Form.Label for="plexLoc">Location of preroll media &nbsp;&nbsp;</Form.Label>
+            <Form.Label for="plexLoc">Plex location of preroll media &nbsp;&nbsp;</Form.Label>
             <OverlayTrigger
               placement="right"
               overlay={
                 <Tooltip>
-                  This is the root location of your Plex preroll media files.
+                  This is the location of your Plex prerolls as Plex sees them.
                   <br />
                   <br />
-                  This option is only available when running the application natively. If running from Docker, it will
-                  be grayed out and you can set your root location through mounting the internal /prerolls directory to
-                  the directory of your choosing on your host system.
+                  This option is only available when running the application in a Docker container. If running natively,
+                  it will be grayed out and you can set your root location through the option above.
+                  <br />
+                  <br />
+                  The reason for this is because when running in a Docker container the internal location in the
+                  container of your media is /prerolls. You will determine the location on the host based on how you
+                  mount the /prerolls volume when starting the container. Because of that, you will need to place the
+                  location that Plex sees the preroll media here.
                 </Tooltip>
               }
             >

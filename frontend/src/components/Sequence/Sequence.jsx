@@ -1,194 +1,97 @@
 import React, { Component } from "react";
-import Client from "../Client/Client";
-import AddIcon from "../../images/add-icon.png";
-import Create from "../Create/Create";
+import Card from "react-bootstrap/Card";
+import Xclose from "bootstrap-icons/icons/x-square.svg";
+import Edit from "bootstrap-icons/icons/pencil-square.svg";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Card from "react-bootstrap/Card";
-import Modal from "react-bootstrap/Modal";
-import Button from "react-bootstrap/Button";
+import "./Sequence.css";
 
-export default class Device extends Component {
+export default class Sequence extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      clients: [],
-      isCreating: false,
-      uid: "",
-      isEdit: false,
-      show: false,
-      tempID: "",
+      id: "",
+      name: "",
+      active: true,
     };
-    this.state.clients = this.props.settings.clients;
+
+    this.state.id = this.props.id;
+    this.state.name = this.props.sequence;
+    this.handleClick = this.handleClick.bind(this.props.id);
   }
 
-  handleAddClient = () => {
-    this.setState({
-      isCreating: true,
-      isEdit: false,
-    });
+  handleClick = (e) => {
+    this.props.click(e.currentTarget.value);
   };
 
-  handleEditClient = (e) => {
-    this.setState({
-      isCreating: true,
-      isEdit: true,
-      uid: e,
-    });
-  };
-
-  handleCancelCreate = () => {
-    this.setState({ isCreating: false, isEdit: false });
-  };
-
-  handleSaveCreate = () => {
-    this.setState({ isCreating: false, isEdit: false });
-  };
-
-  handleClose = () => this.setState({ show: false });
-
-  handleOpen = (e) => {
-    this.setState({ tempID: e });
-    this.setState({ show: true, fullscreen: "md-down" });
-  };
-
-  handleDelete = (e) => {
-    e.preventDefault();
-
-    var settings = { ...this.props.settings };
-
-    const index = settings.clients.findIndex(({ uid }) => uid === this.state.tempID);
-
-    settings.clients.splice(index, 1);
-
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ show: false });
-        } else {
-          // error
-          this.setState({
-            show: false,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "/backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
-
-    this.handleSaveCreate();
-  };
-
-  handleChecked = (checked, id) => {
-    var settings = { ...this.props.settings };
-
-    const index = settings.clients.findIndex(({ uid }) => uid === id);
-
-    var client = settings.clients[index];
-    client.active = checked;
-    settings.clients.splice(index, 1, client);
-
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-        } else {
-          // error
-          this.setState({
-            show: false,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "/backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+  handleDelete = () => {
+    this.props.delete(this.state.id);
   };
 
   render() {
     return (
-      <>
-        <Row>
-          <h3>Clients</h3>
-        </Row>
-        <Row xs={2} sm="auto">
-          {this.state.clients?.map((client) => (
-            <Col>
-              <Client
-                settings={this.props.settings}
-                client={client.client.name}
-                user={client.user.name}
-                media={client.media}
-                id={client.uid}
-                click={this.handleEditClient}
-                saved={this.handleSaveCreate}
-                isEdit={this.state.isEdit}
-                isCreating={this.state.isCreating}
-                delete={this.handleOpen}
-                checked={client.active}
-                isChecked={this.handleChecked}
-              />
-              <br />
-            </Col>
-          ))}
-
-          <Col>
-            {this.state.isEdit || this.state.isCreating ? (
-              <Card style={{ width: "10rem", height: "14rem", backgroundColor: "#f8f9fa" }}>
-                <Card.Body className="d-flex align-items-center justify-content-center">
-                  <img src={AddIcon} width="100" height="100" />
-                </Card.Body>
-              </Card>
-            ) : (
-              <Card
-                style={{ width: "10rem", height: "14rem", backgroundColor: "#f8f9fa", cursor: "pointer" }}
-                onClick={this.handleAddClient}
-              >
-                <Card.Body className="d-flex align-items-center justify-content-center">
-                  <img src={AddIcon} width="100" height="100" />
-                </Card.Body>
-              </Card>
-            )}
-          </Col>
-        </Row>
-        <Row style={{ paddingLeft: "10px", paddingTop: "20px" }}>
-          {this.state.isCreating ? (
-            <Create
-              settings={this.props.settings}
-              cancel={this.handleCancelCreate}
-              saved={this.handleSaveCreate}
-              uid={this.state.uid}
-              isEdit={this.state.isEdit}
-              logout={this.props.logout}
-            />
-          ) : (
-            <h6>Click the plus to add a new device.</h6>
-          )}
-        </Row>
-        <Modal
-          show={this.state.show}
-          fullscreen={this.state.fullscreen}
-          onHide={this.handleClose}
-          size="sm"
-          backdrop="static"
+      <Card
+        style={{ width: "12rem", height: "8rem", backgroundColor: "#f8f9fa" }}
+        className="text-center"
+        border="dark"
+      >
+        <Card.Header
+          className="border-bottom-0"
+          style={{ backgroundColor: "#f8f9fa", padding: "5px", textAlign: "right" }}
         >
-          <Modal.Body>
-            <h4> Are you sure?</h4>
-            <Button onClick={this.handleDelete}>Yes</Button>&nbsp;&nbsp;&nbsp;
-            <Button variant="" onClick={this.handleClose}>
-              Cancel
-            </Button>
-          </Modal.Body>
-        </Modal>
-      </>
+          {this.props.isEdit || this.props.isCreating ? (
+            <img src={Xclose} alt="Close" />
+          ) : (
+            <img src={Xclose} onClick={this.handleDelete} style={{ cursor: "pointer" }} alt="Close" />
+          )}
+        </Card.Header>
+        <Card.Subtitle
+          className="d-flex align-items-center justify-content-center"
+          style={{ height: "4rem", paddingLeft: "5px", paddingRight: "5px" }}
+        >
+          {this.state.name}
+        </Card.Subtitle>
+        <Card.Footer className="border-top-0" style={{ backgroundColor: "#f8f9fa", padding: "5px" }}>
+          <Row>
+            <Col>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                  textAlign: "left",
+                  fontSize: "12px",
+                  height: "100%",
+                  paddingLeft: "5px",
+                }}
+              >
+                {this.props.schedule === "2" ? (
+                  <>No Schedule</>
+                ) : (
+                  <>
+                    {this.props.startMonth}/{this.props.startDay} - {this.props.endMonth}/{this.props.endDay}
+                  </>
+                )}
+              </div>
+            </Col>
+            <Col>
+              <div style={{ textAlign: "right" }}>
+                {this.props.isEdit || this.props.isCreating ? (
+                  <img src={Edit} alt="Edit" />
+                ) : (
+                  <button
+                    value={this.state.id}
+                    onClick={this.handleClick}
+                    style={{ margin: 0, padding: 0, borderWidth: "0px", backgroundColor: "inherit" }}
+                  >
+                    <img src={Edit} alt="Edit" />
+                  </button>
+                )}
+              </div>
+            </Col>
+          </Row>
+        </Card.Footer>
+      </Card>
     );
   }
 }

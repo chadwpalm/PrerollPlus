@@ -1,11 +1,9 @@
 import React from "react";
 import { Component } from "react";
 import Loading from "../../images/loading-gif.gif";
-import Logo from "../../images/lumunarr-logo.png";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../Login/Login";
-import Bridge from "../Bridge/Bridge";
-import Sequence from "../Sequence/Sequence";
+import Sequences from "../Sequences/Sequences";
 import Buckets from "../Buckets/Buckets";
 import Settings from "../Settings/Settings";
 import Announce from "./Announce";
@@ -37,7 +35,7 @@ export default class App extends Component {
     announce: false,
     first: false,
     dismiss: false,
-    announcement: true, //master key to show an announcement after version update
+    announcement: false, //master key to show an announcement after version update
   };
 
   componentDidMount() {
@@ -394,7 +392,7 @@ export default class App extends Component {
                       <>
                         <Route
                           path="/"
-                          element={<Sequence settings={this.state.config} logout={this.handleLogout} />}
+                          element={<Sequences settings={this.state.config} logout={this.handleLogout} />}
                         />
                         <Route path="/buckets" element={<Buckets settings={this.state.config} />} />
                         <Route path="*" element={<Navigate replace to="/" />} />
