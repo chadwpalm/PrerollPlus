@@ -58,4 +58,4 @@ Scheduled sequences will automatically assert on the first day the sequence star
 - [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)
 - Copyright 2024
 
-Preroll Plus is not affiliated or endorsed by Plex Inc.\_
+_Preroll Plus is not affiliated or endorsed by Plex Inc._

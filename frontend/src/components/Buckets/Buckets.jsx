@@ -51,14 +51,17 @@ export default class Buckets extends Component {
     this.setState({ show: true, fullscreen: "md-down" });
   };
 
-  handleDelete = (e) => {
-    e.preventDefault();
-
+  handleDelete = () => {
     var settings = { ...this.props.settings };
 
     const index = settings.buckets.findIndex(({ id }) => id === this.state.tempID);
 
     settings.buckets.splice(index, 1);
+
+    settings.sequences = settings.sequences.map((sequence) => ({
+      ...sequence,
+      buckets: sequence.buckets.filter((bucketId) => bucketId.id !== this.state.tempID),
+    }));
 
     var xhr = new XMLHttpRequest();
 
@@ -80,6 +83,7 @@ export default class Buckets extends Component {
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
+    this.props.settings = settings;
     this.handleSaveCreate();
   };
 
