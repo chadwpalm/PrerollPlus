@@ -3,10 +3,6 @@ var router = express.Router();
 var multer = require("multer");
 var fs = require("fs");
 var axios = require("axios").default;
-var https = require("https");
-var path = require("path");
-const { setTimeout: setTimeoutPromise } = require("timers/promises");
-const { error } = require("console");
 
 // Global Variables
 
@@ -27,6 +23,9 @@ function checkSchedule() {
   today.setHours(0, 0, 0, 0);
   const currentYear = today.getFullYear();
 
+  // Convert today's date to a number that can be compared to other dates
+  const todayNumber = new Date(currentYear, today.getMonth(), today.getDate()).getTime();
+
   for (let idx = 0; idx < settings.sequences.length; idx++) {
     const element = settings.sequences[idx];
 
@@ -37,20 +36,23 @@ function checkSchedule() {
       continue; // Skip to the next element
     }
 
-    const startDate = new Date(currentYear, element.startMonth - 1, element.startDay);
-    const endDate = new Date(currentYear, element.endMonth - 1, element.endDay);
+    // Convert the sequence start and end dates to timestamps for comparison
+    const startNumber = new Date(currentYear, element.startMonth - 1, element.startDay).getTime();
+    const endNumber = new Date(currentYear, element.endMonth - 1, element.endDay).getTime();
 
-    // Check date ranges including wrap-around
+    // Handle ranges that do not wrap and those that do wrap around the end of the year
+    const isWrapped = startNumber > endNumber;
+
     if (
-      (startDate <= endDate && today >= startDate && today <= endDate) ||
-      (startDate > endDate &&
-        (today >= startDate || today <= new Date(currentYear + 1, element.endMonth - 1, element.endDay)))
+      (isWrapped && (todayNumber >= startNumber || todayNumber <= endNumber)) ||
+      (!isWrapped && todayNumber >= startNumber && todayNumber <= endNumber)
     ) {
       index = idx;
       foundDateMatch = true;
       break; // Break early if a match is found
     }
   }
+
   return index;
 }
 
@@ -102,19 +104,43 @@ function doTask() {
   sendList(string);
 }
 
+// Function to calculate delay until the desired time (3:00 PM)
+function getDelayUntilTargetTime(hour, minute) {
+  const now = new Date();
+  const targetTime = new Date();
+
+  targetTime.setHours(hour, minute, 0, 0); // Set target time to 3:00 PM today
+
+  if (targetTime <= now) {
+    // If the target time has already passed today, schedule for tomorrow
+    targetTime.setDate(targetTime.getDate() + 1);
+  }
+
+  // Calculate the delay in milliseconds
+  return targetTime - now;
+}
+
+// Schedule the initial run
+const delay = getDelayUntilTargetTime(0, 0); // 3:00 PM
+
 // Periodic Task to Check Schedules
-async function myAsyncTask() {
+function myAsyncTask() {
   try {
+    settings = JSON.parse(fs.readFileSync(filePath));
     // Your async code here
     console.log("Task running...");
-    // Simulate an async operation, like fetching data
+    doTask();
   } catch (error) {
     console.error("Error in async task:", error);
   }
 }
 
-// Set the task to run every 10 seconds (10000 milliseconds)
-// setInterval(myAsyncTask, 5000);
+// Set the task to run every day
+setTimeout(() => {
+  myAsyncTask();
+
+  setInterval(myAsyncTask, 24 * 60 * 60 * 1000);
+}, delay);
 
 router.post("/", upload.single("thumb"), async function (req, res, next) {
   var payload = JSON.parse(req.body.payload);
@@ -131,6 +157,12 @@ router.post("/", upload.single("thumb"), async function (req, res, next) {
     console.log("There was an error", e);
     res.sendStatus(200);
   }
+});
+
+router.get("/", function (req, res, next) {
+  settings = JSON.parse(fs.readFileSync(filePath));
+  doTask();
+  res.sendStatus(200);
 });
 
 module.exports = router;

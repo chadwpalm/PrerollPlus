@@ -1,0 +1,21 @@
+.navbar-container {
+    padding: 0;
+  }
+  
+  .navbar {
+    padding-left: 0.8rem;
+  }
+  
+  .nav-profile-img {
+    height: 2rem;
+  }
+  
+  .nav-update-badge {
+    position: relative;
+    top: -0.25rem;
+  }
+  
+  .logout-icon {
+    height: 1rem;
+  }
+  

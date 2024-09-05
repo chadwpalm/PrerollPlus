@@ -4,8 +4,8 @@ pipeline {
 
   environment {
       REPO="chadwpalm"
-      IMAGE_NAME="lumunarr"
-      BUILD_CRED=credentials('b5555926-7439-43d8-a28d-f0e3b9b67724')
+      IMAGE_NAME="prerollplus"
+      BUILD_CRED=credentials('c8678c85-1f8d-4dc0-b9b0-e7fe12d6a24a')
   }
 
   options {

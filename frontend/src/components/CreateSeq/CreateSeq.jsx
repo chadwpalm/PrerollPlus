@@ -12,7 +12,6 @@ import LeftArrow from "bootstrap-icons/icons/arrow-left.svg";
 import DownArrow from "bootstrap-icons/icons/arrow-down.svg";
 import DownArrowShort from "bootstrap-icons/icons/arrow-down-short.svg";
 import Modal from "react-bootstrap/Modal";
-import ListGroupItem from "react-bootstrap/esm/ListGroupItem";
 
 export default class Create extends Component {
   constructor(props) {
@@ -143,7 +142,7 @@ export default class Create extends Component {
     this.setState({ name: e.target.value.toString(), isSaved: false });
   };
 
-  handleFormSubmit = (e) => {
+  handleFormSubmit = async (e) => {
     e.preventDefault();
 
     this.setState({ isIncomplete: false });
@@ -205,9 +204,9 @@ export default class Create extends Component {
     const newEnd = { month: temp.endMonth, day: temp.endDay };
 
     const overlapFound = settings.sequences
-      .filter(({ id }) => id !== temp.id) // Exclude the current sequence by ID
-      .some(({ startMonth, startDay, endMonth, endDay, schedule }) => {
-        if (schedule === "1") {
+      .filter(({ id, schedule }) => id !== temp.id && schedule !== "2") // Exclude the current sequence by ID
+      .some(({ startMonth, startDay, endMonth, endDay }) => {
+        if (this.state.schedule === "1") {
           const existingStart = { month: startMonth, day: startDay };
           const existingEnd = { month: endMonth, day: endDay };
           return isOverlap(newStart, newEnd, existingStart, existingEnd);
@@ -233,6 +232,21 @@ export default class Create extends Component {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
           this.setState({ isSaved: true });
+          var xhr2 = new XMLHttpRequest();
+          xhr2.addEventListener("readystatechange", () => {
+            if (xhr2.readyState === 4) {
+              if (xhr2.status === 200) {
+              } else {
+                this.setState({
+                  error: xhr2.responseText,
+                });
+              }
+            }
+          });
+
+          xhr2.open("GET", "/webhook", true);
+          xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+          xhr2.send();
         } else {
           this.setState({
             error: xhr.responseText,

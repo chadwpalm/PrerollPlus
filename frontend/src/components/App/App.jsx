@@ -79,10 +79,9 @@ export default class App extends Component {
               .catch(function (error) {});
           }
 
-          // if (!online) {
-          //   this.setState({ isOnline: false });
-          // } else
-          {
+          if (!online) {
+            this.setState({ isOnline: false });
+          } else {
             this.setState({
               isLoaded: true,
               config: json,
