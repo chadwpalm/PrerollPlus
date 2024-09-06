@@ -31,7 +31,7 @@ export default class Sequence extends Component {
   render() {
     return (
       <Card
-        style={{ width: "12rem", height: "8rem", backgroundColor: "#f8f9fa" }}
+        style={{ width: "10rem", height: "8rem", backgroundColor: "#f8f9fa" }}
         className="text-center"
         border="dark"
       >
@@ -53,7 +53,7 @@ export default class Sequence extends Component {
         </Card.Subtitle>
         <Card.Footer className="border-top-0" style={{ backgroundColor: "#f8f9fa", padding: "5px" }}>
           <Row>
-            <Col>
+            <Col xs={8}>
               <div
                 style={{
                   display: "flex",
@@ -74,7 +74,7 @@ export default class Sequence extends Component {
                 )}
               </div>
             </Col>
-            <Col>
+            <Col xs={4}>
               <div style={{ textAlign: "right" }}>
                 {this.props.isEdit || this.props.isCreating ? (
                   <img src={Edit} alt="Edit" />

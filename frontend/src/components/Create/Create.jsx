@@ -266,7 +266,7 @@ export default class Create extends Component {
         <Form.Label for="name">Name of bucket &nbsp;&nbsp;</Form.Label>
         <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
         <div style={{ paddingBottom: "0.75rem" }} />
-        <Row xs={2} sm="auto">
+        <Row xs={1} sm="auto">
           <Col>
             <Button onClick={this.handleRemove} type="submit" variant="light">
               Remove

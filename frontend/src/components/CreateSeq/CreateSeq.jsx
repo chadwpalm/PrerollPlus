@@ -28,7 +28,7 @@ export default class Create extends Component {
         endMonth: info.endMonth,
         endDay: info.endDay,
         schedule: info.schedule,
-        buckets: info.buckets,
+        buckets: info.buckets.map((bucket) => ({ ...bucket, uid: uuid() })),
         selectedBucket: {},
         selectedSequence: {},
         isError: false,
@@ -72,6 +72,7 @@ export default class Create extends Component {
   handleClickBuckets = (e) => {
     const target = e.currentTarget;
     var temp = JSON.parse(target.value);
+    console.log(temp);
 
     this.setState({ selectedSequence: temp });
   };
@@ -85,7 +86,7 @@ export default class Create extends Component {
 
   handleAdd = () => {
     this.setState((prevState) => ({
-      buckets: [...prevState.buckets, { id: this.state.selectedBucket.id }], // Add the object directly
+      buckets: [...prevState.buckets, { id: this.state.selectedBucket.id, uid: uuid() }], // Add the object directly
     }));
   };
 
@@ -93,7 +94,7 @@ export default class Create extends Component {
     this.setState((prevState) => {
       const newBuckets = [...prevState.buckets]; // Create a copy of the current media state
 
-      const index = newBuckets.findIndex((item) => item.id === this.state.selectedSequence.id); // Find the index of the first matching element
+      const index = newBuckets.findIndex((item) => item.uid === this.state.selectedSequence.uid); // Find the index of the first matching element
       if (index !== -1) {
         newBuckets.splice(index, 1); // Remove the first matching element
       }
@@ -105,7 +106,7 @@ export default class Create extends Component {
   handleMoveUp = () => {
     this.setState((prevState) => {
       const newBuckets = [...prevState.buckets];
-      const index = newBuckets.findIndex((item) => item.id === this.state.selectedSequence.id);
+      const index = newBuckets.findIndex((item) => item.uid === this.state.selectedSequence.uid);
 
       // Check if index is valid and not at the start
       if (index <= 0 || index >= newBuckets.length) {
@@ -123,7 +124,7 @@ export default class Create extends Component {
   handleMoveDown = () => {
     this.setState((prevState) => {
       const newBuckets = [...prevState.buckets];
-      const index = newBuckets.findIndex((item) => item.id === this.state.selectedSequence.id);
+      const index = newBuckets.findIndex((item) => item.uid === this.state.selectedSequence.uid);
 
       // Check if index is valid and not at the start
       if (index === -1 || index >= newBuckets.length - 1) {
@@ -175,7 +176,7 @@ export default class Create extends Component {
       startMonth: this.state.startMonth,
       endDay: this.state.endDay,
       endMonth: this.state.endMonth,
-      buckets: this.state.buckets,
+      buckets: this.state.buckets.map(({ uid, ...rest }) => rest),
     };
 
     // Improved overlap detection
@@ -383,8 +384,8 @@ export default class Create extends Component {
         ) : (
           <></>
         )}
-        <Row xs={2} sm="auto">
-          <Col>
+        <Row xs={1} sm="auto">
+          <Col xs="auto">
             {/* File Listing */}
             <div style={{ fontSize: "12px" }}>
               <Card style={{ width: "22rem", backgroundColor: "#ffffff", borderRadius: "0" }}>
@@ -399,7 +400,7 @@ export default class Create extends Component {
                       <ListGroup.Item>&lt;Add Buckets Here&gt;</ListGroup.Item>
                     ) : (
                       this.state.buckets.map((bucket, idx) => (
-                        <React.Fragment key={bucket.id}>
+                        <React.Fragment key={bucket.uid}>
                           {idx !== 0 && (
                             <ListGroup.Item style={{ height: "25%", padding: "2px", border: "bottom" }}>
                               <div
@@ -414,7 +415,7 @@ export default class Create extends Component {
                               </div>
                             </ListGroup.Item>
                           )}
-                          {this.state.selectedSequence.id === bucket.id ? (
+                          {this.state.selectedSequence.uid === bucket.uid ? (
                             <ListGroup.Item
                               value={JSON.stringify(bucket)}
                               action
@@ -457,12 +458,13 @@ export default class Create extends Component {
             </Button>
             <div style={{ paddingBottom: "0.75rem" }} />
           </Col>
-          <Col className="d-flex align-items-center justify-content-center">
+          <Col xs="auto" className="d-flex align-items-center justify-content-center">
             <Button onClick={this.handleAdd} variant="light">
               <img src={LeftArrow} alt="UpArrow" />
             </Button>
+            <div style={{ paddingBottom: "0.75rem" }} />
           </Col>
-          <Col>
+          <Col xs="auto">
             {/* Bucket Listing */}
             <div style={{ fontSize: "12px" }}>
               <Card style={{ width: "22rem", backgroundColor: "#ffffff", borderRadius: "0" }}>
