@@ -1,6 +1,6 @@
 # Preroll Plus
 
-Preroll Plus is a dynamic preroll updater and scheduler. This app bypasses the limitations Plex has for combining random and sequential prerolls (using the "," and ";" delimiters). It works by using Plex webhooks to update the preroll string in Plex whenever a movie is started so that file sets that require randomization and still be randomized while maintaining a broader sequence.
+Preroll Plus is a dynamic preroll updater and scheduler. This app bypasses the limitations Plex has for combining random and sequential prerolls (using the "," and ";" delimiters). It works by using Plex webhooks to update the preroll string in Plex whenever a movie is started, allowing file sets that require randomization to remain randomized while maintaining a broader sequence.
 
 For example:
 

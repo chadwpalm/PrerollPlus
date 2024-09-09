@@ -111,15 +111,15 @@ export default class Settings extends Component {
               cert: `${element.cert}`,
             });
             //create remote insecure
-            tempList.push({
-              index: ++index,
-              name: `${element.name}`,
-              ip: `${element.remoteIP}`,
-              port: `${element.port}`,
-              location: "remote",
-              secure: false,
-              cert: `${element.cert}`,
-            });
+            // tempList.push({
+            //   index: ++index,
+            //   name: `${element.name}`,
+            //   ip: `${element.remoteIP}`,
+            //   port: `${element.port}`,
+            //   location: "remote",
+            //   secure: false,
+            //   cert: `${element.cert}`,
+            // });
             //create local secure
             tempList.push({
               index: ++index,
@@ -129,16 +129,16 @@ export default class Settings extends Component {
               secure: true,
               cert: `${element.cert}`,
             });
-            //create remove secure
-            tempList.push({
-              index: ++index,
-              name: `${element.name}`,
-              ip: `${element.remoteIP}`,
-              port: `${element.port}`,
-              location: "remote",
-              secure: true,
-              cert: `${element.cert}`,
-            });
+            //create remote secure
+            // tempList.push({
+            //   index: ++index,
+            //   name: `${element.name}`,
+            //   ip: `${element.remoteIP}`,
+            //   port: `${element.port}`,
+            //   location: "remote",
+            //   secure: true,
+            //   cert: `${element.cert}`,
+            // });
 
             this.setState({ servers: tempList });
           });
@@ -285,6 +285,8 @@ export default class Settings extends Component {
             <div style={{ paddingBottom: "0.75rem" }} />
             <Form.Label for="ssl">Use SSL &nbsp;&nbsp;</Form.Label>
             <Form.Check checked={this.state.ssl} id="ssl" name="ssl" onChange={this.handleSSL}></Form.Check>
+            <div style={{ paddingBottom: "0.75rem" }} />
+            <h5>Preroll Media &nbsp;&nbsp;</h5>
             <div style={{ paddingBottom: "0.75rem" }} />
             <Form.Label for="loc">Location of preroll media &nbsp;&nbsp;</Form.Label>
             <OverlayTrigger

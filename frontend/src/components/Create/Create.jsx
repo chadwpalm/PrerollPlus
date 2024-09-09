@@ -275,11 +275,11 @@ export default class Create extends Component {
             {/* File Listing */}
             <div style={{ fontSize: "12px" }}>
               <Card style={{ width: "22rem", backgroundColor: "#ffffff", borderRadius: "0" }}>
-                {/* <Card.Title className="m-0 p-2">
+                <Card.Title className="m-0 p-2">
                   <ListGroup.Item style={{ fontSize: "14px" }} variant="light">
-                    {this.state.name}
+                    Files in bucket
                   </ListGroup.Item>
-                </Card.Title> */}
+                </Card.Title>
                 <Card.Body className="m-0 p-0" style={{ height: "500px", overflowY: "auto", margin: false }}>
                   <ListGroup variant="flush">
                     {this.state.media.length === 0 ? (
