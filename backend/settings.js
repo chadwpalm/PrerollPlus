@@ -26,6 +26,16 @@ router.post("/", async function (req, res, next) {
       } else {
         serverList.push(servers);
       }
+
+      console.debug("Found", serverList.length, "Plex servers");
+      for (var i = 0; i < serverList.length; i++) {
+        console.debug("Server", i + 1, "info:");
+        console.debug("Name:", serverList[i]._attributes.name);
+        console.debug("External Address:", serverList[i]._attributes.address);
+        console.debug("External Port:", serverList[i]._attributes.port);
+        console.debug("Local Address:", serverList[i]._attributes.localAddresses);
+        console.debug("Local Port: 32400");
+      }
     })
     .catch(function (error) {
       if (error.response.status === 401) {
@@ -39,6 +49,7 @@ router.post("/", async function (req, res, next) {
     var certId;
     var info = {};
     var url = `http://${element._attributes.localAddresses}:32400/:/prefs`;
+    console.debug("Retrieving Cert from URL:", url);
 
     await axios
       .get(url, { timeout: 10000, params: { "X-Plex-Token": req.body.token } })
@@ -61,8 +72,8 @@ router.post("/", async function (req, res, next) {
       .catch(function (error) {
         unauth = true;
 
-        console.error("Issue with connection to Plex Server: ", error.message);
-        message.push("Issue with connection to Plex Server. Check logs for reason.");
+        console.error("Issue with connection to Plex Server while retrieving cert: ", error.message);
+        message.push("Issue with connection to Plex Server while retrieving cert. Check logs for reason.");
       });
   }
 
