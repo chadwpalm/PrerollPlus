@@ -18,7 +18,6 @@ export default class Settings extends Component {
         ssl: this.props.settings.settings.ssl,
         loc: this.props.settings.settings.loc,
         plexLoc: this.props.settings.settings.plexLoc,
-        serverNum: "0",
         servers: [],
         isGetting: false,
         isLoaded: false,
@@ -33,7 +32,6 @@ export default class Settings extends Component {
         ssl: false,
         loc: "/prerolls",
         plexLoc: "",
-        serverNum: "0",
         servers: [],
         isGetting: false,
         isLoaded: false,
@@ -100,49 +98,29 @@ export default class Settings extends Component {
           var tempList = [];
           var index = 0;
 
-          json.forEach((element) => {
-            //create local insecure
-            tempList.push({
-              index: ++index,
-              name: `${element.name}`,
-              ip: `${element.localIP}`,
-              location: "local",
-              secure: false,
-              cert: `${element.cert}`,
-            });
-            //create remote insecure
-            // tempList.push({
-            //   index: ++index,
-            //   name: `${element.name}`,
-            //   ip: `${element.remoteIP}`,
-            //   port: `${element.port}`,
-            //   location: "remote",
-            //   secure: false,
-            //   cert: `${element.cert}`,
-            // });
-            //create local secure
-            tempList.push({
-              index: ++index,
-              name: `${element.name}`,
-              ip: `${element.localIP}`,
-              location: "local",
-              secure: true,
-              cert: `${element.cert}`,
-            });
-            //create remote secure
-            // tempList.push({
-            //   index: ++index,
-            //   name: `${element.name}`,
-            //   ip: `${element.remoteIP}`,
-            //   port: `${element.port}`,
-            //   location: "remote",
-            //   secure: true,
-            //   cert: `${element.cert}`,
-            // });
-
-            this.setState({ servers: tempList });
+          const createServerEntry = (element, index, secure, location) => ({
+            index: index,
+            name: element.name,
+            ip: location === "remote" ? element.remoteIP : element.localIP,
+            port: element.port,
+            location,
+            secure,
+            cert: element.cert,
+            certSuccessful: element.certSuccessful,
           });
 
+          for (const element of json) {
+            if (element.certSuccessful) {
+              tempList.push(createServerEntry(element, ++index, false, "local"));
+              tempList.push(createServerEntry(element, ++index, false, "remote"));
+              tempList.push(createServerEntry(element, ++index, true, "local"));
+              tempList.push(createServerEntry(element, ++index, true, "remote"));
+            } else {
+              tempList.push(createServerEntry(element, ++index, false, "unreachable"));
+            }
+          }
+
+          this.setState({ servers: tempList });
           this.setState({ isLoaded: true });
         } else {
           // error
@@ -157,10 +135,6 @@ export default class Settings extends Component {
     xhr.open("POST", "/backend/settings", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(this.props.settings));
-  };
-
-  handleServers = (e) => {
-    this.setState({ serverNum: e.target.value.toString() });
   };
 
   handleServerChange = (e) => {
@@ -236,27 +210,20 @@ export default class Settings extends Component {
             <Form.Label for="serverList">Server &nbsp;&nbsp;</Form.Label>
             <Stack gap={1} direction="horizontal">
               {this.state.isLoaded ? (
-                <Form.Select
-                  option={this.state.serverNum}
-                  id="serverList"
-                  name="serverList"
-                  onChange={this.handleServerChange}
-                  size="sm"
-                >
+                <Form.Select option="0" id="serverList" name="serverList" onChange={this.handleServerChange} size="sm">
                   <option value="0">Manual configuration</option>
                   {this.state.servers.map((server) => (
-                    <>
-                      {server.secure ? (
-                        <option value={server.index}>
-                          {server.name} ({server.ip.replace(/\./g, "-")}.{server.cert}.plex.direct [{server.location}]
-                          [secure])
-                        </option>
-                      ) : (
-                        <option value={server.index}>
-                          {server.name} ({server.ip}) [{server.location}]
-                        </option>
-                      )}
-                    </>
+                    <option
+                      key={server.index} // It's a good practice to add a unique key for list items
+                      value={server.index}
+                      disabled={!server.certSuccessful} // Add disabled if certSuccessful is false
+                    >
+                      {server.secure
+                        ? `${server.name} (${server.ip.replace(/\./g, "-")}.${server.cert}.plex.direct [${
+                            server.location
+                          }] [secure])`
+                        : `${server.name} (${server.ip}) [${server.location}]`}
+                    </option>
                   ))}
                 </Form.Select>
               ) : (

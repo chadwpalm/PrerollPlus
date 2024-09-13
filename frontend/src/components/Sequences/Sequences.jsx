@@ -66,6 +66,22 @@ export default class Sequences extends Component {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
           this.setState({ show: false });
+
+          var xhr2 = new XMLHttpRequest();
+          xhr2.addEventListener("readystatechange", () => {
+            if (xhr2.readyState === 4) {
+              if (xhr2.status === 200) {
+              } else {
+                this.setState({
+                  error: xhr2.responseText,
+                });
+              }
+            }
+          });
+
+          xhr2.open("GET", "/webhook", true);
+          xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+          xhr2.send();
         } else {
           // error
           this.setState({

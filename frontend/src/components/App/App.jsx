@@ -306,7 +306,7 @@ export default class App extends Component {
                           </NavDropdown.Item>
                           {this.state.isUpdate ? (
                             <NavDropdown.Item
-                              href="https://github.com/chadwpalm/PlexPlus/blob/develop/history.md"
+                              href="https://github.com/chadwpalm/PrerollPlus/blob/develop/history.md"
                               target="_blank"
                               style={{ color: "red" }}
                             >

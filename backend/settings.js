@@ -6,86 +6,82 @@ var parser = require("xml-js");
 router.post("/", async function (req, res, next) {
   var serverList = [];
   var finalList = [];
-  var message = [];
   var unauth = false;
 
-  var url = "https://plex.tv/api/servers";
+  const token = req.body.token;
+  const plexApiUrl = "https://plex.tv/api/servers";
 
-  await axios
-    .get(url, { timeout: 10000, params: { "X-Plex-Token": req.body.token } })
+  try {
+    console.info("Retrieving Plex Servers");
+    const response = await axios.get(plexApiUrl, { timeout: 10000, params: { "X-Plex-Token": token } });
+    const servers = parser.xml2js(response.data, { compact: true, spaces: 4 }).MediaContainer.Server;
 
-    .then(function (response) {
-      console.info("Retrieving Plex Servers");
+    if (Array.isArray(servers)) {
+      serverList = servers;
+    } else if (!servers) {
+      serverList = [];
+    } else {
+      serverList.push(servers);
+    }
 
-      var servers = parser.xml2js(response.data, { compact: true, spaces: 4 }).MediaContainer.Server;
+    console.debug("Found", serverList.length, "Plex servers");
 
-      if (Array.isArray(servers)) {
-        serverList = servers;
-      } else if (!servers || servers === undefined) {
-        servers = [];
-      } else {
-        serverList.push(servers);
-      }
-
-      console.debug("Found", serverList.length, "Plex servers");
-      for (var i = 0; i < serverList.length; i++) {
-        console.debug("Server", i + 1, "info:");
-        console.debug("Name:", serverList[i]._attributes.name);
-        console.debug("External Address:", serverList[i]._attributes.address);
-        console.debug("External Port:", serverList[i]._attributes.port);
-        console.debug("Local Address:", serverList[i]._attributes.localAddresses);
-        console.debug("Local Port: 32400");
-      }
-    })
-    .catch(function (error) {
-      if (error.response.status === 401) {
-        unauth = true;
-      }
-      console.error("Issue with connection to online Plex account while requesting servers: ", error.message);
-      message.push("Issue with connection to online Plex account while requesting servers. Check logs for reason.");
-    });
+    for (let i = 0; i < serverList.length; i++) {
+      console.debug(`Server ${i + 1} info:`);
+      console.debug("Name:", serverList[i]._attributes.name);
+      console.debug("Owned:", serverList[i]._attributes.owned);
+      console.debug("External Address:", serverList[i]._attributes.address);
+      console.debug("External Port:", serverList[i]._attributes.port);
+      console.debug("Local Address:", serverList[i]._attributes.localAddresses);
+      console.debug("Local Port: 32400");
+    }
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      unauth = true;
+    }
+    console.error("Issue with connection to online Plex account while requesting servers:", error.message);
+  }
 
   for (const element of serverList) {
-    var certId;
-    var info = {};
-    var url = `http://${element._attributes.localAddresses}:32400/:/prefs`;
-    console.debug("Retrieving Cert from URL:", url);
+    if (element._attributes.owned === "1") {
+      const localAddresses = element._attributes.localAddresses.split(","); // Split multiple local addresses by commas
 
-    await axios
-      .get(url, { timeout: 10000, params: { "X-Plex-Token": req.body.token } })
+      for (const localIP of localAddresses) {
+        const localUrl = `http://${localIP.trim()}:32400/:/prefs`; // Trim whitespace and form the URL
+        console.debug("Retrieving Cert from URL:", localUrl);
 
-      .then(function (response) {
-        console.info("Retrieving Cert");
+        try {
+          const response = await axios.get(localUrl, { timeout: 500, params: { "X-Plex-Token": token } });
 
-        certId = response.data.MediaContainer.Setting.find((id) => id.id === "CertificateUUID");
+          let certId = response.data.MediaContainer.Setting.find((id) => id.id === "CertificateUUID");
 
-        info = {
-          name: `${element._attributes.name}`,
-          localIP: `${element._attributes.localAddresses}`,
-          remoteIP: `${element._attributes.address}`,
-          port: `${element._attributes.port}`,
-          cert: `${certId.value}`,
-        };
+          // Push the server info, marking certSuccessful as true if the cert is found
+          finalList.push({
+            name: element._attributes.name,
+            localIP: localIP.trim(),
+            remoteIP: element._attributes.address,
+            port: element._attributes.port,
+            cert: certId ? certId.value : null, // Only include cert if it exists
+            certSuccessful: certId !== undefined, // Flag indicating whether cert was found or not
+          });
+        } catch (error) {
+          // On failure, still push the server info but set certSuccessful to false
+          finalList.push({
+            name: element._attributes.name,
+            localIP: localIP.trim(),
+            remoteIP: element._attributes.address,
+            port: element._attributes.port,
+            cert: null, // No cert available on failure
+            certSuccessful: false, // Mark the cert as unsuccessful
+          });
 
-        finalList.push(info);
-      })
-      .catch(function (error) {
-        unauth = true;
-
-        console.error("Issue with connection to Plex Server while retrieving cert: ", error.message);
-        message.push("Issue with connection to Plex Server while retrieving cert. Check logs for reason.");
-      });
-  }
-
-  if (message.length !== 0) {
-    if (unauth) {
-      res.status(401).send(JSON.stringify([]));
-    } else {
-      res.status(403).send(JSON.stringify(message));
+          console.error(`Issue with connection to Plex Server at ${localIP}:`, error.message);
+        }
+      }
     }
-  } else {
-    res.send(JSON.stringify(finalList));
   }
+
+  res.send(JSON.stringify(finalList));
 });
 
 module.exports = router;

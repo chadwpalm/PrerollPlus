@@ -26,11 +26,11 @@ if (process.env.PGID) {
   GID = os.userInfo().gid;
 }
 
-if (process.env.BUILD) {
-  build = process.env.BUILD;
-} else {
-  build = "Native";
-}
+// if (process.env.BUILD) {
+//   build = process.env.BUILD;
+// } else {
+//   build = "Native";
+// }
 
 var fileData = `{"connected": "false","platform":"${
   os.platform

@@ -60,18 +60,33 @@ function createList(index) {
   var plexString = "";
   if (index !== -1) {
     const bucketIds = settings.sequences[index].buckets;
+    let usedFiles = new Set(); // Set to keep track of used files
+
     bucketIds.forEach((bucketId, idx) => {
       var files = [];
       var info = settings.buckets.find(({ id }) => id === bucketId.id.toString());
+
       info.media.forEach((media) => {
         files.push(
-          `${settings.build === "Native" ? settings.settings.loc : settings.settings.plexLoc}${media.dir}/${media.file}`
+          `${settings.build === "Native" ? settings.settings.loc : settings.settings.plexLoc}${
+            media.dir.replace(/\/$/, "") // Remove trailing slash from dir if exists
+          }/${
+            media.file.replace(/^\//, "") // Remove leading slash from file if exists
+          }`
         );
       });
+
+      let randomFile;
+      do {
+        randomFile = files[Math.floor(Math.random() * info.media.length)];
+      } while (usedFiles.has(randomFile)); // Keep picking until an unused file is found
+
+      usedFiles.add(randomFile); // Mark the selected file as used
+
       if (idx === bucketIds.length - 1) {
-        plexString += files[Math.floor(Math.random() * info.media.length)];
+        plexString += randomFile;
       } else {
-        plexString += files[Math.floor(Math.random() * info.media.length)] + ",";
+        plexString += randomFile + ",";
       }
     });
   }

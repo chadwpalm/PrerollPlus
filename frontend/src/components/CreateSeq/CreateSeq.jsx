@@ -85,9 +85,15 @@ export default class Create extends Component {
   };
 
   handleAdd = () => {
-    this.setState((prevState) => ({
-      buckets: [...prevState.buckets, { id: this.state.selectedBucket.id, uid: uuid() }], // Add the object directly
-    }));
+    // Check if selectedBucket is not undefined and has at least one key
+    if (this.state.selectedBucket && Object.keys(this.state.selectedBucket).length > 0) {
+      this.setState((prevState) => ({
+        buckets: [
+          ...prevState.buckets,
+          { id: this.state.selectedBucket.id, uid: uuid() }, // Add the object if valid
+        ],
+      }));
+    }
   };
 
   handleRemove = () => {
@@ -523,7 +529,7 @@ export default class Create extends Component {
         &nbsp;&nbsp;
         {this.state.isIncomplete ? (
           <i style={{ color: "#f00" }}>
-            &nbsp; There must be at least one item in the list and a bucket name must be filled.{" "}
+            &nbsp; There must be at least one item in the list and a sequence name must be filled.
           </i>
         ) : (
           <></>
