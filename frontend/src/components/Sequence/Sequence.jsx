@@ -31,9 +31,17 @@ export default class Sequence extends Component {
   render() {
     return (
       <Card
-        style={{ width: "10rem", height: "8rem", backgroundColor: "#f8f9fa" }}
+        style={{
+          width: "10rem",
+          height: "8rem",
+          backgroundColor: "#f8f9fa",
+          border:
+            (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId
+              ? "2px solid red"
+              : "1px solid transparent",
+        }}
         className="text-center"
-        border="dark"
+        border={(this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId ? "none" : "dark"}
       >
         <Card.Header
           className="border-bottom-0"

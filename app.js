@@ -12,6 +12,7 @@ var save = require("./backend/save");
 var thumb = require("./backend/thumb");
 var settings = require("./backend/settings");
 var directory = require("./backend/directory");
+var streamer = require("./backend/streamer");
 
 var app = express();
 
@@ -32,6 +33,7 @@ app.use("/backend/save", save);
 app.use("/backend/thumb", thumb);
 app.use("/backend/settings", settings);
 app.use("/backend/directory", directory);
+app.use("/backend/streamer", streamer);
 app.use("/webhook", webhookRouter);
 app.use("/*", uiRouter);
 

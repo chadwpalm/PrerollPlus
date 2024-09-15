@@ -223,8 +223,17 @@ export default class App extends Component {
           // success
           return (
             <Router>
-              <Container fluid>
-                <Row style={{ borderBottom: "solid", borderBottomColor: "black" }}>
+              <Container fluid style={{ padding: 0 }}>
+                <Row
+                  style={{
+                    borderBottom: "solid",
+                    borderBottomColor: "black",
+                    position: "sticky",
+                    top: "0",
+                    zIndex: "1000",
+                    boxShadow: "0 3px 0px 0px #e93663",
+                  }}
+                >
                   <Navbar
                     style={{
                       backgroundColor: "#ddd",
@@ -375,8 +384,6 @@ export default class App extends Component {
                     paddingLeft: 30,
                     paddingTop: 30,
                     paddingRight: 30,
-                    borderTop: "solid",
-                    borderTopColor: "#e93663",
                   }}
                 >
                   <Routes>

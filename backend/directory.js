@@ -29,6 +29,7 @@ router.post("/", function (req, res, next) {
     });
   } catch (err) {
     console.info("Directory not found", err);
+    res.send(JSON.stringify(null));
   }
 
   res.send(JSON.stringify(dirRet));

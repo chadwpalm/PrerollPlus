@@ -7,6 +7,7 @@ import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Badge from "react-bootstrap/Badge";
+import LeftArrow from "bootstrap-icons/icons/arrow-left.svg";
 
 export default class Create extends Component {
   constructor(props) {
@@ -28,6 +29,10 @@ export default class Create extends Component {
         isError: false,
         isSaved: false,
         isIncomplete: false,
+        player: false,
+        videoIndex: 0,
+        tempList: [],
+        tempLength: 0,
       };
     } else {
       this.state = {
@@ -42,10 +47,16 @@ export default class Create extends Component {
         isError: false,
         isSaved: false,
         isIncomplete: false,
+        player: false,
+        videoIndex: 0,
+        tempList: [],
+        tempLength: 0,
       };
     }
 
+    this.videoRef = createRef();
     this.handleFormSubmit = this.handleFormSubmit.bind(this);
+    this.handleStreamer = this.handleStreamer.bind(this);
   }
 
   componentDidMount() {
@@ -260,6 +271,50 @@ export default class Create extends Component {
     this.props.saved();
   };
 
+  handleStreamer = () => {
+    this.setState(
+      {
+        player: true,
+        videoIndex: 0,
+        tempList: this.state.selectedList.sort(([fileA], [fileB]) => fileA.localeCompare(fileB)),
+        tempLength: this.state.selectedList.length,
+      },
+      () => {
+        if (this.videoRef.current && this.state.tempList.length > 0) {
+          // Set the initial video source
+          this.videoRef.current.src = `/backend/streamer${this.state.currentDir}/${
+            this.state.tempList[this.state.videoIndex]
+          }`;
+          this.videoRef.current.load();
+          this.videoRef.current.play(); // Start playing the first video
+        }
+      }
+    );
+  };
+
+  handleVideoEnded = () => {
+    this.setState((prevState) => {
+      const nextIndex = prevState.videoIndex + 1;
+
+      if (nextIndex < prevState.tempLength) {
+        // Update the video index and set the next video source
+        this.videoRef.current.src = `/backend/streamer${this.state.currentDir}/${prevState.tempList[nextIndex]}`;
+        this.videoRef.current.load();
+        this.videoRef.current.play(); // Start playing the next video
+      } else {
+        // All videos have been played
+        this.setState({ player: false });
+        return { videoIndex: nextIndex };
+      }
+
+      return { videoIndex: nextIndex };
+    });
+  };
+
+  handleStop = () => {
+    this.setState({ player: false });
+  };
+
   render() {
     return (
       <div>
@@ -290,37 +345,39 @@ export default class Create extends Component {
                           acc[item.file] = (acc[item.file] || 0) + 1;
                           return acc;
                         }, {})
-                      ).map(([file, count]) => {
-                        const percentage = ((count / this.state.media.length) * 100).toFixed(1);
-                        return this.state.selectedFileList.includes(file) ? (
-                          <ListGroup.Item
-                            key={file}
-                            value={JSON.stringify(file)}
-                            action
-                            active
-                            onClick={this.handleClickFiles}
-                            className="d-flex justify-content-between"
-                          >
-                            <span>
-                              {file} {count > 1 ? `(${count})` : <></>}
-                            </span>
-                            <Badge bg="primary">{percentage}%</Badge>
-                          </ListGroup.Item>
-                        ) : (
-                          <ListGroup.Item
-                            key={file}
-                            value={JSON.stringify(file)}
-                            action
-                            onClick={this.handleClickFiles}
-                            className="d-flex justify-content-between"
-                          >
-                            <span>
-                              {file} {count > 1 ? `(${count})` : <></>}
-                            </span>
-                            <Badge bg="primary">{percentage}%</Badge>
-                          </ListGroup.Item>
-                        );
-                      })
+                      )
+                        .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
+                        .map(([file, count]) => {
+                          const percentage = ((count / this.state.media.length) * 100).toFixed(1);
+                          return this.state.selectedFileList.includes(file) ? (
+                            <ListGroup.Item
+                              key={file}
+                              value={JSON.stringify(file)}
+                              action
+                              active
+                              onClick={this.handleClickFiles}
+                              className="d-flex justify-content-between"
+                            >
+                              <span>
+                                {file} {count > 1 ? `(${count})` : <></>}
+                              </span>
+                              <Badge bg="primary">{percentage}%</Badge>
+                            </ListGroup.Item>
+                          ) : (
+                            <ListGroup.Item
+                              key={file}
+                              value={JSON.stringify(file)}
+                              action
+                              onClick={this.handleClickFiles}
+                              className="d-flex justify-content-between"
+                            >
+                              <span>
+                                {file} {count > 1 ? `(${count})` : <></>}
+                              </span>
+                              <Badge bg="primary">{percentage}%</Badge>
+                            </ListGroup.Item>
+                          );
+                        })
                     )}
                   </ListGroup>
                 </Card.Body>
@@ -328,17 +385,23 @@ export default class Create extends Component {
             </div>
             <div style={{ paddingBottom: "0.75rem" }} />
           </Col>
-          <Col>
+          <Col xs="auto" className="d-flex align-items-center justify-content-center">
             <Button onClick={this.handleAdd} variant="light">
-              Add
+              <img src={LeftArrow} alt="UpArrow" />
             </Button>
-            &nbsp;&nbsp;
+            <div style={{ paddingBottom: "0.75rem" }} />
+          </Col>
+          <Col>
             <Button onClick={this.handleSelectAll} variant="light">
               Select All
             </Button>
             &nbsp;&nbsp;
             <Button onClick={this.handleSelectNone} variant="light">
               Select None
+            </Button>
+            &nbsp;&nbsp;
+            <Button onClick={this.handleStreamer} variant="light">
+              Preview
             </Button>
             <div style={{ paddingBottom: "0.75rem" }} />
             {/* Directory Listing */}
@@ -360,26 +423,40 @@ export default class Create extends Component {
                         ../
                       </ListGroup.Item>
                     ) : null}
-                    {this.state.directoryList.map((file) =>
-                      file.isDir ? (
-                        <ListGroup.Item key={file.name} value={JSON.stringify(file)} action onClick={this.handleClick}>
-                          {file.name}/
-                        </ListGroup.Item>
-                      ) : this.state.selectedList.includes(file.name) ? (
-                        <ListGroup.Item
-                          key={file.name}
-                          value={JSON.stringify(file)}
-                          action
-                          active
-                          onClick={this.handleClick}
-                        >
-                          {file.name}
-                        </ListGroup.Item>
-                      ) : (
-                        <ListGroup.Item key={file.name} value={JSON.stringify(file)} action onClick={this.handleClick}>
-                          {file.name}
-                        </ListGroup.Item>
+                    {this.state.directoryList && this.state.directoryList.length > 0 ? (
+                      this.state.directoryList.map((file) =>
+                        file.isDir ? (
+                          <ListGroup.Item
+                            key={file.name}
+                            value={JSON.stringify(file)}
+                            action
+                            onClick={this.handleClick}
+                          >
+                            {file.name}/
+                          </ListGroup.Item>
+                        ) : this.state.selectedList.includes(file.name) ? (
+                          <ListGroup.Item
+                            key={file.name}
+                            value={JSON.stringify(file)}
+                            action
+                            active
+                            onClick={this.handleClick}
+                          >
+                            {file.name}
+                          </ListGroup.Item>
+                        ) : (
+                          <ListGroup.Item
+                            key={file.name}
+                            value={JSON.stringify(file)}
+                            action
+                            onClick={this.handleClick}
+                          >
+                            {file.name}
+                          </ListGroup.Item>
+                        )
                       )
+                    ) : (
+                      <ListGroup.Item>Directory does not exist</ListGroup.Item> // Display this if directoryList is null or empty
                     )}
                   </ListGroup>
                 </Card.Body>
@@ -387,6 +464,30 @@ export default class Create extends Component {
             </div>
             <div style={{ paddingBottom: "0.75rem" }} />
           </Col>
+          {this.state.player ? (
+            <Col>
+              <Row style={{ height: "51px" }}></Row>
+              <Row>
+                <div>
+                  <video
+                    width="400"
+                    controls
+                    controlsList="nodownload"
+                    autoPlay
+                    ref={this.videoRef}
+                    onEnded={this.handleVideoEnded}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </Row>
+              <Button onClick={this.handleStop} variant="light">
+                Close
+              </Button>
+            </Col>
+          ) : (
+            <></>
+          )}
         </Row>
         <Button onClick={this.props.cancel} variant="light">
           Cancel

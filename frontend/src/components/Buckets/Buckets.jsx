@@ -14,7 +14,7 @@ export default class Buckets extends Component {
     this.state = {
       buckets: this.props.settings.buckets,
       isCreating: false,
-      id: "",
+      id: "-1",
       isEdit: false,
       show: false,
       tempID: "",
@@ -25,6 +25,7 @@ export default class Buckets extends Component {
     this.setState({
       isCreating: true,
       isEdit: false,
+      id: "-1",
     });
   };
 
@@ -101,6 +102,7 @@ export default class Buckets extends Component {
                 bucket={bucket.name}
                 media={bucket.media}
                 id={bucket.id}
+                stateId={this.state.id}
                 click={this.handleEditBucket}
                 saved={this.handleSaveCreate}
                 isEdit={this.state.isEdit}
@@ -113,14 +115,27 @@ export default class Buckets extends Component {
 
           <Col>
             {this.state.isEdit || this.state.isCreating ? (
-              <Card style={{ width: "10rem", height: "8rem", backgroundColor: "#f8f9fa" }}>
+              <Card
+                style={{
+                  width: "10rem",
+                  height: "8rem",
+                  backgroundColor: "#f8f9fa",
+                  border: this.state.id === "-1" ? "2px solid red" : "1px solid black",
+                }}
+              >
                 <Card.Body className="d-flex align-items-center justify-content-center">
                   <img src={AddIcon} width="100" height="100" />
                 </Card.Body>
               </Card>
             ) : (
               <Card
-                style={{ width: "10rem", height: "8rem", backgroundColor: "#f8f9fa", cursor: "pointer" }}
+                style={{
+                  width: "10rem",
+                  height: "8rem",
+                  backgroundColor: "#f8f9fa",
+                  cursor: "pointer",
+                  border: "1px solid black",
+                }}
                 onClick={this.handleAddBucket}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center">
