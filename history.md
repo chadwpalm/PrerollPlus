@@ -5,6 +5,7 @@
 ### Minor Features
 
 1. Update Buckets in settings when files in the file system are deleted, renamed, or moved.
+2. Added directory location under the file names in the "Files in buckets" list.
 
 ### Bug Fixes
 

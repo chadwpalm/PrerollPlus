@@ -133,7 +133,7 @@ function handleRemove(oldPath) {
   // Save the settings only once, if any file was removed
   if (settingsUpdated) {
     try {
-      fs.writeFileSync("/config/settings.js", JSON.stringify(settings, null, 2));
+      fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
       console.info("Settings file saved");
     } catch (err) {
       console.error("Error saving settings file", err);

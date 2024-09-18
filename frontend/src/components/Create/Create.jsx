@@ -320,6 +320,10 @@ export default class Create extends Component {
     this.setState({ player: false });
   };
 
+  truncateString = (str, num) => {
+    return str.length > num ? str.slice(0, num) + "..." : str;
+  };
+
   render() {
     return (
       <div>
@@ -353,7 +357,9 @@ export default class Create extends Component {
                       )
                         .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
                         .map(([file, count]) => {
+                          const dir = this.state.media.find((item) => item.file === file)?.dir || "";
                           const percentage = ((count / this.state.media.length) * 100).toFixed(1);
+                          const truncatedFile = this.truncateString(file, 45);
                           return this.state.selectedFileList.includes(file) ? (
                             <ListGroup.Item
                               key={file}
@@ -364,7 +370,9 @@ export default class Create extends Component {
                               className="d-flex justify-content-between"
                             >
                               <span>
-                                {file} {count > 1 ? `(${count})` : <></>}
+                                {truncatedFile} {count > 1 ? `(${count})` : <></>}
+                                <br />
+                                <div style={{ fontSize: "11px", color: "gray" }}>{dir}</div>
                               </span>
                               <Badge bg="primary">{percentage}%</Badge>
                             </ListGroup.Item>
@@ -378,7 +386,10 @@ export default class Create extends Component {
                             >
                               <span>
                                 {file} {count > 1 ? `(${count})` : <></>}
+                                <br />
+                                <div style={{ fontSize: "11px", color: "gray" }}>{dir}</div>
                               </span>
+
                               <Badge bg="primary">{percentage}%</Badge>
                             </ListGroup.Item>
                           );
@@ -429,37 +440,39 @@ export default class Create extends Component {
                       </ListGroup.Item>
                     ) : null}
                     {this.state.directoryList ? (
-                      this.state.directoryList.map((file) =>
-                        file.isDir ? (
-                          <ListGroup.Item
-                            key={file.name}
-                            value={JSON.stringify(file)}
-                            action
-                            onClick={this.handleClick}
-                          >
-                            {file.name}/
-                          </ListGroup.Item>
-                        ) : this.state.selectedList.includes(file.name) ? (
-                          <ListGroup.Item
-                            key={file.name}
-                            value={JSON.stringify(file)}
-                            action
-                            active
-                            onClick={this.handleClick}
-                          >
-                            {file.name}
-                          </ListGroup.Item>
-                        ) : (
-                          <ListGroup.Item
-                            key={file.name}
-                            value={JSON.stringify(file)}
-                            action
-                            onClick={this.handleClick}
-                          >
-                            {file.name}
-                          </ListGroup.Item>
+                      this.state.directoryList
+                        .filter((file) => !file.name.startsWith(".") && !file.name.startsWith("@")) // Filter out files starting with . or @
+                        .map((file) =>
+                          file.isDir ? (
+                            <ListGroup.Item
+                              key={file.name}
+                              value={JSON.stringify(file)}
+                              action
+                              onClick={this.handleClick}
+                            >
+                              {file.name}/
+                            </ListGroup.Item>
+                          ) : this.state.selectedList.includes(file.name) ? (
+                            <ListGroup.Item
+                              key={file.name}
+                              value={JSON.stringify(file)}
+                              action
+                              active
+                              onClick={this.handleClick}
+                            >
+                              {file.name}
+                            </ListGroup.Item>
+                          ) : (
+                            <ListGroup.Item
+                              key={file.name}
+                              value={JSON.stringify(file)}
+                              action
+                              onClick={this.handleClick}
+                            >
+                              {file.name}
+                            </ListGroup.Item>
+                          )
                         )
-                      )
                     ) : (
                       <ListGroup.Item>Directory does not exist</ListGroup.Item> // Display this if directoryList is null or empty
                     )}
