@@ -63,10 +63,15 @@ export default class Settings extends Component {
 
     var xhr = new XMLHttpRequest();
 
-    xhr.addEventListener("readystatechange", () => {
+    xhr.addEventListener("readystatechange", async () => {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
           this.setState({ isSaved: true });
+
+          const response = await fetch("/backend/monitor", { method: "GET" });
+          if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+          }
         } else {
           // error
           this.setState({

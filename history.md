@@ -1,5 +1,15 @@
 # Preroll Plus Version History
 
+## 0.1.3
+
+### Minor Features
+
+1. Update Buckets in settings when files in the file system are deleted, renamed, or moved.
+
+### Bug Fixes
+
+1. Fixed issue where opening a Sequence that contains a recently deleted bucket was generating an error.
+
 ## 0.1.2
 
 ### Minor Features

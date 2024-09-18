@@ -27,12 +27,12 @@ router.post("/", function (req, res, next) {
     dirData.forEach((file) => {
       dirRet.push({ name: file.name, isDir: file.isDirectory() });
     });
-  } catch (err) {
-    console.info("Directory not found", err);
-    res.send(JSON.stringify(null));
-  }
 
-  res.send(JSON.stringify(dirRet));
+    res.send(JSON.stringify(dirRet));
+  } catch (err) {
+    console.error("Directory not found", err.message.split("\n")[0]); // Send only the first line
+    res.status(200).send(JSON.stringify(null));
+  }
 });
 
 module.exports = router;

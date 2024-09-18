@@ -84,7 +84,7 @@ export default class Buckets extends Component {
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
-    this.props.settings = settings;
+    this.props.updateSettings(settings);
     this.handleSaveCreate();
   };
 

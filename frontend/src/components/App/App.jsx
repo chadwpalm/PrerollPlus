@@ -199,6 +199,10 @@ export default class App extends Component {
     xhr.send(JSON.stringify(settings));
   };
 
+  updateSettings = (newSettings) => {
+    this.setState({ config: newSettings });
+  };
+
   render() {
     if (!this.state.isOnline) {
       return (
@@ -400,7 +404,10 @@ export default class App extends Component {
                           path="/"
                           element={<Sequences settings={this.state.config} logout={this.handleLogout} />}
                         />
-                        <Route path="/buckets" element={<Buckets settings={this.state.config} />} />
+                        <Route
+                          path="/buckets"
+                          element={<Buckets settings={this.state.config} updateSettings={this.updateSettings} />}
+                        />
                         <Route path="*" element={<Navigate replace to="/" />} />
                       </>
                     )}

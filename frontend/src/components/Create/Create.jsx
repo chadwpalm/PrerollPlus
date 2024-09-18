@@ -251,10 +251,15 @@ export default class Create extends Component {
 
     var xhr = new XMLHttpRequest();
 
-    xhr.addEventListener("readystatechange", () => {
+    xhr.addEventListener("readystatechange", async () => {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
           this.setState({ isSaved: true });
+
+          const response = await fetch("/backend/monitor", { method: "GET" });
+          if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+          }
         } else {
           // error
           this.setState({
@@ -423,7 +428,7 @@ export default class Create extends Component {
                         ../
                       </ListGroup.Item>
                     ) : null}
-                    {this.state.directoryList && this.state.directoryList.length > 0 ? (
+                    {this.state.directoryList ? (
                       this.state.directoryList.map((file) =>
                         file.isDir ? (
                           <ListGroup.Item
