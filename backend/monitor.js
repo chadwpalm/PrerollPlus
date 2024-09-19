@@ -90,6 +90,7 @@ function initializeWatcher() {
 }
 
 function handleRename(oldPath, newPath) {
+  settings = JSON.parse(fs.readFileSync("/config/settings.js"));
   console.info(`Handling rename from ${oldPath} to ${newPath} in buckets`);
   settings.buckets.forEach((bucket) => {
     bucket.media.forEach((file) => {
@@ -110,6 +111,7 @@ function handleRename(oldPath, newPath) {
 }
 
 function handleRemove(oldPath) {
+  settings = JSON.parse(fs.readFileSync("/config/settings.js"));
   console.info(`Handling removal of ${oldPath} in buckets...`);
 
   let settingsUpdated = false;
