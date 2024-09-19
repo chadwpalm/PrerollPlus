@@ -294,37 +294,22 @@ export default class Settings extends Component {
                   This is the location of your Plex prerolls as Plex sees them.
                   <br />
                   <br />
-                  This option is only available when running the application in a Docker container. If running natively,
-                  it will be grayed out and you can set your root location through the option above.
-                  <br />
-                  <br />
-                  The reason for this is because when running in a Docker container the internal location in the
-                  container of your media is /prerolls. You will determine the location on the host based on how you
-                  mount the /prerolls volume when starting the container. Because of that, you will need to place the
-                  location that Plex sees the preroll media here.
+                  This path should corrospond to root location of your preroll files based on the location of your Plex
+                  server. If you are running Preroll Plus and Plex on the same device, this should match the above path.
+                  If you are running Plex on a different machine than Preroll Plus, this path will most likely be
+                  different than the one above.
                 </Tooltip>
               }
             >
               <img src={Info} />
             </OverlayTrigger>
-            {this.props.settings.build === "Native" ? (
-              <Form.Control
-                disabled
-                value={this.state.plexLoc}
-                id="plexLoc"
-                name="plexLoc"
-                onChange={this.handlePlexLoc}
-                size="sm"
-              />
-            ) : (
-              <Form.Control
-                value={this.state.plexLoc}
-                id="plexLoc"
-                name="plexLoc"
-                onChange={this.handlePlexLoc}
-                size="sm"
-              />
-            )}
+            <Form.Control
+              value={this.state.plexLoc}
+              id="plexLoc"
+              name="plexLoc"
+              onChange={this.handlePlexLoc}
+              size="sm"
+            />
             <div style={{ paddingBottom: "0.75rem" }} />
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">

@@ -68,7 +68,7 @@ function createList(index) {
 
       info.media.forEach((media) => {
         files.push(
-          `${settings.build === "Native" ? settings.settings.loc : settings.settings.plexLoc}${
+          `${settings.settings.plexLoc}${
             media.dir.replace(/\/$/, "") // Remove trailing slash from dir if exists
           }/${
             media.file.replace(/^\//, "") // Remove leading slash from file if exists

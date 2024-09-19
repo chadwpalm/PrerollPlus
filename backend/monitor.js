@@ -3,6 +3,7 @@ var router = express.Router();
 var fs = require("fs");
 var path = require("path");
 var chokidar = require("chokidar");
+var axios = require("axios");
 
 let settings = null;
 let pathToWatch = null;
@@ -102,6 +103,10 @@ function handleRename(oldPath, newPath) {
         try {
           fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
           console.info("Settings file saved");
+          axios
+            .get("http://localhost:4949/webhook") // Make sure the path is correct
+            .then((response) => {})
+            .catch((error) => {});
         } catch (err) {
           console.error("Error saving settings file", err);
         }
@@ -137,6 +142,10 @@ function handleRemove(oldPath) {
     try {
       fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
       console.info("Settings file saved");
+      axios
+        .get("http://localhost:4949/webhook") // Make sure the path is correct
+        .then((response) => {})
+        .catch((error) => {});
     } catch (err) {
       console.error("Error saving settings file", err);
     }

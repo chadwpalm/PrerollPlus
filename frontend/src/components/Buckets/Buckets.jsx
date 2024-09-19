@@ -66,10 +66,15 @@ export default class Buckets extends Component {
 
     var xhr = new XMLHttpRequest();
 
-    xhr.addEventListener("readystatechange", () => {
+    xhr.addEventListener("readystatechange", async () => {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
           this.setState({ show: false });
+
+          const response = await fetch("/webhook", { method: "GET" });
+          if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+          }
         } else {
           // error
           this.setState({

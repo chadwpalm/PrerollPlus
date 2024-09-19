@@ -72,7 +72,6 @@ export default class Create extends Component {
   handleClickBuckets = (e) => {
     const target = e.currentTarget;
     var temp = JSON.parse(target.value);
-    console.log(temp);
 
     this.setState({ selectedSequence: temp });
   };

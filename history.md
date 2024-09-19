@@ -4,8 +4,10 @@
 
 ### Minor Features
 
-1. Update Buckets in settings when files in the file system are deleted, renamed, or moved.
-2. Added directory location under the file names in the "Files in buckets" list.
+1. Update Buckets in settings and Plex string when files in the file system are deleted, renamed, or moved. [[#1](https://github.com/chadwpalm/PrerollPlus/discussions/1)]
+2. Deleting a Bucket will update any Sequences it is in and also update the Plex string.
+3. Added directory location under the file names in the "Files in buckets" list.
+4. "Plex location or preroll media" text box in the Settings tab is not grayed out for Native installs anymore. This is to accommodate users that run their Plex server on a different machine than Preroll Plus. [[#3](https://github.com/chadwpalm/PrerollPlus/issues/3)]
 
 ### Bug Fixes
 

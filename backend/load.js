@@ -40,6 +40,10 @@ try {
   fileData = fs.readFileSync("/config/settings.js");
   var temp = JSON.parse(fileData);
 
+  if (build !== "Native") {
+    temp.settings.loc = "/prerolls";
+  }
+
   if (temp.version !== appVersion || temp.build !== build || temp.branch !== branch) {
     console.info(
       "Version updated from",

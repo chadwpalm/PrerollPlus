@@ -256,8 +256,13 @@ export default class Create extends Component {
         if (xhr.status === 200) {
           this.setState({ isSaved: true });
 
-          const response = await fetch("/backend/monitor", { method: "GET" });
+          const response = await fetch("/webhook", { method: "GET" });
           if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+          }
+
+          const response2 = await fetch("/backend/monitor", { method: "GET" });
+          if (!response2.ok) {
             throw new Error(`Response status: ${response.status}`);
           }
         } else {
