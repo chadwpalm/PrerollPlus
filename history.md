@@ -1,5 +1,11 @@
 # Preroll Plus Version History
 
+## 0.1.4
+
+### Minor Fix
+
+1. Fixed issue where Synology is adding additional info to the file paths causing the monitoring to not work correctly. [[#4](https://github.com/chadwpalm/PrerollPlus/issues/4)]
+
 ## 0.1.3
 
 ### Minor Features

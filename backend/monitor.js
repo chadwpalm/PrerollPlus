@@ -27,67 +27,71 @@ function initializeWatcher() {
     return;
   }
 
-  console.info("Watching", pathToWatch, "for changes");
-
-  watcher = chokidar.watch(pathToWatch, {
-    ignored: /(^|[\/\\])\../, // Ignore dotfiles
-    persistent: true,
-  });
-
-  watcher
-    .on("add", (filePath) => {
-      const baseName = path.basename(filePath);
-      const dirName = path.dirname(filePath);
-      const timestamp = Date.now();
-
-      //   console.info(`File added: ${filePath}`);
-
-      // Store the file in the pendingAdds map with a timestamp
-      pendingAdds.set(filePath, { baseName, dirName, timestamp });
-
-      // Delay handling to check if a rename has occurred
-      setTimeout(() => {
-        if (pendingAdds.has(filePath)) {
-          // If the file is still in the map, treat it as a new file (no unlink event matched)
-          //   console.info(`File ${filePath} is confirmed as a new file.`);
-          pendingAdds.delete(filePath);
-        }
-      }, renameDelay);
-    })
-    .on("unlink", (filePath) => {
-      const baseName = path.basename(filePath);
-      const dirName = path.dirname(filePath);
-      // console.info(`File removed: ${filePath}`);
-
-      // Check if this is a rename by looking for a matching added file
-      for (const [addedPath, addedFile] of pendingAdds) {
-        // Handle files within the same directory
-        if (addedFile.dirName === dirName && addedFile.baseName !== baseName) {
-          console.info(`File ${filePath} was renamed to ${addedPath}`);
-          handleRename(filePath, addedPath);
-
-          // Clean up both the added and removed paths
-          pendingAdds.delete(addedPath);
-          return;
-        }
-        // Handle files across different directories
-        if (addedFile.baseName === baseName && addedFile.dirName !== dirName) {
-          console.info(`File ${filePath} was moved to ${addedPath}`);
-          handleRename(filePath, addedPath);
-
-          // Clean up both the added and removed paths
-          pendingAdds.delete(addedPath);
-          return;
-        }
-      }
-
-      // If no match is found, treat it as a normal file removal
-      console.info(`File ${filePath} has been removed.`);
-      handleRemove(filePath);
+  if (fs.existsSync(pathToWatch)) {
+    console.info(`Watching ${pathToWatch} for changes`);
+    watcher = chokidar.watch(pathToWatch, {
+      ignored: /(^|[\/\\])\../, // Ignore dotfiles
+      persistent: true,
     });
 
-  // Handle any errors
-  watcher.on("error", (error) => console.error(`Watcher error: ${error}`));
+    watcher
+      .on("add", (filePath) => {
+        filePath = filePath.replace(/@SynoEAStream/i, "").replace(/@eaDir\//i, ""); //Fix for Synology issue
+        const baseName = path.basename(filePath);
+        const dirName = path.dirname(filePath);
+        const timestamp = Date.now();
+
+        //   console.info(`File added: ${filePath}`);
+
+        // Store the file in the pendingAdds map with a timestamp
+        pendingAdds.set(filePath, { baseName, dirName, timestamp });
+
+        // Delay handling to check if a rename has occurred
+        setTimeout(() => {
+          if (pendingAdds.has(filePath)) {
+            // If the file is still in the map, treat it as a new file (no unlink event matched)
+            //   console.info(`File ${filePath} is confirmed as a new file.`);
+            pendingAdds.delete(filePath);
+          }
+        }, renameDelay);
+      })
+      .on("unlink", (filePath) => {
+        filePath = filePath.replace(/@SynoEAStream/i, "").replace(/@eaDir\//i, ""); //Fix for Synology issue
+        const baseName = path.basename(filePath);
+        const dirName = path.dirname(filePath);
+
+        // Check if this is a rename by looking for a matching added file
+        for (const [addedPath, addedFile] of pendingAdds) {
+          // Handle files within the same directory
+          if (addedFile.dirName === dirName && addedFile.baseName !== baseName) {
+            console.info(`File ${filePath} was renamed to ${addedPath}`);
+            handleRename(filePath, addedPath);
+
+            // Clean up both the added and removed paths
+            pendingAdds.delete(addedPath);
+            return;
+          }
+          // Handle files across different directories
+          if (addedFile.baseName === baseName && addedFile.dirName !== dirName) {
+            console.info(`File ${filePath} was moved to ${addedPath}`);
+            handleRename(filePath, addedPath);
+
+            // Clean up both the added and removed paths
+            pendingAdds.delete(addedPath);
+            return;
+          }
+        }
+
+        // If no match is found, treat it as a normal file removal
+        console.info(`File ${filePath} has been removed.`);
+        handleRemove(filePath);
+      });
+
+    // Handle any errors
+    watcher.on("error", (error) => console.error(`Watcher error: ${error}`));
+  } else {
+    console.warn(`Watcher not started. Direcotry ${pathToWatch} not found`);
+  }
 }
 
 function handleRename(oldPath, newPath) {
