@@ -178,7 +178,8 @@ export default class Create extends Component {
   };
 
   handleAdd = () => {
-    const newDir = "/" + this.state.dirTree.slice(1).join("/");
+    console.log(this.state.dirTree);
+    const newDir = (this.state.dirTree.length > 1 ? "/" : "") + this.state.dirTree.slice(1).join("/");
     const newMediaList = this.state.selectedList.map((element) => ({ file: element, dir: newDir }));
     this.setState((prevState) => ({
       media: [...prevState.media, ...newMediaList],
@@ -377,7 +378,7 @@ export default class Create extends Component {
                               <span>
                                 {truncatedFile} {count > 1 ? `(${count})` : <></>}
                                 <br />
-                                <div style={{ fontSize: "11px", color: "gray" }}>{dir}</div>
+                                <div style={{ fontSize: "11px", color: "gray" }}>{dir !== "" ? dir : "/"}</div>
                               </span>
                               <Badge bg="primary">{percentage}%</Badge>
                             </ListGroup.Item>
@@ -392,7 +393,7 @@ export default class Create extends Component {
                               <span>
                                 {file} {count > 1 ? `(${count})` : <></>}
                                 <br />
-                                <div style={{ fontSize: "11px", color: "gray" }}>{dir}</div>
+                                <div style={{ fontSize: "11px", color: "gray" }}>{dir !== "" ? dir : "/"}</div>
                               </span>
 
                               <Badge bg="primary">{percentage}%</Badge>
