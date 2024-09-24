@@ -5,12 +5,11 @@ var path = require("path");
 var chokidar = require("chokidar");
 var axios = require("axios");
 
-let settings = null;
-let pathToWatch = null;
+let pendingAdds = new Map(); // Store added files with relevant information
+let pendingRemovals = new Map(); // Track removed files
+let renameDelay; // Delay for rename detection
+let isRemoved = true;
 let watcher = null;
-
-let pendingAdds = new Map(); // Store added files with timestamps
-let renameDelay = 500; // Adjust this delay based on system responsiveness
 
 function initializeWatcher() {
   if (watcher) {
@@ -22,86 +21,137 @@ function initializeWatcher() {
   try {
     settings = JSON.parse(fs.readFileSync("/config/settings.js"));
     pathToWatch = settings.settings.loc;
+    renameDelay = settings.settings.polling === "1" ? 500 : 1000;
   } catch (err) {
     console.error("Cannot grab dir location", err);
     return;
   }
 
   if (fs.existsSync(pathToWatch)) {
-    console.info(`Watching ${pathToWatch} for changes`);
     watcher = chokidar.watch(pathToWatch, {
       ignored: /(^|[\/\\])\../, // Ignore dotfiles
       persistent: true,
+      usePolling: settings.settings.polling === "2",
+      interval: 100,
     });
 
-    watcher
-      .on("add", (filePath) => {
-        filePath = filePath.replace(/@SynoEAStream/i, "").replace(/@eaDir\//i, ""); //Fix for Synology issue
-        const baseName = path.basename(filePath);
-        const dirName = path.dirname(filePath);
-        const timestamp = Date.now();
+    // When a file is added
+    watcher.on("add", (filePath) => {
+      // console.log("ADD", filePath);
+      filePath = filePath
+        .replace(/@SynoEAStream/i, "")
+        .replace(/@SynoResource/i, "")
+        .replace(/@eaDir\//i, ""); // Fix for Synology issue
+      const baseName = path.basename(filePath);
+      const dirName = path.dirname(filePath);
 
-        //   console.info(`File added: ${filePath}`);
+      // Store the added file with its path
+      pendingAdds.set(filePath, { baseName, dirName });
+      // console.log("PA", pendingAdds);
 
-        // Store the file in the pendingAdds map with a timestamp
-        pendingAdds.set(filePath, { baseName, dirName, timestamp });
+      // Check for any corresponding removals
+      for (const [removedPath, removedFile] of pendingRemovals) {
+        if (removedFile.dirName === dirName && removedFile.baseName !== baseName) {
+          console.info(`File ${removedPath} was renamed to ${filePath}`);
+          // Execute your specific rename/move handling code here
+          handleRenameOrMove(removedPath, filePath);
 
-        // Delay handling to check if a rename has occurred
-        setTimeout(() => {
-          if (pendingAdds.has(filePath)) {
-            // If the file is still in the map, treat it as a new file (no unlink event matched)
-            //   console.info(`File ${filePath} is confirmed as a new file.`);
-            pendingAdds.delete(filePath);
-          }
-        }, renameDelay);
-      })
-      .on("unlink", (filePath) => {
-        filePath = filePath.replace(/@SynoEAStream/i, "").replace(/@eaDir\//i, ""); //Fix for Synology issue
-        const baseName = path.basename(filePath);
-        const dirName = path.dirname(filePath);
-
-        // Check if this is a rename by looking for a matching added file
-        for (const [addedPath, addedFile] of pendingAdds) {
-          // Handle files within the same directory
-          if (addedFile.dirName === dirName && addedFile.baseName !== baseName) {
-            console.info(`File ${filePath} was renamed to ${addedPath}`);
-            handleRename(filePath, addedPath);
-
-            // Clean up both the added and removed paths
-            pendingAdds.delete(addedPath);
-            return;
-          }
-          // Handle files across different directories
-          if (addedFile.baseName === baseName && addedFile.dirName !== dirName) {
-            console.info(`File ${filePath} was moved to ${addedPath}`);
-            handleRename(filePath, addedPath);
-
-            // Clean up both the added and removed paths
-            pendingAdds.delete(addedPath);
-            return;
-          }
+          // Clean up both the added and removed paths
+          pendingAdds.delete(filePath);
+          isRemoved = false;
+          return;
         }
+        if (removedFile.baseName === baseName && removedFile.dirName !== dirName) {
+          console.info(`File ${removedPath} was moved to ${filePath}`);
+          // Execute your specific rename/move handling code here
+          handleRenameOrMove(removedPath, filePath);
 
-        // If no match is found, treat it as a normal file removal
-        console.info(`File ${filePath} has been removed.`);
-        handleRemove(filePath);
-      });
+          // Clean up both the added and removed paths
+          pendingAdds.delete(filePath);
+          isRemoved = false;
+          return;
+        }
+      }
 
-    // Handle any errors
+      // Delay to confirm if it's a rename
+      setTimeout(() => {
+        // console.log(`[ADD] Timout Ended\n\n\n\n\n`);
+        if (pendingAdds.has(filePath)) {
+          // Confirm it's still an add
+          pendingAdds.delete(filePath);
+        }
+      }, renameDelay);
+    });
+
+    // When a file is removed
+    watcher.on("unlink", (filePath) => {
+      // console.log("UNLINK", filePath);
+      filePath = filePath
+        .replace(/@SynoEAStream/i, "")
+        .replace(/@SynoResource/i, "")
+        .replace(/@eaDir\//i, ""); // Fix for Synology issue
+      const baseName = path.basename(filePath);
+      const dirName = path.dirname(filePath);
+
+      // Store the removed file for potential rename detection
+      pendingRemovals.set(filePath, { baseName, dirName });
+      // console.log("PR", pendingRemovals);
+
+      // Check for any corresponding adds
+
+      for (const [addedPath, addedFile] of pendingAdds) {
+        if (addedFile.dirName === dirName && addedFile.baseName !== baseName) {
+          console.info(`File ${filePath} was renamed to ${addedPath}`);
+          // Execute your specific rename/move handling code here
+          handleRenameOrMove(filePath, addedPath);
+
+          // Clean up both the added and removed paths
+          pendingRemovals.delete(filePath);
+          return;
+        }
+        // Handle files across different directories
+        if (addedFile.baseName === baseName && addedFile.dirName !== dirName) {
+          console.info(`File ${filePath} was moved to ${addedPath}`);
+          handleRenameOrMove(filePath, addedPath);
+
+          pendingRemovals.delete(filePath);
+          return;
+        }
+      }
+
+      // Delay to confirm if it's a rename
+      setTimeout(() => {
+        // console.log(`[UNLINK] Timout Ended\n\n\n\n\n`);
+        if (isRemoved) {
+          // If no corresponding add was found, treat it as a normal removal
+          console.info(`File ${filePath} has been removed`);
+
+          // Execute your specific removal handling code here
+          handleRemove(filePath);
+        }
+        pendingRemovals.delete(filePath);
+        isRemoved = true;
+      }, renameDelay);
+    });
+
+    // Handle errors
     watcher.on("error", (error) => console.error(`Watcher error: ${error}`));
   } else {
-    console.warn(`Watcher not started. Direcotry ${pathToWatch} not found`);
+    console.warn(`Watcher not started. Directory ${pathToWatch} not found`);
   }
 }
 
-function handleRename(oldPath, newPath) {
+function handleRenameOrMove(oldPath, newPath) {
   settings = JSON.parse(fs.readFileSync("/config/settings.js"));
   console.info(`Handling rename from ${oldPath} to ${newPath} in buckets`);
   settings.buckets.forEach((bucket) => {
     bucket.media.forEach((file) => {
-      if (file.file === path.basename(oldPath) && file.dir === path.dirname(oldPath).replace("/prerolls", "")) {
+      if (
+        file.file === path.basename(oldPath) &&
+        file.dir === path.dirname(oldPath).replace(settings.settings.loc, "")
+      ) {
         file.file = path.basename(newPath);
-        file.dir = path.dirname(newPath).replace("/prerolls", "");
+        file.dir = path.dirname(newPath).replace(settings.settings.loc, "");
         console.info(`Updated settings for renamed file: ${oldPath} to ${newPath} in bucket "${bucket.name}"`);
 
         try {
@@ -126,22 +176,19 @@ function handleRemove(oldPath) {
   let settingsUpdated = false;
 
   settings.buckets.forEach((bucket) => {
-    // Filter out all files in the media array that match the oldPath
     const initialMediaLength = bucket.media.length;
 
     bucket.media = bucket.media.filter(
-      (file) => !(file.file === path.basename(oldPath) && file.dir === path.dirname(oldPath).replace("/prerolls", ""))
+      (file) =>
+        !(file.file === path.basename(oldPath) && file.dir === path.dirname(oldPath).replace(settings.settings.loc, ""))
     );
 
     if (bucket.media.length !== initialMediaLength) {
       console.info(`Removed all occurrences of ${oldPath} from bucket "${bucket.name}"`);
       settingsUpdated = true;
-    } else {
-      console.info(`No occurrences of ${oldPath} found in bucket "${bucket.name}"`);
     }
   });
 
-  // Save the settings only once, if any file was removed
   if (settingsUpdated) {
     try {
       fs.writeFileSync("/config/settings.js", JSON.stringify(settings));

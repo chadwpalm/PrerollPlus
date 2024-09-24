@@ -24,6 +24,7 @@ export default class Settings extends Component {
         isError: false,
         isIncomplete: false,
         isSaved: false,
+        polling: this.props.settings.settings.polling,
       };
     } else {
       this.state = {
@@ -37,6 +38,7 @@ export default class Settings extends Component {
         isLoaded: false,
         isIncomplete: false,
         isSaved: false,
+        polling: "1",
       };
     }
   }
@@ -59,6 +61,7 @@ export default class Settings extends Component {
     this.props.settings.settings.loc = this.state.loc;
     this.props.settings.settings.plexLoc = this.state.plexLoc;
     this.props.settings.connected = "true";
+    this.props.settings.settings.polling = this.state.polling;
     this.props.connection(1);
 
     var xhr = new XMLHttpRequest();
@@ -182,6 +185,10 @@ export default class Settings extends Component {
 
   handlePlexLoc = (e) => {
     this.setState({ plexLoc: e.target.value.toString(), isSaved: false });
+  };
+
+  handlePolling = (e) => {
+    this.setState({ polling: e.target.value.toString() });
   };
 
   render() {
@@ -310,6 +317,56 @@ export default class Settings extends Component {
               onChange={this.handlePlexLoc}
               size="sm"
             />
+            <div style={{ paddingBottom: "0.75rem" }} />
+            <Form.Label for="polling">
+              File Monitor Polling &nbsp;&nbsp;
+              <OverlayTrigger
+                placement="right"
+                overlay={
+                  <Tooltip>
+                    This setting changes backend file monitoring from using "inotify" to a polling method.
+                    <br />
+                    <br />
+                    If you are connecting to your prerolls directory using an SMB (or similar) share, it is more than
+                    likely that the file system's ability to be notified of file changes will not work.
+                    <br />
+                    <br />
+                    If you are finding that renaming, moving, or removing files in your preroll directory isn't
+                    automatically working, set this to on and Preroll Plus will monitor file changes using a constant
+                    polling of the file system.
+                    <br />
+                    <br />
+                    If everything is working correctly, it is recommended to keep this setting off.
+                  </Tooltip>
+                }
+              >
+                <img src={Info} alt="Info" />
+              </OverlayTrigger>
+            </Form.Label>
+            <div>
+              <Form.Check
+                inline
+                type="radio"
+                label="Off"
+                value="1"
+                id="transition"
+                name="transition"
+                onChange={this.handlePolling}
+                size="sm"
+                checked={this.state.polling === "1"}
+              />
+              <Form.Check
+                inline
+                type="radio"
+                label="On"
+                value="2"
+                id="transition"
+                name="transition"
+                onChange={this.handlePolling}
+                size="sm"
+                checked={this.state.polling === "2"}
+              />
+            </div>
             <div style={{ paddingBottom: "0.75rem" }} />
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">

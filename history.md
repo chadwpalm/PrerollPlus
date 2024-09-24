@@ -7,6 +7,7 @@
 1. Fixed issue where Synology is adding additional info to the file paths causing the monitoring to not work correctly. [[#4](https://github.com/chadwpalm/PrerollPlus/issues/4)]
 2. Fixed bug where files added to Buckets had an extra slash if file came from root directory. This also affected the file's ability to be monitored for changes. [[#4](https://github.com/chadwpalm/PrerollPlus/issues/4)]
 3. If Bucket is empty due to a backend file removal (since the UI does not allow for saving empty buckets), the Plex string no longer displays "undefined" for that Bucket.
+4. Added option for file monitoring through polling for when preroll directory is mounted over an SMB (or similar) share.
 
 ## 0.1.3
 

@@ -44,6 +44,10 @@ try {
     temp.settings.loc = "/prerolls";
   }
 
+  if (!temp.settings.polling) {
+    temp.settings.polling = "1";
+  }
+
   if (temp.version !== appVersion || temp.build !== build || temp.branch !== branch) {
     console.info(
       "Version updated from",
