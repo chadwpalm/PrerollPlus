@@ -1,5 +1,16 @@
 # Preroll Plus Version History
 
+## 0.1.5
+
+### New Feature
+
+1. Added a dark mode which can be toggled on and off [[#5](https://github.com/chadwpalm/PrerollPlus/discussions/5)]
+
+### Minor Fix
+
+1. Moved all inline CSS to external files to make style changes easier
+2. Basic code cleanup to remove compiler warnings
+
 ## 0.1.4
 
 ### Minor Fix
