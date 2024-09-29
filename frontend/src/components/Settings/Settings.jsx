@@ -7,6 +7,8 @@ import Info from "bootstrap-icons/icons/info-circle.svg";
 import Repeat from "bootstrap-icons/icons/arrow-repeat.svg";
 import Button from "react-bootstrap/Button";
 import Stack from "react-bootstrap/Stack";
+import Image from "react-bootstrap/Image";
+import "./Settings.css";
 
 export default class Settings extends Component {
   constructor(props) {
@@ -197,9 +199,9 @@ export default class Settings extends Component {
         <Row>
           <h3>Settings</h3>
         </Row>
-        <div style={{ paddingBottom: "0.75rem" }} />
+        <div className="div-seperator" />
         <Row>
-          <Form onSubmit={this.handleFormSubmit}>
+          <Form onSubmit={this.handleFormSubmit} className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
             <h5>
               Plex Server &nbsp;&nbsp;
               <OverlayTrigger
@@ -217,12 +219,19 @@ export default class Settings extends Component {
                 <img src={Info} />
               </OverlayTrigger>
             </h5>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             {/* Server */}
             <Form.Label for="serverList">Server &nbsp;&nbsp;</Form.Label>
             <Stack gap={1} direction="horizontal">
               {this.state.isLoaded ? (
-                <Form.Select option="0" id="serverList" name="serverList" onChange={this.handleServerChange} size="sm">
+                <Form.Select
+                  option="0"
+                  id="serverList"
+                  name="serverList"
+                  onChange={this.handleServerChange}
+                  size="sm"
+                  className="server-list"
+                >
                   <option value="0">Manual configuration</option>
                   {this.state.servers.map((server) => (
                     <option
@@ -241,32 +250,39 @@ export default class Settings extends Component {
               ) : (
                 <>
                   {this.state.isGetting ? (
-                    <Form.Select value="1" id="getting" name="getting" disabled size="sm">
+                    <Form.Select value="1" id="getting" name="getting" disabled size="sm" className="server-list">
                       <option value="1">Retrieving servers...</option>
                     </Form.Select>
                   ) : (
-                    <Form.Select value="1" id="waitForPress" name="waitForPress" disabled size="sm">
+                    <Form.Select
+                      value="1"
+                      id="waitForPress"
+                      name="waitForPress"
+                      disabled
+                      size="sm"
+                      className="server-list"
+                    >
                       <option value="1">Press the button to load available servers</option>
                     </Form.Select>
                   )}
                 </>
               )}
-              <Button variant="outline-light" size="sm" onClick={this.handleServerGet}>
-                <img src={Repeat} />
+              <Button variant="outline-light" size="sm" onClick={this.handleServerGet} className="repeat-button">
+                <Image src={Repeat} className="repeat-icon" />
               </Button>
             </Stack>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <Form.Label for="ip">Hostname or IP Address &nbsp;&nbsp;</Form.Label>
             <Form.Control value={this.state.ip} id="ip" name="ip" onChange={this.handleIp} size="sm" />
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <Form.Label for="ip">Port &nbsp;&nbsp;</Form.Label>
             <Form.Control value={this.state.port} id="port" name="port" onChange={this.handlePort} size="sm" />
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <Form.Label for="ssl">Use SSL &nbsp;&nbsp;</Form.Label>
             <Form.Check checked={this.state.ssl} id="ssl" name="ssl" onChange={this.handleSSL}></Form.Check>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <h5>Preroll Media &nbsp;&nbsp;</h5>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <Form.Label for="loc">Location of preroll media &nbsp;&nbsp;</Form.Label>
             <OverlayTrigger
               placement="right"
@@ -292,7 +308,7 @@ export default class Settings extends Component {
             ) : (
               <Form.Control disabled value={this.state.loc} id="loc" name="loc" onChange={this.handleLoc} size="sm" />
             )}
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <Form.Label for="plexLoc">Plex location of preroll media &nbsp;&nbsp;</Form.Label>
             <OverlayTrigger
               placement="right"
@@ -317,7 +333,7 @@ export default class Settings extends Component {
               onChange={this.handlePlexLoc}
               size="sm"
             />
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <Form.Label for="polling">
               File Monitor Polling &nbsp;&nbsp;
               <OverlayTrigger
@@ -367,7 +383,7 @@ export default class Settings extends Component {
                 checked={this.state.polling === "2"}
               />
             </div>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">
               Save

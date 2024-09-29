@@ -185,20 +185,13 @@ export default class Login extends Component {
             className="mx-auto"
             style={{ width: "350px", paddingTop: "30px", paddingBottom: "30px", backgroundColor: "#fcfcfc" }}
           >
-            {/* <Row>
-              <div className="mx-auto" style={{ width: "125px" }}>
-                <img src={Logo} width="125px" />
-                <br />
-                <br />
-              </div>
-            </Row> */}
             <Row style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "50px" }}>
+              <p style={{ fontSize: "50px", color: "black" }}>
                 <b>Preroll Plus</b>
               </p>
             </Row>
             <Row style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "20px" }}>Sign in to Plex account to continue</p>
+              <p style={{ fontSize: "20px", color: "black" }}>Sign in to Plex account to continue</p>
             </Row>
             <Row>
               <div className="mx-auto" style={{ width: "350px" }}>

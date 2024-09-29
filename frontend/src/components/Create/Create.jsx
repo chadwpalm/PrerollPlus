@@ -8,6 +8,8 @@ import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Badge from "react-bootstrap/Badge";
 import LeftArrow from "bootstrap-icons/icons/arrow-left.svg";
+import Image from "react-bootstrap/Image";
+import "../CreateSeq/CreateSeq.css";
 
 export default class Create extends Component {
   constructor(props) {
@@ -91,6 +93,7 @@ export default class Create extends Component {
   }
 
   handleClickFiles = (e) => {
+    e.preventDefault();
     const target = e.currentTarget;
     const temp = JSON.parse(target.value);
 
@@ -103,6 +106,7 @@ export default class Create extends Component {
   };
 
   handleClick = (e) => {
+    e.preventDefault();
     const target = e.currentTarget;
     var temp = JSON.parse(target.value);
 
@@ -177,7 +181,8 @@ export default class Create extends Component {
     xhr.send(JSON.stringify({ dir: `${this.state.currentDir}` }));
   };
 
-  handleAdd = () => {
+  handleAdd = (e) => {
+    e.preventDefault();
     console.log(this.state.dirTree);
     const newDir = (this.state.dirTree.length > 1 ? "/" : "") + this.state.dirTree.slice(1).join("/");
     const newMediaList = this.state.selectedList.map((element) => ({ file: element, dir: newDir }));
@@ -186,7 +191,8 @@ export default class Create extends Component {
     }));
   };
 
-  handleRemove = () => {
+  handleRemove = (e) => {
+    e.preventDefault();
     this.setState((prevState) => {
       const newMedia = [...prevState.media]; // Create a copy of the current media state
 
@@ -332,28 +338,32 @@ export default class Create extends Component {
 
   render() {
     return (
-      <div>
+      <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
         <Form.Label for="name">Name of bucket &nbsp;&nbsp;</Form.Label>
         <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
-        <div style={{ paddingBottom: "0.75rem" }} />
+        <div className="div-seperator" />
         <Row xs={1} sm="auto">
           <Col>
-            <Button onClick={this.handleRemove} type="submit" variant="light">
+            <Button
+              onClick={this.handleRemove}
+              type="submit"
+              variant={this.props.isDarkMode ? "outline-light" : "light"}
+            >
               Remove
             </Button>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             {/* File Listing */}
-            <div style={{ fontSize: "12px" }}>
-              <Card style={{ width: "22rem", backgroundColor: "#ffffff", borderRadius: "0" }}>
+            <div className="div-font">
+              <Card className="card-custom">
                 <Card.Title className="m-0 p-2">
-                  <ListGroup.Item style={{ fontSize: "14px" }} variant="light">
+                  <ListGroup.Item className="listgroup-header" variant="light">
                     Files in bucket
                   </ListGroup.Item>
                 </Card.Title>
-                <Card.Body className="m-0 p-0" style={{ height: "500px", overflowY: "auto", margin: false }}>
+                <Card.Body className="m-0 p-0 card-body-custom">
                   <ListGroup variant="flush">
                     {this.state.media.length === 0 ? (
-                      <ListGroup.Item>&lt;Add Files Here&gt;</ListGroup.Item>
+                      <ListGroup.Item className="listgroup-custom-s">&lt;Add Files Here&gt;</ListGroup.Item>
                     ) : (
                       Object.entries(
                         this.state.media.reduce((acc, item) => {
@@ -373,14 +383,14 @@ export default class Create extends Component {
                               action
                               active
                               onClick={this.handleClickFiles}
-                              className="d-flex justify-content-between"
+                              className="d-flex justify-content-between listgroup-custom-active"
                             >
                               <span>
                                 {truncatedFile} {count > 1 ? `(${count})` : <></>}
                                 <br />
-                                <div style={{ fontSize: "11px", color: "gray" }}>{dir !== "" ? dir : "/"}</div>
+                                <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
                               </span>
-                              <Badge bg="primary">{percentage}%</Badge>
+                              <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
                             </ListGroup.Item>
                           ) : (
                             <ListGroup.Item
@@ -388,15 +398,15 @@ export default class Create extends Component {
                               value={JSON.stringify(file)}
                               action
                               onClick={this.handleClickFiles}
-                              className="d-flex justify-content-between"
+                              className="d-flex justify-content-between listgroup-custom-s"
                             >
                               <span>
                                 {file} {count > 1 ? `(${count})` : <></>}
                                 <br />
-                                <div style={{ fontSize: "11px", color: "gray" }}>{dir !== "" ? dir : "/"}</div>
+                                <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
                               </span>
 
-                              <Badge bg="primary">{percentage}%</Badge>
+                              <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
                             </ListGroup.Item>
                           );
                         })
@@ -405,42 +415,43 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
           </Col>
           <Col xs="auto" className="d-flex align-items-center justify-content-center">
-            <Button onClick={this.handleAdd} variant="light">
-              <img src={LeftArrow} alt="UpArrow" />
+            <Button onClick={this.handleAdd} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+              <Image src={LeftArrow} alt="UpArrow" className="arrow-icon" />
             </Button>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
           </Col>
           <Col>
-            <Button onClick={this.handleSelectAll} variant="light">
+            <Button onClick={this.handleSelectAll} variant={this.props.isDarkMode ? "outline-light" : "light"}>
               Select All
             </Button>
             &nbsp;&nbsp;
-            <Button onClick={this.handleSelectNone} variant="light">
+            <Button onClick={this.handleSelectNone} variant={this.props.isDarkMode ? "outline-light" : "light"}>
               Select None
             </Button>
             &nbsp;&nbsp;
-            <Button onClick={this.handleStreamer} variant="light">
+            <Button onClick={this.handleStreamer} variant={this.props.isDarkMode ? "outline-light" : "light"}>
               Preview
             </Button>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             {/* Directory Listing */}
-            <div style={{ fontSize: "12px" }}>
-              <Card style={{ width: "22rem", backgroundColor: "#ffffff", borderRadius: "0" }}>
+            <div className="div-font">
+              <Card className="card-custom">
                 <Card.Title className="m-0 p-2">
-                  <ListGroup.Item style={{ fontSize: "14px" }} variant="light">
+                  <ListGroup.Item className="listgroup-header" variant="light">
                     {this.state.currentDir}
                   </ListGroup.Item>
                 </Card.Title>
-                <Card.Body className="m-0 p-0" style={{ height: "500px", overflowY: "auto", margin: false }}>
+                <Card.Body className="m-0 p-0 card-body-custom">
                   <ListGroup variant="flush">
                     {this.state.currentDir !== `${this.state.root}` ? (
                       <ListGroup.Item
                         value={JSON.stringify({ name: "..", isDir: true })}
                         action
                         onClick={this.handleClick}
+                        className="listgroup-custom-b"
                       >
                         ../
                       </ListGroup.Item>
@@ -455,6 +466,7 @@ export default class Create extends Component {
                               value={JSON.stringify(file)}
                               action
                               onClick={this.handleClick}
+                              className="listgroup-custom-b"
                             >
                               {file.name}/
                             </ListGroup.Item>
@@ -465,6 +477,7 @@ export default class Create extends Component {
                               action
                               active
                               onClick={this.handleClick}
+                              className="listgroup-custom-active"
                             >
                               {file.name}
                             </ListGroup.Item>
@@ -474,6 +487,7 @@ export default class Create extends Component {
                               value={JSON.stringify(file)}
                               action
                               onClick={this.handleClick}
+                              className="listgroup-custom-b"
                             >
                               {file.name}
                             </ListGroup.Item>
@@ -486,7 +500,7 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
           </Col>
           {this.state.player ? (
             <Col>
@@ -505,7 +519,7 @@ export default class Create extends Component {
                   </video>
                 </div>
               </Row>
-              <Button onClick={this.handleStop} variant="light">
+              <Button onClick={this.handleStop} variant={this.props.isDarkMode ? "outline-light" : "light"}>
                 Close
               </Button>
             </Col>
@@ -513,7 +527,7 @@ export default class Create extends Component {
             <></>
           )}
         </Row>
-        <Button onClick={this.props.cancel} variant="light">
+        <Button onClick={this.props.cancel} variant={this.props.isDarkMode ? "outline-light" : "light"}>
           Cancel
         </Button>
         &nbsp;&nbsp;
@@ -535,8 +549,8 @@ export default class Create extends Component {
           <></>
         )}
         {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
-        <div style={{ paddingBottom: "0.75rem" }} />
-      </div>
+        <div className="div-seperator" />
+      </Form>
     );
   }
 }

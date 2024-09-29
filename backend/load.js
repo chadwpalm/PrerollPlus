@@ -48,6 +48,10 @@ try {
     temp.settings.polling = "1";
   }
 
+  if (!temp.darkMode) {
+    temp.darkMode = false;
+  }
+
   if (temp.version !== appVersion || temp.build !== build || temp.branch !== branch) {
     console.info(
       "Version updated from",

@@ -1,0 +1,85 @@
+.navbar-row {
+    border-bottom: solid;
+    border-bottom-color: black;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 3px 0px 0px #e93663;
+}
+
+.navbar-content {
+    background-color: #ddd;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.img-thumbnail {
+    height: 40px;
+    width: 40px;
+    padding: 0 !important;
+}
+
+.nav-dropdown-update {
+    color: red;
+}
+
+.main-row {
+    padding-left: 30px;
+    padding-top: 30px;
+    padding-right: 30px;
+}
+
+.moon-icon {
+    height: 20px;
+    width: 20px;
+    cursor: pointer;
+}
+
+/* Dark Mode Styles */
+
+body.dark-mode {
+    background-color: #121212; /* Dark background */
+    color: white; /* Light text */
+}
+
+body.dark-mode a {
+    color: rgb(185, 185, 185);
+}
+
+.navbar-row.dark-mode {
+    border-bottom-color: rgb(161, 161, 161);
+}
+
+.navbar-content.dark-mode {
+    background-color: #333; /* Darker navbar */
+    color: white; /* Light text */
+}
+
+/* Ensure links are styled correctly in dark mode */
+.navbar-content.dark-mode .nav-link {
+    color: #b9b9b9; /* White text for navbar links and brand */
+}
+
+.navbar-content.dark-mode .navbar-brand {
+    color: white; /* White text for navbar links and brand */
+}
+
+.navbar-content.dark-mode .nav-link:hover {
+    color: #5c5c5c; /* Change hover color if desired */
+}
+
+.navbar-content.dark-mode .nav-link.active {
+    color: white; /* Change hover color if desired */
+}
+
+.navbar-content.dark-mode .moon-icon {
+    filter: invert(100%);
+}
+
+.navbar-content.dark-mode .logout-icon {
+    filter: invert(100%);
+}
+
+.modal.dark-mode .modal-content {
+    background-color: #363636;
+}

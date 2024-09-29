@@ -1,0 +1,91 @@
+.div-seperator {
+    padding-bottom: 0.75rem;
+}
+
+.listgroup-custom-s {
+    border: none !important;
+}
+
+.div-font {
+    font-size: 12px;
+}
+
+.form-content .form-select {
+    width: 65px;
+}
+
+.card-custom {
+    width: 22rem;
+    background-color: white;
+    border-radius: 0;
+}
+
+.card-body-custom {
+    height: 500px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+.listgroup-header {
+    color: rgb(90, 90, 90) !important;
+    background-color: white !important;
+    font-size: 14px !important;
+}
+
+.listgroup-arrow {
+    height: 25%;
+    padding: 2px !important;
+}
+
+.listgroup-arrow-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.directory-loc {
+    font-size: 11px;
+    color: gray;
+}
+
+.form-content.dark-mode .listgroup-custom-b,
+.form-content.dark-mode .listgroup-custom-s {
+    color: white;
+    background-color: rgb(46, 46, 46);
+}
+
+.form-content.dark-mode .listgroup-custom-active {
+    color: white;
+    background-color: rgb(94, 94, 94);
+    border: 0;
+}
+
+.form-content.dark-mode .listgroup-header {
+    color: rgb(172, 172, 172) !important;
+    background-color: rgb(46, 46, 46) !important;
+    font-size: 14px !important;
+}
+
+.form-content.dark-mode .card-custom {
+    background-color: rgb(46, 46, 46);
+}
+
+.form-content.dark-mode .form-control {
+    color: white;
+    background-color: rgb(46, 46, 46);
+    border-color: #898989;
+}
+
+.form-content.dark-mode .arrow-icon {
+    filter: invert(100%);
+}
+
+.form-content.dark-mode .listgroup-arrow {
+    background-color: rgb(46, 46, 46);
+}
+
+.form-content.dark-mode .directory-loc {
+    font-size: 11px;
+    color: rgb(206, 206, 206);
+}

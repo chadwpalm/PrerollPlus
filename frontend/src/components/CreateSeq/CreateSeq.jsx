@@ -12,6 +12,8 @@ import LeftArrow from "bootstrap-icons/icons/arrow-left.svg";
 import DownArrow from "bootstrap-icons/icons/arrow-down.svg";
 import DownArrowShort from "bootstrap-icons/icons/arrow-down-short.svg";
 import Modal from "react-bootstrap/Modal";
+import Image from "react-bootstrap/Image";
+import "./CreateSeq.css";
 
 export default class Create extends Component {
   constructor(props) {
@@ -70,6 +72,7 @@ export default class Create extends Component {
   };
 
   handleClickBuckets = (e) => {
+    e.preventDefault();
     const target = e.currentTarget;
     var temp = JSON.parse(target.value);
 
@@ -77,6 +80,7 @@ export default class Create extends Component {
   };
 
   handleClick = (e) => {
+    e.preventDefault();
     const target = e.currentTarget;
     var temp = JSON.parse(target.value);
 
@@ -95,7 +99,8 @@ export default class Create extends Component {
     }
   };
 
-  handleRemove = () => {
+  handleRemove = (e) => {
+    e.preventDefault();
     this.setState((prevState) => {
       const newBuckets = [...prevState.buckets]; // Create a copy of the current media state
 
@@ -305,10 +310,10 @@ export default class Create extends Component {
     }
 
     return (
-      <div>
+      <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
         <Form.Label for="name">Name of sequence &nbsp;&nbsp;</Form.Label>
         <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
-        <div style={{ paddingBottom: "0.75rem" }} />
+        <div className="div-seperator" />
         <Form.Label for="schedule">Schedule</Form.Label>
         <div>
           <Form.Check
@@ -334,7 +339,7 @@ export default class Create extends Component {
             checked={this.state.schedule === "2"}
           />
         </div>
-        <div style={{ paddingBottom: "0.75rem" }} />
+        <div className="div-seperator" />
         {this.state.schedule === "1" ? (
           <>
             <Stack gap={1} direction="horizontal">
@@ -345,7 +350,6 @@ export default class Create extends Component {
                 name="startMonth"
                 onChange={this.handleDate}
                 size="sm"
-                style={{ width: "65px" }}
               >
                 {startMonths}
               </Form.Select>
@@ -355,12 +359,11 @@ export default class Create extends Component {
                 name="startDay"
                 onChange={this.handleDate}
                 size="sm"
-                style={{ width: "65px" }}
               >
                 {startDays}
               </Form.Select>
             </Stack>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
             <Stack gap={1} direction="horizontal">
               End Date:&nbsp;&nbsp;
               <Form.Select
@@ -369,22 +372,14 @@ export default class Create extends Component {
                 name="endMonth"
                 onChange={this.handleDate}
                 size="sm"
-                style={{ width: "65px" }}
               >
                 {endMonths}
               </Form.Select>
-              <Form.Select
-                value={this.state.endDay}
-                id="endDay"
-                name="endDay"
-                onChange={this.handleDate}
-                size="sm"
-                style={{ width: "65px" }}
-              >
+              <Form.Select value={this.state.endDay} id="endDay" name="endDay" onChange={this.handleDate} size="sm">
                 {endDays}
               </Form.Select>
             </Stack>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
           </>
         ) : (
           <></>
@@ -392,31 +387,22 @@ export default class Create extends Component {
         <Row xs={1} sm="auto">
           <Col xs="auto">
             {/* File Listing */}
-            <div style={{ fontSize: "12px" }}>
-              <Card style={{ width: "22rem", backgroundColor: "#ffffff", borderRadius: "0" }}>
+            <div className="div-font">
+              <Card className="card-custom">
                 <Card.Title className="m-0 p-2">
-                  <ListGroup.Item style={{ fontSize: "14px" }} variant="light">
-                    Bucket Sequence
-                  </ListGroup.Item>
+                  <ListGroup.Item className="listgroup-header">Bucket Sequence</ListGroup.Item>
                 </Card.Title>
-                <Card.Body className="m-0 p-0" style={{ height: "500px", overflowY: "auto", margin: false }}>
+                <Card.Body className="m-0 p-0 card-body-custom">
                   <ListGroup variant="flush">
                     {this.state.buckets.length === 0 ? (
-                      <ListGroup.Item>&lt;Add Buckets Here&gt;</ListGroup.Item>
+                      <ListGroup.Item className="listgroup-custom-s">&lt;Add Buckets Here&gt;</ListGroup.Item>
                     ) : (
                       this.state.buckets.map((bucket, idx) => (
                         <React.Fragment key={bucket.uid}>
                           {idx !== 0 && (
-                            <ListGroup.Item style={{ height: "25%", padding: "2px", border: "bottom" }}>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "center",
-                                  alignItems: "center",
-                                  height: "100%",
-                                }}
-                              >
-                                <img src={DownArrowShort} alt="Down Arrow" />
+                            <ListGroup.Item className="listgroup-arrow">
+                              <div className="listgroup-arrow-div">
+                                <Image src={DownArrowShort} alt="Down Arrow" className="arrow-icon" />
                               </div>
                             </ListGroup.Item>
                           )}
@@ -426,8 +412,7 @@ export default class Create extends Component {
                               action
                               active
                               onClick={this.handleClickBuckets}
-                              className="d-flex justify-content-between"
-                              style={{ border: "none" }}
+                              className="d-flex justify-content-between listgroup-custom-active"
                             >
                               {this.props.settings.buckets.find(({ id }) => id === bucket.id.toString()).name}
                             </ListGroup.Item>
@@ -436,8 +421,7 @@ export default class Create extends Component {
                               value={JSON.stringify(bucket)}
                               action
                               onClick={this.handleClickBuckets}
-                              className="d-flex justify-content-between"
-                              style={{ border: "none" }}
+                              className="d-flex justify-content-between listgroup-custom-s"
                             >
                               {this.props.settings.buckets.find(({ id }) => id === bucket.id.toString()).name}
                             </ListGroup.Item>
@@ -449,36 +433,38 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div style={{ paddingBottom: "0.75rem" }} />
-            <Button onClick={this.handleRemove} type="submit" variant="light">
+            <div className="div-seperator" />
+            <Button
+              onClick={this.handleRemove}
+              type="submit"
+              variant={this.props.isDarkMode ? "outline-light" : "light"}
+            >
               Remove
             </Button>
             &nbsp;&nbsp;
-            <Button onClick={this.handleMoveUp} variant="light">
-              <img src={UpArrow} alt="UpArrow" />
+            <Button onClick={this.handleMoveUp} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+              <Image src={UpArrow} alt="UpArrow" className="arrow-icon" />
             </Button>
             &nbsp;&nbsp;
-            <Button onClick={this.handleMoveDown} variant="light">
-              <img src={DownArrow} alt="DownArrow" />
+            <Button onClick={this.handleMoveDown} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+              <Image src={DownArrow} alt="DownArrow" className="arrow-icon" />
             </Button>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
           </Col>
           <Col xs="auto" className="d-flex align-items-center justify-content-center">
-            <Button onClick={this.handleAdd} variant="light">
-              <img src={LeftArrow} alt="UpArrow" />
+            <Button onClick={this.handleAdd} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+              <Image src={LeftArrow} alt="UpArrow" className="arrow-icon" />
             </Button>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
           </Col>
           <Col xs="auto">
             {/* Bucket Listing */}
-            <div style={{ fontSize: "12px" }}>
-              <Card style={{ width: "22rem", backgroundColor: "#ffffff", borderRadius: "0" }}>
+            <div className="div-font">
+              <Card className="card-custom">
                 <Card.Title className="m-0 p-2">
-                  <ListGroup.Item style={{ fontSize: "14px" }} variant="light">
-                    List of Buckets
-                  </ListGroup.Item>
+                  <ListGroup.Item className="listgroup-header">List of Buckets</ListGroup.Item>
                 </Card.Title>
-                <Card.Body className="m-0 p-0" style={{ height: "500px", overflowY: "auto", margin: false }}>
+                <Card.Body className="m-0 p-0 card-body-custom">
                   <ListGroup variant="flush">
                     {this.props.settings.buckets
                       .slice()
@@ -491,6 +477,7 @@ export default class Create extends Component {
                             action
                             active
                             onClick={this.handleClick}
+                            className="listgroup-custom-active"
                           >
                             {bucket.name}
                           </ListGroup.Item>
@@ -500,6 +487,7 @@ export default class Create extends Component {
                             value={JSON.stringify(bucket)}
                             action
                             onClick={this.handleClick}
+                            className="listgroup-custom-b"
                           >
                             {bucket.name}
                           </ListGroup.Item>
@@ -509,10 +497,10 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div style={{ paddingBottom: "0.75rem" }} />
+            <div className="div-seperator" />
           </Col>
         </Row>
-        <Button onClick={this.props.cancel} variant="light">
+        <Button onClick={this.props.cancel} variant={this.props.isDarkMode ? "outline-light" : "light"}>
           Cancel
         </Button>
         &nbsp;&nbsp;
@@ -534,7 +522,7 @@ export default class Create extends Component {
           <></>
         )}
         {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
-        <div style={{ paddingBottom: "0.75rem" }} />
+        <div className="div-seperator" />
         <Modal show={this.state.show} onHide={this.handleClose} size="sm" backdrop="static">
           <Modal.Header>
             <h3>Error</h3>
@@ -564,7 +552,7 @@ export default class Create extends Component {
             <Button onClick={this.handleCloseOverlap}>Acknowledge</Button>
           </Modal.Body>
         </Modal>
-      </div>
+      </Form>
     );
   }
 }

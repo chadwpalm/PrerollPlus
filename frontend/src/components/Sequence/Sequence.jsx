@@ -4,6 +4,7 @@ import Xclose from "bootstrap-icons/icons/x-square.svg";
 import Edit from "bootstrap-icons/icons/pencil-square.svg";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
+import Image from "react-bootstrap/Image";
 import "./Sequence.css";
 
 export default class Sequence extends Component {
@@ -31,48 +32,27 @@ export default class Sequence extends Component {
   render() {
     return (
       <Card
-        style={{
-          width: "10rem",
-          height: "8rem",
-          backgroundColor: "#f8f9fa",
-          border:
-            (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId
-              ? "2px solid red"
-              : "1px solid transparent",
-        }}
-        className="text-center"
+        className={`card-global ${
+          (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId
+            ? "card-error"
+            : "card-default"
+        } ${this.props.isDarkMode ? "dark-mode" : ""}`}
         border={(this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId ? "none" : "dark"}
       >
-        <Card.Header
-          className="border-bottom-0"
-          style={{ backgroundColor: "#f8f9fa", padding: "5px", textAlign: "right" }}
-        >
+        <Card.Header className={`border-bottom-0 header-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
           {this.props.isEdit || this.props.isCreating ? (
-            <img src={Xclose} alt="Close" />
+            <Image src={Xclose} alt="Close" className="icon-noclick" />
           ) : (
-            <img src={Xclose} onClick={this.handleDelete} style={{ cursor: "pointer" }} alt="Close" />
+            <Image src={Xclose} onClick={this.handleDelete} className="icon-clickable" alt="Close" />
           )}
         </Card.Header>
-        <Card.Subtitle
-          className="d-flex align-items-center justify-content-center"
-          style={{ height: "4rem", paddingLeft: "5px", paddingRight: "5px" }}
-        >
+        <Card.Subtitle className="d-flex align-items-center justify-content-center sub-custom">
           {this.state.name}
         </Card.Subtitle>
-        <Card.Footer className="border-top-0" style={{ backgroundColor: "#f8f9fa", padding: "5px" }}>
+        <Card.Footer className={`border-top-0 footer-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
           <Row>
             <Col xs={8}>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  textAlign: "left",
-                  fontSize: "12px",
-                  height: "100%",
-                  paddingLeft: "5px",
-                }}
-              >
+              <div className="div-custom">
                 {this.props.schedule === "2" ? (
                   <>No Schedule</>
                 ) : (
@@ -85,14 +65,10 @@ export default class Sequence extends Component {
             <Col xs={4}>
               <div style={{ textAlign: "right" }}>
                 {this.props.isEdit || this.props.isCreating ? (
-                  <img src={Edit} alt="Edit" />
+                  <Image src={Edit} alt="Edit" className="icon-noclick" />
                 ) : (
-                  <button
-                    value={this.state.id}
-                    onClick={this.handleClick}
-                    style={{ margin: 0, padding: 0, borderWidth: "0px", backgroundColor: "inherit" }}
-                  >
-                    <img src={Edit} alt="Edit" />
+                  <button value={this.state.id} onClick={this.handleClick} className="edit-button">
+                    <Image src={Edit} alt="Edit" className="icon-clickable" />
                   </button>
                 )}
               </div>

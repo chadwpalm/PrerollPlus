@@ -2,10 +2,18 @@ import React from "react";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
+import "./App.css";
 
-const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dismiss }) => {
+const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dismiss, isDarkMode }) => {
   return (
-    <Modal show={announce} fullscreen={fullscreenAnn} onHide={handleCloseAnn} size="lg" animation={true}>
+    <Modal
+      show={announce}
+      fullscreen={fullscreenAnn}
+      onHide={handleCloseAnn}
+      size="lg"
+      animation={true}
+      className={isDarkMode ? "dark-mode" : ""}
+    >
       <Modal.Header>
         <Modal.Title>Announcement</Modal.Title>
       </Modal.Header>
@@ -35,7 +43,9 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         />
         <br />
         <br />
-        <Button onClick={handleCloseAnn}>Dismiss</Button>
+        <Button variant={isDarkMode ? "secondary" : "primary"} onClick={handleCloseAnn}>
+          Dismiss
+        </Button>
       </Modal.Body>
     </Modal>
   );

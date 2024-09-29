@@ -1,0 +1,30 @@
+.div-seperator {
+    padding-bottom: 0.75rem;
+}
+
+.server-list {
+    width: 100% !important;
+}
+
+.form-content.dark-mode .repeat-icon {
+    filter: invert(100%);
+}
+
+.form-content.dark-mode .btn-outline-light {
+    --bs-btn-hover-bg: rgb(54, 54, 54);
+    --bs-btn-active-bg: black;
+    --bs-btn-border-color: #9f9f9f;
+}
+
+.form-content.dark-mode .form-control {
+    color: white;
+    background-color: rgb(46, 46, 46);
+    border-color: #898989;
+}
+
+.form-content.dark-mode .form-select {
+    color: white;
+    background-color: rgb(46, 46, 46);
+    border-color: #898989;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+}

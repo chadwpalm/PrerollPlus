@@ -7,6 +7,7 @@ import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import "../Sequences/Sequences.css";
 
 export default class Buckets extends Component {
   constructor(props) {
@@ -113,6 +114,7 @@ export default class Buckets extends Component {
                 isEdit={this.state.isEdit}
                 isCreating={this.state.isCreating}
                 delete={this.handleOpen}
+                isDarkMode={this.props.isDarkMode}
               />
               <br />
             </Col>
@@ -121,36 +123,27 @@ export default class Buckets extends Component {
           <Col>
             {this.state.isEdit || this.state.isCreating ? (
               <Card
-                style={{
-                  width: "10rem",
-                  height: "8rem",
-                  backgroundColor: "#f8f9fa",
-                  border: this.state.id === "-1" ? "2px solid red" : "1px solid black",
-                }}
+                className={`card-global ${this.state.id === "-1" ? "card-error" : "card-default"} ${
+                  this.props.isDarkMode ? "dark-mode" : ""
+                }`}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center">
-                  <img src={AddIcon} width="100" height="100" />
+                  <img src={AddIcon} width="100" height="100" className="plus-image" />
                 </Card.Body>
               </Card>
             ) : (
               <Card
-                style={{
-                  width: "10rem",
-                  height: "8rem",
-                  backgroundColor: "#f8f9fa",
-                  cursor: "pointer",
-                  border: "1px solid black",
-                }}
+                className={`card-global card-unselected ${this.props.isDarkMode ? "dark-mode" : ""}`}
                 onClick={this.handleAddBucket}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center">
-                  <img src={AddIcon} width="100" height="100" />
+                  <img src={AddIcon} width="100" height="100" className="plus-image" />
                 </Card.Body>
               </Card>
             )}
           </Col>
         </Row>
-        <Row style={{ paddingLeft: "10px", paddingTop: "20px" }}>
+        <Row className="row-custom">
           {this.state.isCreating ? (
             <Create
               settings={this.props.settings}
@@ -158,6 +151,7 @@ export default class Buckets extends Component {
               saved={this.handleSaveCreate}
               id={this.state.id}
               isEdit={this.state.isEdit}
+              isDarkMode={this.props.isDarkMode}
             />
           ) : (
             <h6>Click the plus to add a new Bucket.</h6>
@@ -169,11 +163,15 @@ export default class Buckets extends Component {
           onHide={this.handleClose}
           size="sm"
           backdrop="static"
+          className={this.props.isDarkMode ? "dark-mode" : ""}
         >
           <Modal.Body>
             <h4> Are you sure?</h4>
-            <Button onClick={this.handleDelete}>Yes</Button>&nbsp;&nbsp;&nbsp;
-            <Button variant="" onClick={this.handleClose}>
+            <Button variant={this.props.isDarkMode ? "secondary" : "primary"} onClick={this.handleDelete}>
+              Yes
+            </Button>
+            &nbsp;&nbsp;&nbsp;
+            <Button variant={this.props.isDarkMode ? "outline-light" : ""} onClick={this.handleClose}>
               Cancel
             </Button>
           </Modal.Body>
