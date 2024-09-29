@@ -51,7 +51,7 @@ router.post("/", async function (req, res, next) {
         console.debug("Retrieving Cert from URL:", localUrl);
 
         try {
-          const response = await axios.get(localUrl, { timeout: 500, params: { "X-Plex-Token": token } });
+          const response = await axios.get(localUrl, { timeout: 3000, params: { "X-Plex-Token": token } });
 
           let certId = response.data.MediaContainer.Setting.find((id) => id.id === "CertificateUUID");
 

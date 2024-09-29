@@ -9,8 +9,8 @@
 
 .navbar-content {
     background-color: #ddd;
-    padding-left: 15px;
-    padding-right: 15px;
+    padding-left: 15px !important;
+    padding-right: 15px !important;
 }
 
 .img-thumbnail {

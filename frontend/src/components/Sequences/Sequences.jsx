@@ -140,7 +140,7 @@ export default class Sequences extends Component {
                 }`}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center">
-                  <img src={AddIcon} width="100" height="100" className="plus-image" />
+                  <img src={AddIcon} alt="Add" width="100" height="100" className="plus-image" />
                 </Card.Body>
               </Card>
             ) : (
@@ -149,7 +149,7 @@ export default class Sequences extends Component {
                 onClick={this.handleAddSequence}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center ">
-                  <Image src={AddIcon} width="100" height="100" className="plus-image" />
+                  <Image src={AddIcon} alt="Add" width="100" height="100" className="plus-image" />
                 </Card.Body>
               </Card>
             )}

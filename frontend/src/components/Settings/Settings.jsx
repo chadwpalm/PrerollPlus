@@ -148,7 +148,7 @@ export default class Settings extends Component {
   };
 
   handleServerChange = (e) => {
-    if (e.target.value != 0) {
+    if (e.target.value !== 0) {
       if (this.state.servers[e.target.value - 1].secure) {
         this.setState({
           ip: `${this.state.servers[e.target.value - 1].ip.replace(/\./g, "-")}.${
@@ -216,7 +216,7 @@ export default class Settings extends Component {
                   </Tooltip>
                 }
               >
-                <img src={Info} />
+                <img src={Info} alt="info" />
               </OverlayTrigger>
             </h5>
             <div className="div-seperator" />
@@ -301,7 +301,7 @@ export default class Settings extends Component {
                 </Tooltip>
               }
             >
-              <img src={Info} />
+              <img src={Info} alt="Info" />
             </OverlayTrigger>
             {this.props.settings.build === "Native" ? (
               <Form.Control value={this.state.loc} id="loc" name="loc" onChange={this.handleLoc} size="sm" />
@@ -324,7 +324,7 @@ export default class Settings extends Component {
                 </Tooltip>
               }
             >
-              <img src={Info} />
+              <img src={Info} alt="Info" />
             </OverlayTrigger>
             <Form.Control
               value={this.state.plexLoc}

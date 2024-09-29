@@ -22,11 +22,11 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         <br />
         <br />
         Preroll Plus is currently in Beta, so please feel free to submit any issues to{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank">
+        <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank" rel="noreferrer">
           https://github.com/chadwpalm/PrerollPlus/issues
         </a>{" "}
         or in the{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank">
+        <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank" rel="noreferrer">
           Discussion
         </a>{" "}
         section of the GitHub repository.

@@ -5,7 +5,7 @@ import Button from "react-bootstrap/Button";
 import LoginIcon from "bootstrap-icons/icons/box-arrow-in-left.svg";
 // import Logo from "../../images/Logo2.png";
 import Card from "react-bootstrap/Card";
-import { PlexOauth, IPlexClientDetails } from "plex-oauth";
+import { PlexOauth } from "plex-oauth";
 
 export default class Login extends Component {
   constructor(props) {
@@ -44,7 +44,7 @@ export default class Login extends Component {
       }
     }
 
-    let clientInformation: IPlexClientDetails = {
+    let clientInformation = {
       clientIdentifier: `${this.props.settings.uuid}`, // This is a unique identifier used to identify your app with Plex.
       product: "Preroll Plus", // Name of your application
       device: `${this.props.settings.platform}`, // The type of device your application is running on
@@ -198,21 +198,21 @@ export default class Login extends Component {
                 {this.state.gettingToken ? (
                   <Button variant="danger" style={{ width: "100%" }} onClick={this.handlePlexAuth} disabled>
                     <div style={{ color: "#444" }}>
-                      <img src={LoginIcon} />
+                      <img src={LoginIcon} alt="Login" />
                       &nbsp;&nbsp; Loading...
                     </div>
                   </Button>
                 ) : this.state.noInternet ? (
                   <Button variant="danger" style={{ width: "100%" }} onClick={this.handlePlexAuth} disabled>
                     <div style={{ color: "#444" }}>
-                      <img src={LoginIcon} />
+                      <img src={LoginIcon} alt="Login" />
                       &nbsp;&nbsp; Sign in
                     </div>
                   </Button>
                 ) : (
                   <Button variant="danger" style={{ width: "100%" }} onClick={this.handlePlexAuth}>
                     <div style={{ color: "#444" }}>
-                      <img src={LoginIcon} />
+                      <img src={LoginIcon} alt="Login" />
                       &nbsp;&nbsp; Sign in
                     </div>
                   </Button>

@@ -128,7 +128,7 @@ export default class Buckets extends Component {
                 }`}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center">
-                  <img src={AddIcon} width="100" height="100" className="plus-image" />
+                  <img src={AddIcon} alt="Add" width="100" height="100" className="plus-image" />
                 </Card.Body>
               </Card>
             ) : (
@@ -137,7 +137,7 @@ export default class Buckets extends Component {
                 onClick={this.handleAddBucket}
               >
                 <Card.Body className="d-flex align-items-center justify-content-center">
-                  <img src={AddIcon} width="100" height="100" className="plus-image" />
+                  <img src={AddIcon} alt="Add" width="100" height="100" className="plus-image" />
                 </Card.Body>
               </Card>
             )}

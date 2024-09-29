@@ -1,4 +1,4 @@
-import React, { Component, createRef } from "react";
+import React, { Component } from "react";
 import { v4 as uuid } from "uuid";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
@@ -282,7 +282,7 @@ export default class Create extends Component {
     const startDays = [];
     const endMonths = [];
     const endDays = [];
-    for (var i = 1; i <= 12; i++) {
+    for (let i = 1; i <= 12; i++) {
       startMonths.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
@@ -294,14 +294,14 @@ export default class Create extends Component {
         </option>
       );
     }
-    for (var i = 1; i <= this.monthList[this.state.startMonth]; i++) {
+    for (let i = 1; i <= this.monthList[this.state.startMonth]; i++) {
       startDays.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
         </option>
       );
     }
-    for (var i = 1; i <= this.monthList[this.state.endMonth]; i++) {
+    for (let i = 1; i <= this.monthList[this.state.endMonth]; i++) {
       endDays.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}

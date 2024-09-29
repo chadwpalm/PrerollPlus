@@ -209,7 +209,7 @@ export default class Create extends Component {
 
   handleSelectAll = () => {
     var newList = [];
-    this.state.directoryList.map((element) => {
+    this.state.directoryList.forEach((element) => {
       if (!element.isDir) {
         newList.push(element.name);
       }
