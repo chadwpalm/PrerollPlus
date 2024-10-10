@@ -66,7 +66,6 @@ async function createList(index) {
     for (const [idx, bucketId] of bucketIds.entries()) {
       let files = [];
       const info = settings.buckets.find(({ id }) => id === bucketId.id.toString());
-      console.log("In bucket: ", info.name);
 
       if (info.source === "2") {
         try {

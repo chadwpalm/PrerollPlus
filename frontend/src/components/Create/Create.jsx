@@ -387,6 +387,10 @@ export default class Create extends Component {
               <br />
               Directory: Select a directory to bind to the bucket and Preroll Plus will randomly select files from that
               directory when creating the Preroll entry.
+              <br />
+              <br />
+              Note: Using Directory as an option will not allow you to add weights to each file. To accompish weights
+              you will need to create duplicates of the file in the file system.
             </Tooltip>
           }
         >
