@@ -56,24 +56,51 @@ function checkSchedule() {
   return index;
 }
 
-function createList(index) {
-  var plexString = "";
+async function createList(index) {
+  let plexString = "";
   if (index !== -1) {
     const bucketIds = settings.sequences[index].buckets;
     let usedFiles = new Set(); // Set to keep track of used files
 
-    bucketIds.forEach((bucketId, idx) => {
-      var files = [];
-      var info = settings.buckets.find(({ id }) => id === bucketId.id.toString());
+    // Using `for...of` loop to await `axios` inside the loop
+    for (const [idx, bucketId] of bucketIds.entries()) {
+      let files = [];
+      const info = settings.buckets.find(({ id }) => id === bucketId.id.toString());
+      console.log("In bucket: ", info.name);
 
-      info.media.forEach((media) => {
-        files.push(`${settings.settings.plexLoc}${media.dir}/${media.file}`);
-      });
+      if (info.source === "2") {
+        try {
+          const response = await axios.post(
+            "http://localhost:4949/backend/directory",
+            { dir: `${info.dir}` },
+            {
+              headers: {
+                "Content-Type": "application/json;charset=UTF-8",
+              },
+            }
+          );
+          response.data.forEach((media) => {
+            files.push(`${settings.settings.plexLoc}${info.dir.replace(settings.settings.loc, "")}/${media.name}`);
+          });
+        } catch (error) {
+          if (error.response) {
+            console.error("Server responded with error:", error.response.data);
+          } else if (error.request) {
+            console.error("No response received:", error.request);
+          } else {
+            console.error("Error setting up request:", error.message);
+          }
+        }
+      } else {
+        info.media.forEach((media) => {
+          files.push(`${settings.settings.plexLoc}${media.dir}/${media.file}`);
+        });
+      }
 
       if (files.length !== 0) {
         let randomFile;
         do {
-          randomFile = files[Math.floor(Math.random() * info.media.length)];
+          randomFile = files[Math.floor(Math.random() * files.length)]; // Fix: `info.media.length` -> `files.length`
         } while (usedFiles.has(randomFile)); // Keep picking until an unused file is found
 
         usedFiles.add(randomFile); // Mark the selected file as used
@@ -84,7 +111,7 @@ function createList(index) {
           plexString += randomFile + ",";
         }
       }
-    });
+    }
   }
   return plexString;
 }
@@ -92,7 +119,7 @@ function createList(index) {
 async function sendList(string) {
   const url = `http${settings.settings.ssl ? "s" : ""}://${settings.settings.ip}:${settings.settings.port}/:/prefs`;
 
-  axios
+  await axios
     .put(url, null, {
       headers: {
         "X-Plex-Token": `${settings.token}`,
@@ -109,9 +136,9 @@ async function sendList(string) {
     });
 }
 
-function doTask() {
+async function doTask() {
   const index = checkSchedule();
-  const string = createList(index);
+  const string = await createList(index);
   sendList(string);
 }
 

@@ -8,6 +8,7 @@ var axios = require("axios");
 let pendingAdds = new Map(); // Store added files with relevant information
 let pendingRemovals = new Map(); // Track removed files
 let renameDelay; // Delay for rename detection
+let pathToWatch = "";
 let isRemoved = true;
 let watcher = null;
 
@@ -20,8 +21,11 @@ function initializeWatcher() {
 
   try {
     settings = JSON.parse(fs.readFileSync("/config/settings.js"));
-    pathToWatch = settings.settings.loc;
-    renameDelay = settings.settings.polling === "1" ? 500 : 1000;
+
+    if (settings.settings) {
+      pathToWatch = settings.settings.loc;
+      renameDelay = settings.settings.polling === "1" ? 500 : 1000;
+    }
   } catch (err) {
     console.error("Cannot grab dir location", err);
     return;

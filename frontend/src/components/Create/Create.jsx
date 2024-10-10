@@ -3,6 +3,9 @@ import { v4 as uuid } from "uuid";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import ListGroup from "react-bootstrap/ListGroup";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
+import Info from "bootstrap-icons/icons/info-circle.svg";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
@@ -26,7 +29,7 @@ export default class Create extends Component {
         selectedList: [],
         selectedFileList: [],
         root: this.props.settings.settings.loc,
-        currentDir: this.props.settings.settings.loc,
+        currentDir: info.source === "2" ? info.dir : this.props.settings.settings.loc,
         dirTree: [],
         isError: false,
         isSaved: false,
@@ -35,6 +38,8 @@ export default class Create extends Component {
         videoIndex: 0,
         tempList: [],
         tempLength: 0,
+        source: info.source ?? "1",
+        sourceDir: info.dir ?? "",
       };
     } else {
       this.state = {
@@ -53,6 +58,8 @@ export default class Create extends Component {
         videoIndex: 0,
         tempList: [],
         tempLength: 0,
+        source: "1",
+        sourceDir: "",
       };
     }
 
@@ -71,13 +78,27 @@ export default class Create extends Component {
           var response = xhr.responseText,
             json = JSON.parse(response);
 
-          this.setState((prevState) => {
-            const updatedDirTree = [...prevState.dirTree, this.state.root];
-            return {
-              dirTree: updatedDirTree,
-              directoryList: json,
-            };
-          });
+          this.setState(
+            (prevState) => {
+              const updatedDirTree = [
+                ...prevState.dirTree,
+                this.state.root,
+                ...(this.state.source === "2"
+                  ? this.state.currentDir
+                      .replace(this.state.root, "")
+                      .split("/")
+                      .filter((dir) => dir !== "")
+                  : []),
+              ];
+              return {
+                dirTree: updatedDirTree,
+                directoryList: json,
+              };
+            },
+            () => {
+              console.log(this.state.dirTree);
+            }
+          );
         } else {
           // error
           this.setState({
@@ -89,7 +110,11 @@ export default class Create extends Component {
     });
     xhr.open("POST", "/backend/directory", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify({ dir: `${this.state.root}` }));
+    xhr.send(
+      JSON.stringify({
+        dir: `${this.state.source === "2" ? this.state.currentDir : this.state.root}`,
+      })
+    );
   }
 
   handleClickFiles = (e) => {
@@ -183,7 +208,6 @@ export default class Create extends Component {
 
   handleAdd = (e) => {
     e.preventDefault();
-    console.log(this.state.dirTree);
     const newDir = (this.state.dirTree.length > 1 ? "/" : "") + this.state.dirTree.slice(1).join("/");
     const newMediaList = this.state.selectedList.map((element) => ({ file: element, dir: newDir }));
     this.setState((prevState) => ({
@@ -230,7 +254,7 @@ export default class Create extends Component {
 
     this.setState({ isIncomplete: false });
 
-    if (this.state.name === "" || this.state.media.length === 0) {
+    if ((this.state.name === "" || this.state.media.length === 0) && this.state.source === "1") {
       this.setState({ isIncomplete: true });
       return;
     }
@@ -248,6 +272,8 @@ export default class Create extends Component {
     }
     temp.name = this.state.name;
     temp.media = this.state.media;
+    temp.source = this.state.source;
+    temp.dir = this.state.currentDir;
 
     if (this.props.isEdit) {
       const index = settings.buckets.findIndex(({ id }) => id === this.state.id);
@@ -336,105 +362,167 @@ export default class Create extends Component {
     return str.length > num ? str.slice(0, num) + "..." : str;
   };
 
+  handleSource = (e) => {
+    this.setState({ source: e.target.value.toString() });
+  };
+
   render() {
     return (
       <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
         <Form.Label for="name">Name of bucket &nbsp;&nbsp;</Form.Label>
         <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
         <div className="div-seperator" />
+        <Form.Label for="source">Source of files &nbsp;&nbsp;</Form.Label>
+        <OverlayTrigger
+          placement="right"
+          overlay={
+            <Tooltip>
+              This setting selects whether you wish to manually add files to the bucket or just use a specific
+              directory.
+              <br />
+              <br />
+              Manual: You select which files are added to your bucket from this page. This allows you to mix and match
+              files from different directories.
+              <br />
+              <br />
+              Directory: Select a directory to bind to the bucket and Preroll Plus will randomly select files from that
+              directory when creating the Preroll entry.
+            </Tooltip>
+          }
+        >
+          <img src={Info} alt="Info" />
+        </OverlayTrigger>
+        <div>
+          <Form.Check
+            inline
+            type="radio"
+            label="Manual"
+            value="1"
+            id="source"
+            name="source"
+            onChange={this.handleSource}
+            size="sm"
+            checked={this.state.source === "1"}
+          />
+          <Form.Check
+            inline
+            type="radio"
+            label="Directory"
+            value="2"
+            id="source"
+            name="source"
+            onChange={this.handleSource}
+            size="sm"
+            checked={this.state.source === "2"}
+          />
+        </div>
+        <div className="div-seperator" />
         <Row xs={1} sm="auto">
-          <Col>
-            <Button
-              onClick={this.handleRemove}
-              type="submit"
-              variant={this.props.isDarkMode ? "outline-light" : "light"}
-            >
-              Remove
-            </Button>
-            <div className="div-seperator" />
-            {/* File Listing */}
-            <div className="div-font">
-              <Card className="card-custom">
-                <Card.Title className="m-0 p-2">
-                  <ListGroup.Item className="listgroup-header" variant="light">
-                    Files in bucket
-                  </ListGroup.Item>
-                </Card.Title>
-                <Card.Body className="m-0 p-0 card-body-custom">
-                  <ListGroup variant="flush">
-                    {this.state.media.length === 0 ? (
-                      <ListGroup.Item className="listgroup-custom-s">&lt;Add Files Here&gt;</ListGroup.Item>
-                    ) : (
-                      Object.entries(
-                        this.state.media.reduce((acc, item) => {
-                          acc[item.file] = (acc[item.file] || 0) + 1;
-                          return acc;
-                        }, {})
-                      )
-                        .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
-                        .map(([file, count]) => {
-                          const dir = this.state.media.find((item) => item.file === file)?.dir || "";
-                          const percentage = ((count / this.state.media.length) * 100).toFixed(1);
-                          const truncatedFile = this.truncateString(file, 45);
-                          return this.state.selectedFileList.includes(file) ? (
-                            <ListGroup.Item
-                              key={file}
-                              value={JSON.stringify(file)}
-                              action
-                              active
-                              onClick={this.handleClickFiles}
-                              className="d-flex justify-content-between listgroup-custom-active"
-                            >
-                              <span>
-                                {truncatedFile} {count > 1 ? `(${count})` : <></>}
-                                <br />
-                                <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
-                              </span>
-                              <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
-                            </ListGroup.Item>
-                          ) : (
-                            <ListGroup.Item
-                              key={file}
-                              value={JSON.stringify(file)}
-                              action
-                              onClick={this.handleClickFiles}
-                              className="d-flex justify-content-between listgroup-custom-s"
-                            >
-                              <span>
-                                {file} {count > 1 ? `(${count})` : <></>}
-                                <br />
-                                <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
-                              </span>
+          {this.state.source === "1" ? (
+            <>
+              <Col>
+                <Button
+                  onClick={this.handleRemove}
+                  type="submit"
+                  variant={this.props.isDarkMode ? "outline-light" : "light"}
+                >
+                  Remove
+                </Button>
+                <div className="div-seperator" />
+                {/* File Listing */}
+                <div className="div-font">
+                  <Card className="card-custom">
+                    <Card.Title className="m-0 p-2">
+                      <ListGroup.Item className="listgroup-header" variant="light">
+                        Files in bucket
+                      </ListGroup.Item>
+                    </Card.Title>
+                    <Card.Body className="m-0 p-0 card-body-custom">
+                      <ListGroup variant="flush">
+                        {this.state.media.length === 0 ? (
+                          <ListGroup.Item className="listgroup-custom-s">&lt;Add Files Here&gt;</ListGroup.Item>
+                        ) : (
+                          Object.entries(
+                            this.state.media.reduce((acc, item) => {
+                              acc[item.file] = (acc[item.file] || 0) + 1;
+                              return acc;
+                            }, {})
+                          )
+                            .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
+                            .map(([file, count]) => {
+                              const dir = this.state.media.find((item) => item.file === file)?.dir || "";
+                              const percentage = ((count / this.state.media.length) * 100).toFixed(1);
+                              const truncatedFile = this.truncateString(file, 45);
+                              return this.state.selectedFileList.includes(file) ? (
+                                <ListGroup.Item
+                                  key={file}
+                                  value={JSON.stringify(file)}
+                                  action
+                                  active
+                                  onClick={this.handleClickFiles}
+                                  className="d-flex justify-content-between listgroup-custom-active"
+                                >
+                                  <span>
+                                    {truncatedFile} {count > 1 ? `(${count})` : <></>}
+                                    <br />
+                                    <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
+                                  </span>
+                                  <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
+                                </ListGroup.Item>
+                              ) : (
+                                <ListGroup.Item
+                                  key={file}
+                                  value={JSON.stringify(file)}
+                                  action
+                                  onClick={this.handleClickFiles}
+                                  className="d-flex justify-content-between listgroup-custom-s"
+                                >
+                                  <span>
+                                    {file} {count > 1 ? `(${count})` : <></>}
+                                    <br />
+                                    <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
+                                  </span>
 
-                              <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
-                            </ListGroup.Item>
-                          );
-                        })
-                    )}
-                  </ListGroup>
-                </Card.Body>
-              </Card>
-            </div>
-            <div className="div-seperator" />
-          </Col>
-          <Col xs="auto" className="d-flex align-items-center justify-content-center">
-            <Button onClick={this.handleAdd} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-              <Image src={LeftArrow} alt="UpArrow" className="arrow-icon" />
-            </Button>
-            <div className="div-seperator" />
-          </Col>
+                                  <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
+                                </ListGroup.Item>
+                              );
+                            })
+                        )}
+                      </ListGroup>
+                    </Card.Body>
+                  </Card>
+                </div>
+                <div className="div-seperator" />
+              </Col>
+              <Col xs="auto" className="d-flex align-items-center justify-content-center">
+                <Button onClick={this.handleAdd} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+                  <Image src={LeftArrow} alt="UpArrow" className="arrow-icon" />
+                </Button>
+                <div className="div-seperator" />
+              </Col>
+            </>
+          ) : (
+            ""
+          )}
           <Col>
-            <Button onClick={this.handleSelectAll} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-              Select All
-            </Button>
-            &nbsp;&nbsp;
-            <Button onClick={this.handleSelectNone} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-              Select None
-            </Button>
-            &nbsp;&nbsp;
-            <Button onClick={this.handleStreamer} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-              Preview
-            </Button>
+            {this.state.source === "1" ? (
+              <>
+                <Button onClick={this.handleSelectAll} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+                  Select All
+                </Button>
+                &nbsp;&nbsp;
+                <Button onClick={this.handleSelectNone} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+                  Select None
+                </Button>
+                &nbsp;&nbsp;
+                <Button onClick={this.handleStreamer} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+                  Preview
+                </Button>
+              </>
+            ) : (
+              ""
+            )}
+
             <div className="div-seperator" />
             {/* Directory Listing */}
             <div className="div-font">
@@ -470,27 +558,31 @@ export default class Create extends Component {
                             >
                               {file.name}/
                             </ListGroup.Item>
-                          ) : this.state.selectedList.includes(file.name) ? (
-                            <ListGroup.Item
-                              key={file.name}
-                              value={JSON.stringify(file)}
-                              action
-                              active
-                              onClick={this.handleClick}
-                              className="listgroup-custom-active"
-                            >
-                              {file.name}
-                            </ListGroup.Item>
+                          ) : this.state.source === "1" ? (
+                            this.state.selectedList.includes(file.name) ? (
+                              <ListGroup.Item
+                                key={file.name}
+                                value={JSON.stringify(file)}
+                                action
+                                active
+                                onClick={this.handleClick}
+                                className="listgroup-custom-active"
+                              >
+                                {file.name}
+                              </ListGroup.Item>
+                            ) : (
+                              <ListGroup.Item
+                                key={file.name}
+                                value={JSON.stringify(file)}
+                                action
+                                onClick={this.handleClick}
+                                className="listgroup-custom-b"
+                              >
+                                {file.name}
+                              </ListGroup.Item>
+                            )
                           ) : (
-                            <ListGroup.Item
-                              key={file.name}
-                              value={JSON.stringify(file)}
-                              action
-                              onClick={this.handleClick}
-                              className="listgroup-custom-b"
-                            >
-                              {file.name}
-                            </ListGroup.Item>
+                            ""
                           )
                         )
                     ) : (

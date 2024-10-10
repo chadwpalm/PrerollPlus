@@ -18,7 +18,7 @@ export default class Settings extends Component {
         ip: this.props.settings.settings.ip,
         port: this.props.settings.settings.port,
         ssl: this.props.settings.settings.ssl,
-        loc: this.props.settings.settings.loc,
+        loc: this.props.settings.settings.loc ?? "/prerolls",
         plexLoc: this.props.settings.settings.plexLoc,
         servers: [],
         isGetting: false,
@@ -26,7 +26,7 @@ export default class Settings extends Component {
         isError: false,
         isIncomplete: false,
         isSaved: false,
-        polling: this.props.settings.settings.polling,
+        polling: this.props.settings.settings.polling ?? "1",
       };
     } else {
       this.state = {
