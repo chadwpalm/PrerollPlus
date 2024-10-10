@@ -66,6 +66,7 @@ export default class Create extends Component {
     this.videoRef = createRef();
     this.handleFormSubmit = this.handleFormSubmit.bind(this);
     this.handleStreamer = this.handleStreamer.bind(this);
+    this.fetchDirectoryList = this.fetchDirectoryList.bind(this);
   }
 
   componentDidMount() {
@@ -78,27 +79,22 @@ export default class Create extends Component {
           var response = xhr.responseText,
             json = JSON.parse(response);
 
-          this.setState(
-            (prevState) => {
-              const updatedDirTree = [
-                ...prevState.dirTree,
-                this.state.root,
-                ...(this.state.source === "2"
-                  ? this.state.currentDir
-                      .replace(this.state.root, "")
-                      .split("/")
-                      .filter((dir) => dir !== "")
-                  : []),
-              ];
-              return {
-                dirTree: updatedDirTree,
-                directoryList: json,
-              };
-            },
-            () => {
-              console.log(this.state.dirTree);
-            }
-          );
+          this.setState((prevState) => {
+            const updatedDirTree = [
+              ...prevState.dirTree,
+              this.state.root,
+              ...(this.state.source === "2"
+                ? this.state.currentDir
+                    .replace(this.state.root, "")
+                    .split("/")
+                    .filter((dir) => dir !== "")
+                : []),
+            ];
+            return {
+              dirTree: updatedDirTree,
+              directoryList: json,
+            };
+          });
         } else {
           // error
           this.setState({
@@ -115,6 +111,44 @@ export default class Create extends Component {
         dir: `${this.state.source === "2" ? this.state.currentDir : this.state.root}`,
       })
     );
+  }
+
+  componentDidUpdate(prevProps) {
+    // Check if the settings prop has changed
+    if (this.props.settings !== prevProps.settings) {
+      // Find the relevant bucket if in edit mode
+      if (this.props.isEdit) {
+        const info = this.props.settings.buckets.find(({ id }) => id === this.props.id.toString());
+        if (info) {
+          this.setState(
+            {
+              media: info.media,
+            },
+            () => {
+              try {
+                this.fetchDirectoryList();
+              } catch (err) {
+                console.error("Error calling fetchDirectoryList:", err);
+              }
+            }
+          );
+        }
+      } else {
+        // Handle the default state for new items
+        this.setState(
+          {
+            media: [],
+          },
+          () => {
+            try {
+              this.fetchDirectoryList();
+            } catch (err) {
+              console.error("Error calling fetchDirectoryList:", err);
+            }
+          }
+        );
+      }
+    }
   }
 
   handleClickFiles = (e) => {
@@ -529,7 +563,20 @@ export default class Create extends Component {
 
             <div className="div-seperator" />
             {/* Directory Listing */}
+
             <div className="div-font">
+              {" "}
+              {this.props.sockConnected ? (
+                ""
+              ) : this.props.cannotConnect ? (
+                <div style={{ textAlign: "right", color: "red" }}>
+                  Unable to reconnect. Restart server then refresh page.
+                </div>
+              ) : (
+                <div style={{ textAlign: "right", color: "red" }}>
+                  Lost connection to backend, trying to reconnect...
+                </div>
+              )}
               <Card className="card-custom">
                 <Card.Title className="m-0 p-2">
                   <ListGroup.Item className="listgroup-header" variant="light">

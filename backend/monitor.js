@@ -4,19 +4,43 @@ var fs = require("fs");
 var path = require("path");
 var chokidar = require("chokidar");
 var axios = require("axios");
+var WebSocket = require("ws");
 
 let pendingAdds = new Map(); // Store added files with relevant information
 let pendingRemovals = new Map(); // Track removed files
 let renameDelay; // Delay for rename detection
 let pathToWatch = "";
 let isRemoved = true;
+let isAdded = true;
 let watcher = null;
+let isInit = true;
+let initTime = 2000;
+
+// WebSocket server setup
+const wss = new WebSocket.Server({ port: 4848 }); // Choose an appropriate port
+
+wss.on("connection", (ws) => {
+  console.log("Client connected");
+  ws.on("message", (message) => {
+    console.log("Received message from client:", message);
+  });
+});
+
+function broadcastUpdate() {
+  console.info("Sending update");
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send("update-config");
+    }
+  });
+}
 
 function initializeWatcher() {
   if (watcher) {
     console.info("Closing existing watcher before reinitializing...");
     watcher.close();
     watcher = null;
+    isInit = true;
   }
 
   try {
@@ -37,6 +61,20 @@ function initializeWatcher() {
       persistent: true,
       usePolling: settings.settings.polling === "2",
       interval: 100,
+    });
+
+    watcher.on("addDir", (filePath) => {
+      if (!isInit) {
+        console.info(`Directory ${filePath} has been added`);
+        broadcastUpdate();
+      }
+    });
+
+    watcher.on("unlinkDir", (filePath) => {
+      if (!isInit) {
+        console.info(`Directory ${filePath} has been removed`);
+        broadcastUpdate();
+      }
     });
 
     // When a file is added
@@ -80,9 +118,15 @@ function initializeWatcher() {
       // Delay to confirm if it's a rename
       setTimeout(() => {
         // console.log(`[ADD] Timout Ended\n\n\n\n\n`);
+        if (!isInit && isAdded) {
+          console.info(`File ${filePath} has been added`);
+          broadcastUpdate();
+        }
         if (pendingAdds.has(filePath)) {
           // Confirm it's still an add
+
           pendingAdds.delete(filePath);
+          isAdded = true;
         }
       }, renameDelay);
     });
@@ -111,6 +155,7 @@ function initializeWatcher() {
 
           // Clean up both the added and removed paths
           pendingRemovals.delete(filePath);
+          isAdded = false;
           return;
         }
         // Handle files across different directories
@@ -119,6 +164,7 @@ function initializeWatcher() {
           handleRenameOrMove(filePath, addedPath);
 
           pendingRemovals.delete(filePath);
+          isAdded = false;
           return;
         }
       }
@@ -143,11 +189,17 @@ function initializeWatcher() {
   } else {
     console.warn(`Watcher not started. Directory ${pathToWatch} not found`);
   }
+
+  setTimeout(() => {
+    isInit = false;
+    console.info("Ready to start monitoring directories");
+  }, initTime);
 }
 
 function handleRenameOrMove(oldPath, newPath) {
   settings = JSON.parse(fs.readFileSync("/config/settings.js"));
   console.info(`Handling rename from ${oldPath} to ${newPath} in buckets`);
+  let settingsUpdated = false;
   settings.buckets.forEach((bucket) => {
     bucket.media.forEach((file) => {
       if (
@@ -157,20 +209,24 @@ function handleRenameOrMove(oldPath, newPath) {
         file.file = path.basename(newPath);
         file.dir = path.dirname(newPath).replace(settings.settings.loc, "");
         console.info(`Updated settings for renamed file: ${oldPath} to ${newPath} in bucket "${bucket.name}"`);
-
-        try {
-          fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-          console.info("Settings file saved");
-          axios
-            .get("http://localhost:4949/webhook") // Make sure the path is correct
-            .then((response) => {})
-            .catch((error) => {});
-        } catch (err) {
-          console.error("Error saving settings file", err);
-        }
+        settingsUpdated = true;
       }
     });
   });
+  if (settingsUpdated) {
+    try {
+      fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
+      console.info("Settings file saved");
+
+      axios
+        .get("http://localhost:4949/webhook") // Make sure the path is correct
+        .then((response) => {})
+        .catch((error) => {});
+    } catch (err) {
+      console.error("Error saving settings file", err);
+    }
+  }
+  broadcastUpdate();
 }
 
 function handleRemove(oldPath) {
@@ -207,6 +263,7 @@ function handleRemove(oldPath) {
   } else {
     console.info("No changes made to settings.");
   }
+  broadcastUpdate();
 }
 
 initializeWatcher();

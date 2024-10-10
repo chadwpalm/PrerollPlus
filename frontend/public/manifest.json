@@ -8,14 +8,19 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "android-chrome-192x192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "android-chrome-384x384.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "384x384"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
     }
   ],
   "start_url": ".",

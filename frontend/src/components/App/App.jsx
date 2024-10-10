@@ -40,9 +40,14 @@ export default class App extends Component {
     dismiss: false,
     isDarkMode: false,
     announcement: true, //master key to show an announcement after version update
+    sockConnected: false,
+    cannotConnect: false,
+    reconnectAttempts: 0,
   };
 
   componentDidMount() {
+    this.connectWebSocket();
+
     var xhr = new XMLHttpRequest();
     var state = false;
     var online = true;
@@ -120,6 +125,60 @@ export default class App extends Component {
 
     xhr.open("GET", "/backend/load", true);
     xhr.send();
+  }
+
+  connectWebSocket() {
+    this.ws = new WebSocket("ws://localhost:4848");
+
+    this.ws.onopen = () => {
+      console.log("WebSocket connection opened");
+      this.setState({ sockConnected: true, reconnectAttempts: 0 });
+    };
+
+    this.ws.onmessage = (event) => {
+      if (event.data === "update-config") {
+        this.refreshConfig();
+      }
+    };
+
+    this.ws.onclose = () => {
+      console.log("WebSocket connection closed");
+      this.setState({ sockConnected: false });
+
+      if (this.state.reconnectAttempts < 2) {
+        console.log("Attempting to reconnect...");
+        this.setState(
+          (prevState) => ({
+            reconnectAttempts: prevState.reconnectAttempts + 1,
+          }),
+          () => {
+            setTimeout(() => {
+              this.connectWebSocket(); // Reconnect
+            }, 3000); // Delay before reconnecting
+          }
+        );
+      } else {
+        console.log("Max reconnect attempts reached.");
+        this.setState({ cannotConnect: true });
+      }
+    };
+
+    this.ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+  }
+
+  refreshConfig() {
+    axios
+      .get("/backend/load")
+      .then((response) => {
+        this.setState({
+          config: response.data,
+        });
+      })
+      .catch((error) => {
+        console.error("Error refreshing config:", error);
+      });
   }
 
   toggleBodyClass = () => {
@@ -457,6 +516,8 @@ export default class App extends Component {
                               settings={this.state.config}
                               updateSettings={this.updateSettings}
                               isDarkMode={this.state.isDarkMode}
+                              sockConnected={this.state.sockConnected}
+                              cannotConnect={this.state.cannotConnect}
                             />
                           }
                         />

@@ -152,6 +152,8 @@ export default class Buckets extends Component {
               id={this.state.id}
               isEdit={this.state.isEdit}
               isDarkMode={this.props.isDarkMode}
+              sockConnected={this.props.sockConnected}
+              cannotConnect={this.props.cannotConnect}
             />
           ) : (
             <h6>Click the plus to add a new Bucket.</h6>
