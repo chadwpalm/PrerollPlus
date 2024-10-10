@@ -5,6 +5,8 @@
 ### New Feature
 
 1. Added a dark mode which can be toggled on and off [[#5](https://github.com/chadwpalm/PrerollPlus/discussions/5)]
+2. You can now choose if you want Buckets to be tied directly to folders, or stay with the current approach of manually selecting files for the Bucket in the UI. [[#2](https://github.com/chadwpalm/PrerollPlus/discussions/2)]
+3. Bucket and file listings when editing a Bucket are updated in realtime when files/folders in the filesystem are added/deleted/renamed. [[#2](https://github.com/chadwpalm/PrerollPlus/discussions/2)]
 
 ### Minor Fix
 
