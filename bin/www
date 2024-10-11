@@ -7,6 +7,7 @@
 var app = require("../app");
 var debug = require("debug")("prerollplus:server");
 var http = require("http");
+const { initializeWebSocket } = require("../backend/websocket");
 
 /**
  * Get port from environment and store in Express.
@@ -20,6 +21,8 @@ app.set("port", port);
  */
 
 var server = http.createServer(app);
+
+initializeWebSocket(server);
 
 /**
  * Listen on provided port, on all network interfaces.

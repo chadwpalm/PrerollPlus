@@ -4,7 +4,7 @@ var fs = require("fs");
 var path = require("path");
 var chokidar = require("chokidar");
 var axios = require("axios");
-var WebSocket = require("ws");
+const { broadcastUpdate } = require("./websocket");
 
 let pendingAdds = new Map(); // Store added files with relevant information
 let pendingRemovals = new Map(); // Track removed files
@@ -15,25 +15,6 @@ let isAdded = true;
 let watcher = null;
 let isInit = true;
 let initTime = 2000;
-
-// WebSocket server setup
-const wss = new WebSocket.Server({ port: 4848 }); // Choose an appropriate port
-
-wss.on("connection", (ws) => {
-  console.log("Client connected");
-  ws.on("message", (message) => {
-    console.log("Received message from client:", message);
-  });
-});
-
-function broadcastUpdate() {
-  console.info("Sending update");
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send("update-config");
-    }
-  });
-}
 
 function initializeWatcher() {
   if (watcher) {

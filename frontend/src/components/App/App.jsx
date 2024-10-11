@@ -128,7 +128,7 @@ export default class App extends Component {
   }
 
   connectWebSocket() {
-    this.ws = new WebSocket("ws://localhost:4848");
+    this.ws = new WebSocket(`ws://${window.location.host}`);
 
     this.ws.onopen = () => {
       console.log("WebSocket connection opened");
