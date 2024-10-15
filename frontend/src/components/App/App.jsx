@@ -128,7 +128,8 @@ export default class App extends Component {
   }
 
   connectWebSocket() {
-    this.ws = new WebSocket(`ws://${window.location.host}`);
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    this.ws = new WebSocket(`${protocol}://${window.location.host}`);
 
     this.ws.onopen = () => {
       console.log("WebSocket connection opened");

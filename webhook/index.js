@@ -78,8 +78,10 @@ async function createList(index) {
               },
             }
           );
+          console.log(response.data);
           response.data.forEach((media) => {
-            files.push(`${settings.settings.plexLoc}${info.dir.replace(settings.settings.loc, "")}/${media.name}`);
+            if (!media.isDir)
+              files.push(`${settings.settings.plexLoc}${info.dir.replace(settings.settings.loc, "")}/${media.name}`);
           });
         } catch (error) {
           if (error.response) {
