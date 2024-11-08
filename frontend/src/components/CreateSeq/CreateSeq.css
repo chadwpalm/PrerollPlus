@@ -89,3 +89,7 @@
     font-size: 11px;
     color: rgb(206, 206, 206);
 }
+
+.form-content.dark-mode .image-info {
+    filter: invert(100%);
+}

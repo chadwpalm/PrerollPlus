@@ -18,18 +18,30 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         <Modal.Title>Announcement</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <b>Welcome to Preroll Plus!</b>
+        <b>Welcome to Preroll Plus v1.0.0!</b>
         <br />
         <br />
-        Preroll Plus is currently in Beta, so please feel free to submit any issues to{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank" rel="noreferrer">
-          https://github.com/chadwpalm/PrerollPlus/issues
-        </a>{" "}
-        or in the{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank" rel="noreferrer">
-          Discussion
-        </a>{" "}
-        section of the GitHub repository.
+        Preroll Plus is now out of Beta!
+        <br />
+        <br />
+        In this release we have added some new features. Logs are now written to files alongside console output. You can
+        find them in the same directory as your config file. An option to choose between informational and debug logging
+        is now in the Settings menu.
+        <br />
+        <br />
+        Speaking of the Settings menu, the more advanced feature options are now hidden and can be revealed by clicking
+        the Show Advanced button on the top right of the page.
+        <br />
+        <br />
+        There are also some minor fixes in this release. If Plex Media Server settings are set to require secure
+        connections, the server search was not able to grab the secure addresses from the Plex server. This has been
+        fixed. Also, the dark/light mode setting was not being preserved when logging out. This has also been fixed.
+        <br />
+        <br />
+        The holidays are here, so hopefully you are taking advantage of the scheduling options when creating Sequences.
+        <br />
+        <br />
+        Happy Prerolling!
         <br />
         <br />
         <Form.Check

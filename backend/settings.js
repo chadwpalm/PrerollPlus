@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 var axios = require("axios").default;
+const https = require("https");
 var parser = require("xml-js");
 
 router.post("/", async function (req, res, next) {
@@ -63,8 +64,39 @@ router.post("/", async function (req, res, next) {
             port: element._attributes.port,
             cert: certId ? certId.value : null, // Only include cert if it exists
             certSuccessful: certId !== undefined, // Flag indicating whether cert was found or not
+            https: false,
           });
         } catch (error) {
+          console.info(`Could not make insecure connection to Plex Server at ${localIP}`);
+          console.info("Attempting secure connection");
+          // Check with secure connection
+          const localUrl = `https://${localIP.trim()}:32400/:/prefs`;
+          try {
+            const agent = new https.Agent({
+              rejectUnauthorized: false, // Disable certificate verification
+            });
+
+            const response = await axios.get(localUrl, {
+              timeout: 3000,
+              params: { "X-Plex-Token": token },
+              httpsAgent: agent,
+            });
+
+            let certId = response.data.MediaContainer.Setting.find((id) => id.id === "CertificateUUID");
+
+            // Push the server info, marking certSuccessful as true if the cert is found
+            finalList.push({
+              name: element._attributes.name,
+              localIP: localIP.trim(),
+              remoteIP: element._attributes.address,
+              port: element._attributes.port,
+              cert: certId ? certId.value : null, // Only include cert if it exists
+              certSuccessful: certId !== undefined, // Flag indicating whether cert was found or not
+              https: true,
+            });
+          } catch (error) {
+            console.error(`Issue with secure connection to Plex Server at ${localIP}:`, error.message);
+          }
           // On failure, still push the server info but set certSuccessful to false
           finalList.push({
             name: element._attributes.name,
@@ -73,14 +105,13 @@ router.post("/", async function (req, res, next) {
             port: element._attributes.port,
             cert: null, // No cert available on failure
             certSuccessful: false, // Mark the cert as unsuccessful
+            https: false,
           });
-
-          console.error(`Issue with connection to Plex Server at ${localIP}:`, error.message);
         }
       }
     }
   }
-
+  console.debug("Final List: ", JSON.stringify(finalList));
   res.send(JSON.stringify(finalList));
 });
 

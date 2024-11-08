@@ -34,7 +34,7 @@ if (process.env.BUILD) {
 
 var fileData = `{"connected": "false","platform":"${
   os.platform
-}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}", "sequences": [], "buckets": []}`;
+}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}", "sequences": [], "buckets": [],"message":true}`;
 
 try {
   fileData = fs.readFileSync("/config/settings.js");
@@ -95,7 +95,7 @@ router.get("/", function (req, res, next) {
     fileData = fs.readFileSync("/config/settings.js");
     console.info("Settings file read");
   } catch (err) {
-    console.info("Settings file not found");
+    console.error("Settings file not found");
   }
 
   res.send(fileData);

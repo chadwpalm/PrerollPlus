@@ -428,7 +428,7 @@ export default class Create extends Component {
             </Tooltip>
           }
         >
-          <img src={Info} alt="Info" />
+          <img src={Info} className="image-info" alt="Info" />
         </OverlayTrigger>
         <div>
           <Form.Check

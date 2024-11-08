@@ -285,9 +285,7 @@ export default class App extends Component {
     this.setState((prevState) => {
       const newMode = !prevState.isDarkMode;
 
-      var settings = { ...this.state.config };
-
-      settings.darkMode = newMode;
+      var settings = { ...prevState.config, darkMode: newMode };
 
       var xhr = new XMLHttpRequest();
 
@@ -307,7 +305,7 @@ export default class App extends Component {
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(settings));
 
-      return { isDarkMode: newMode };
+      return { isDarkMode: newMode, config: settings };
     }, this.toggleBodyClass);
   };
 

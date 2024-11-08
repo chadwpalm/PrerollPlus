@@ -29,6 +29,7 @@ router.post("/", function (req, res, next) {
     });
 
     res.send(JSON.stringify(dirRet));
+    console.debug(`Directory info: ${JSON.stringify(dirRet)}`);
   } catch (err) {
     console.error("Directory not found", err.message.split("\n")[0]); // Send only the first line
     res.status(200).send(JSON.stringify(null));

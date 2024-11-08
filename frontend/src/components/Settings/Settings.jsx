@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
@@ -27,6 +28,8 @@ export default class Settings extends Component {
         isIncomplete: false,
         isSaved: false,
         polling: this.props.settings.settings.polling ?? "1",
+        advanced: this.props.settings.advanced ?? false,
+        logLevel: this.props.settings.settings.logLevel ?? "0",
       };
     } else {
       this.state = {
@@ -41,6 +44,8 @@ export default class Settings extends Component {
         isIncomplete: false,
         isSaved: false,
         polling: "1",
+        advanced: this.props.settings.advanced ?? false,
+        logLevel: "0",
       };
     }
   }
@@ -64,6 +69,7 @@ export default class Settings extends Component {
     this.props.settings.settings.plexLoc = this.state.plexLoc;
     this.props.settings.connected = "true";
     this.props.settings.settings.polling = this.state.polling;
+    this.props.settings.settings.logLevel = this.state.logLevel;
     this.props.connection(1);
 
     var xhr = new XMLHttpRequest();
@@ -73,7 +79,15 @@ export default class Settings extends Component {
         if (xhr.status === 200) {
           this.setState({ isSaved: true });
 
-          const response = await fetch("/backend/monitor", { method: "GET" });
+          var response = await fetch("/backend/monitor", { method: "GET" });
+          if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+          }
+          response = await fetch("/backend/logger", { method: "GET" });
+          if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+          }
+          response = await fetch("/webhook", { method: "GET" });
           if (!response.ok) {
             throw new Error(`Response status: ${response.status}`);
           }
@@ -108,7 +122,7 @@ export default class Settings extends Component {
           var tempList = [];
           var index = 0;
 
-          const createServerEntry = (element, index, secure, location) => ({
+          const createServerEntry = (element, index, secure, location, socket) => ({
             index: index,
             name: element.name,
             ip: location === "remote" ? element.remoteIP : element.localIP,
@@ -117,19 +131,22 @@ export default class Settings extends Component {
             secure,
             cert: element.cert,
             certSuccessful: element.certSuccessful,
+            socket: socket,
           });
 
           for (const element of json) {
             if (element.certSuccessful) {
-              tempList.push(createServerEntry(element, ++index, false, "local"));
-              tempList.push(createServerEntry(element, ++index, false, "remote"));
-              tempList.push(createServerEntry(element, ++index, true, "local"));
-              tempList.push(createServerEntry(element, ++index, true, "remote"));
+              if (!element.https) {
+                tempList.push(createServerEntry(element, ++index, false, "local", false));
+                tempList.push(createServerEntry(element, ++index, false, "remote", false));
+              }
+              tempList.push(createServerEntry(element, ++index, true, "local", false));
+              tempList.push(createServerEntry(element, ++index, true, "remote", false));
             } else {
-              tempList.push(createServerEntry(element, ++index, false, "unreachable"));
+              tempList.push(createServerEntry(element, ++index, false, "local", true));
+              tempList.push(createServerEntry(element, ++index, false, "remote", true));
             }
           }
-
           this.setState({ servers: tempList });
           this.setState({ isLoaded: true });
         } else {
@@ -193,11 +210,56 @@ export default class Settings extends Component {
     this.setState({ polling: e.target.value.toString() });
   };
 
+  handleLogLevel = (e) => {
+    this.setState({ logLevel: e.target.value.toString(), isSaved: false });
+  };
+
+  handleAdvanced = () => {
+    this.setState((prevState) => {
+      const newMode = !prevState.advanced;
+
+      var settings = { ...this.props.settings, advanced: newMode };
+
+      var xhr = new XMLHttpRequest();
+
+      xhr.addEventListener("readystatechange", () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+          } else {
+            // error
+            this.setState({
+              error: xhr.responseText,
+            });
+          }
+        }
+      });
+
+      xhr.open("POST", "/backend/save", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.send(JSON.stringify(settings));
+
+      return { advanced: newMode };
+    });
+  };
+
   render() {
     return (
       <>
         <Row>
-          <h3>Settings</h3>
+          <Col>
+            <h3>Settings</h3>
+          </Col>
+          <Col className="text-end">
+            {this.state.advanced ? (
+              <Button type="submit" variant="secondary" onClick={this.handleAdvanced}>
+                Hide Advanced
+              </Button>
+            ) : (
+              <Button type="submit" variant="secondary" onClick={this.handleAdvanced}>
+                Show Advanced
+              </Button>
+            )}
+          </Col>
         </Row>
         <div className="div-seperator" />
         <Row>
@@ -216,7 +278,7 @@ export default class Settings extends Component {
                   </Tooltip>
                 }
               >
-                <img src={Info} alt="info" />
+                <img src={Info} className="image-info" alt="info" />
               </OverlayTrigger>
             </h5>
             <div className="div-seperator" />
@@ -233,19 +295,23 @@ export default class Settings extends Component {
                   className="server-list"
                 >
                   <option value="0">Manual configuration</option>
-                  {this.state.servers.map((server) => (
-                    <option
-                      key={server.index} // It's a good practice to add a unique key for list items
-                      value={server.index}
-                      disabled={!server.certSuccessful} // Add disabled if certSuccessful is false
-                    >
-                      {server.secure
-                        ? `${server.name} (${server.ip.replace(/\./g, "-")}.${server.cert}.plex.direct [${
-                            server.location
-                          }] [secure])`
-                        : `${server.name} (${server.ip}) [${server.location}]`}
-                    </option>
-                  ))}
+                  {this.state.servers.map((server) => {
+                    const certInfo = server.secure ? `${server.cert}.plex.direct` : "";
+                    const ip = server.secure ? server.ip.replace(/\./g, "-") : server.ip;
+                    const location = `[${server.location}]`;
+                    const socket = server.socket ? `(socket hang up)` : "";
+                    const secure = server.secure ? `[secure]` : "";
+
+                    return (
+                      <option
+                        key={server.index} // It's a good practice to add a unique key for list items
+                        value={server.index}
+                        disabled={!server.certSuccessful} // Add disabled if certSuccessful is false
+                      >
+                        {`${server.name} (${ip}${certInfo ? `.${certInfo}` : ""}) ${location} ${secure} ${socket}`}
+                      </option>
+                    );
+                  })}
                 </Form.Select>
               ) : (
                 <>
@@ -301,7 +367,7 @@ export default class Settings extends Component {
                 </Tooltip>
               }
             >
-              <img src={Info} alt="Info" />
+              <img src={Info} className="image-info" alt="Info" />
             </OverlayTrigger>
             {this.props.settings.build === "Native" ? (
               <Form.Control value={this.state.loc} id="loc" name="loc" onChange={this.handleLoc} size="sm" />
@@ -324,7 +390,7 @@ export default class Settings extends Component {
                 </Tooltip>
               }
             >
-              <img src={Info} alt="Info" />
+              <img src={Info} className="image-info" alt="Info" />
             </OverlayTrigger>
             <Form.Control
               value={this.state.plexLoc}
@@ -334,55 +400,77 @@ export default class Settings extends Component {
               size="sm"
             />
             <div className="div-seperator" />
-            <Form.Label for="polling">
-              File Monitor Polling &nbsp;&nbsp;
-              <OverlayTrigger
-                placement="right"
-                overlay={
-                  <Tooltip>
-                    This setting changes backend file monitoring from using "inotify" to a polling method.
-                    <br />
-                    <br />
-                    If you are connecting to your prerolls directory using an SMB (or similar) share, it is more than
-                    likely that the file system's ability to be notified of file changes will not work.
-                    <br />
-                    <br />
-                    If you are finding that renaming, moving, or removing files in your preroll directory isn't
-                    automatically working, set this to on and Preroll Plus will monitor file changes using a constant
-                    polling of the file system.
-                    <br />
-                    <br />
-                    If everything is working correctly, it is recommended to keep this setting off.
-                  </Tooltip>
-                }
-              >
-                <img src={Info} alt="Info" />
-              </OverlayTrigger>
-            </Form.Label>
-            <div>
-              <Form.Check
-                inline
-                type="radio"
-                label="Off"
-                value="1"
-                id="transition"
-                name="transition"
-                onChange={this.handlePolling}
-                size="sm"
-                checked={this.state.polling === "1"}
-              />
-              <Form.Check
-                inline
-                type="radio"
-                label="On"
-                value="2"
-                id="transition"
-                name="transition"
-                onChange={this.handlePolling}
-                size="sm"
-                checked={this.state.polling === "2"}
-              />
-            </div>
+            {this.state.advanced ? (
+              <>
+                <div className="div-seperator" />
+                <Form.Label for="polling">
+                  File Monitor Polling &nbsp;&nbsp;
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={
+                      <Tooltip>
+                        This setting changes backend file monitoring from using "inotify" to a polling method.
+                        <br />
+                        <br />
+                        If you are connecting to your prerolls directory using an SMB (or similar) share, it is more
+                        than likely that the file system's ability to be notified of file changes will not work.
+                        <br />
+                        <br />
+                        If you are finding that renaming, moving, or removing files in your preroll directory isn't
+                        automatically working, set this to on and Preroll Plus will monitor file changes using a
+                        constant polling of the file system.
+                        <br />
+                        <br />
+                        If everything is working correctly, it is recommended to keep this setting off.
+                      </Tooltip>
+                    }
+                  >
+                    <img src={Info} className="image-info" alt="Info" />
+                  </OverlayTrigger>
+                </Form.Label>
+                <div>
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="Off"
+                    value="1"
+                    id="transition"
+                    name="transition"
+                    onChange={this.handlePolling}
+                    size="sm"
+                    checked={this.state.polling === "1"}
+                  />
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="On"
+                    value="2"
+                    id="transition"
+                    name="transition"
+                    onChange={this.handlePolling}
+                    size="sm"
+                    checked={this.state.polling === "2"}
+                  />
+                </div>
+                <div className="div-seperator" />
+                <Stack gap={1} direction="horizontal">
+                  Log Level:&nbsp;&nbsp;
+                  <Form.Select
+                    value={this.state.logLevel}
+                    id="logLevel"
+                    name="logLevel"
+                    onChange={this.handleLogLevel}
+                    size="sm"
+                    className="sched-style"
+                  >
+                    <option value="0">Info</option>
+                    <option value="1">Debug</option>
+                  </Form.Select>
+                </Stack>
+              </>
+            ) : (
+              <></>
+            )}
             <div className="div-seperator" />
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">

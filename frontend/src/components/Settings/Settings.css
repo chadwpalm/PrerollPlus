@@ -6,6 +6,10 @@
     width: 100% !important;
 }
 
+.sched-style {
+    width: 100px !important;
+}
+
 .form-content.dark-mode .repeat-icon {
     filter: invert(100%);
 }
@@ -27,4 +31,8 @@
     background-color: rgb(46, 46, 46);
     border-color: #898989;
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.form-content.dark-mode .image-info {
+    filter: invert(100%);
 }

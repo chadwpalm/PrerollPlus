@@ -1,5 +1,20 @@
 # Preroll Plus Version History
 
+## 1.0.0
+
+### Changes
+
+1. Bring the app out of beta testing.
+2. Logging to file. Logs will be found in /config for native installs and the mounted config folder for Docker installs.
+3. Removed logging of frontend to backend web router calls.
+4. Added "Show/Hide Advanced" options in Settings page and included a logging level toggle.
+
+### Fixes
+
+1. Server list wasn't showing secure connection options when "Secure connections" in the Plex Media Server settings was set to "Required".
+2. Dark mode setting was not being preserved in the save file when logging out.
+3. Minor fix to file monitoring.
+
 ## 0.1.5
 
 ### New Feature

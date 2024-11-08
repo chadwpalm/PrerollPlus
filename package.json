@@ -20,6 +20,8 @@
     "plex-api": "^5.3.2",
     "request": "^2.88.2",
     "uuid": "^8.3.2",
+    "winston": "^3.16.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.18.0",
     "xml-js": "^1.6.11"
   }

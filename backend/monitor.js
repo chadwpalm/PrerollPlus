@@ -60,7 +60,6 @@ function initializeWatcher() {
 
     // When a file is added
     watcher.on("add", (filePath) => {
-      // console.log("ADD", filePath);
       filePath = filePath
         .replace(/@SynoEAStream/i, "")
         .replace(/@SynoResource/i, "")
@@ -98,7 +97,6 @@ function initializeWatcher() {
 
       // Delay to confirm if it's a rename
       setTimeout(() => {
-        // console.log(`[ADD] Timout Ended\n\n\n\n\n`);
         if (!isInit && isAdded) {
           console.info(`File ${filePath} has been added`);
           broadcastUpdate();
@@ -114,7 +112,6 @@ function initializeWatcher() {
 
     // When a file is removed
     watcher.on("unlink", (filePath) => {
-      // console.log("UNLINK", filePath);
       filePath = filePath
         .replace(/@SynoEAStream/i, "")
         .replace(/@SynoResource/i, "")
@@ -124,7 +121,6 @@ function initializeWatcher() {
 
       // Store the removed file for potential rename detection
       pendingRemovals.set(filePath, { baseName, dirName });
-      // console.log("PR", pendingRemovals);
 
       // Check for any corresponding adds
 
@@ -152,7 +148,6 @@ function initializeWatcher() {
 
       // Delay to confirm if it's a rename
       setTimeout(() => {
-        // console.log(`[UNLINK] Timout Ended\n\n\n\n\n`);
         if (isRemoved) {
           // If no corresponding add was found, treat it as a normal removal
           console.info(`File ${filePath} has been removed`);
@@ -169,6 +164,7 @@ function initializeWatcher() {
     watcher.on("error", (error) => console.error(`Watcher error: ${error}`));
   } else {
     console.warn(`Watcher not started. Directory ${pathToWatch} not found`);
+    return;
   }
 
   setTimeout(() => {
