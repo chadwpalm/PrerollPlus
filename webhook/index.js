@@ -16,18 +16,72 @@ var settings;
 
 // General Functions
 
-function checkSchedule() {
+async function isHolidayDay(country, holiday) {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+
+  // Set today to midnight of the current day (local time)
+  today.setHours(0, 0, 0, 0); // Normalize today's date to midnight
+
+  var url = `https://date.nager.at/api/v3/publicholidays/${currentYear}/${country}`;
+
+  try {
+    const response = await axios.get(url, {
+      timeout: 2000,
+      headers: {
+        "Content-Type": "application/json;charset=UTF-8",
+      },
+    });
+
+    const data = response.data.find((item) => item.name === holiday);
+
+    if (!data) {
+      console.log("Holiday not found:", holiday);
+      return false; // Holiday not found, return false
+    }
+
+    // Use the UTC format to ensure the date is interpreted in UTC
+    const holidayDate = new Date(`${data.date}T00:00:00Z`);
+
+    // Set holidayDate to midnight (UTC) for comparison
+    holidayDate.setUTCHours(0, 0, 0, 0);
+
+    // Now compare only the year, month, and day of both dates
+    const isHolidayToday =
+      holidayDate.getUTCFullYear() === today.getUTCFullYear() &&
+      holidayDate.getUTCMonth() === today.getUTCMonth() &&
+      holidayDate.getUTCDate() === today.getUTCDate();
+
+    return isHolidayToday; // Return the comparison result (true or false)
+  } catch (error) {
+    console.error("Error while trying to connect to the Public Holiday API: ", error.message);
+    return false; // Return false on error
+  }
+}
+
+async function checkSchedule() {
   let index = -1;
   let foundDateMatch = false;
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0); // Set today to midnight (local time)
   const currentYear = today.getFullYear();
 
   // Convert today's date to a number that can be compared to other dates
-  const todayNumber = new Date(currentYear, today.getMonth(), today.getDate()).getTime();
+  const todayNumber = new Date(Date.UTC(currentYear, today.getMonth(), today.getDate())).getTime();
 
   for (let idx = 0; idx < settings.sequences.length; idx++) {
     const element = settings.sequences[idx];
+
+    if (element.schedule === "3") {
+      const isHoliday = await isHolidayDay(element.country, element.holiday);
+
+      if (isHoliday) {
+        index = idx;
+        foundDateMatch = true;
+        break;
+      }
+      continue;
+    }
 
     if (element.schedule === "2") {
       if (!foundDateMatch) {
@@ -36,20 +90,22 @@ function checkSchedule() {
       continue; // Skip to the next element
     }
 
-    // Convert the sequence start and end dates to timestamps for comparison
-    const startNumber = new Date(currentYear, element.startMonth - 1, element.startDay).getTime();
-    const endNumber = new Date(currentYear, element.endMonth - 1, element.endDay).getTime();
+    // Convert the sequence start and end dates to timestamps for comparison (UTC)
+    if (!foundDateMatch) {
+      const startNumber = new Date(Date.UTC(currentYear, element.startMonth - 1, element.startDay)).getTime();
+      const endNumber = new Date(Date.UTC(currentYear, element.endMonth - 1, element.endDay)).getTime();
 
-    // Handle ranges that do not wrap and those that do wrap around the end of the year
-    const isWrapped = startNumber > endNumber;
+      // Handle ranges that do not wrap and those that do wrap around the end of the year
+      const isWrapped = startNumber > endNumber;
 
-    if (
-      (isWrapped && (todayNumber >= startNumber || todayNumber <= endNumber)) ||
-      (!isWrapped && todayNumber >= startNumber && todayNumber <= endNumber)
-    ) {
-      index = idx;
-      foundDateMatch = true;
-      break; // Break early if a match is found
+      if (
+        (isWrapped && (todayNumber >= startNumber || todayNumber <= endNumber)) ||
+        (!isWrapped && todayNumber >= startNumber && todayNumber <= endNumber)
+      ) {
+        index = idx;
+        foundDateMatch = true;
+        break; // Break early if a match is found
+      }
     }
   }
 
@@ -138,7 +194,7 @@ async function sendList(string) {
 }
 
 async function doTask() {
-  const index = checkSchedule();
+  const index = await checkSchedule();
   const string = await createList(index);
   sendList(string);
 }

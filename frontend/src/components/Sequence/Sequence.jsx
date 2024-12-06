@@ -51,10 +51,12 @@ export default class Sequence extends Component {
         </Card.Subtitle>
         <Card.Footer className={`border-top-0 footer-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
           <Row>
-            <Col xs={8}>
+            <Col xs={9}>
               <div className="div-custom">
                 {this.props.schedule === "2" ? (
                   <>No Schedule</>
+                ) : this.props.schedule === "3" ? (
+                  <>{this.props.holiday}</>
                 ) : (
                   <>
                     {this.props.startMonth}/{this.props.startDay} - {this.props.endMonth}/{this.props.endDay}
@@ -62,7 +64,7 @@ export default class Sequence extends Component {
                 )}
               </div>
             </Col>
-            <Col xs={4}>
+            <Col xs={3}>
               <div style={{ textAlign: "right" }}>
                 {this.props.isEdit || this.props.isCreating ? (
                   <Image src={Edit} alt="Edit" className="icon-noclick" />
