@@ -18,30 +18,33 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         <Modal.Title>Announcement</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <b>Welcome to Preroll Plus v1.0.0!</b>
+        <b>Holiday Update v1.1.0</b>
         <br />
         <br />
-        Preroll Plus is now out of Beta!
+        This version of Preroll Plus now supports adding holidays for sequence scheduling.
         <br />
         <br />
-        In this release we have added some new features. Logs are now written to files alongside console output. You can
-        find them in the same directory as your config file. An option to choose between informational and debug logging
-        is now in the Settings menu.
+        Any holidays used for a schedule will take precedence over all other schedules. For example, if you have a
+        schedule between 5/20 and 5/30, and you add the Memorial Day schedule (which falls on 5/26/25) the Memorial Day
+        schedule will be active on that day overriding the other schedule.
         <br />
         <br />
-        Speaking of the Settings menu, the more advanced feature options are now hidden and can be revealed by clicking
-        the Show Advanced button on the top right of the page.
+        <b>Notes:</b>
         <br />
         <br />
-        There are also some minor fixes in this release. If Plex Media Server settings are set to require secure
-        connections, the server search was not able to grab the secure addresses from the Plex server. This has been
-        fixed. Also, the dark/light mode setting was not being preserved when logging out. This has also been fixed.
+        The holiday scheduling uses an online API (https://date.nager.at/) to get its information. This means two
+        things:
         <br />
         <br />
-        The holidays are here, so hopefully you are taking advantage of the scheduling options when creating Sequences.
+        1. The schedule supports 121 countries, but you are limited to which public holidays the API provides.
+        <br />
+        2. Since the information is pulling from an online API, your instance of Preroll Plus must have access to the
+        internet. This should not be a problem since Preroll Plus requires internet access to connect to your Plex
+        account for retrieving Plex Servers in the settings.
         <br />
         <br />
-        Happy Prerolling!
+        This particular API was chosen due to in not needing an API key and having no limitations on access. Perhaps
+        some time in the future an API with more holidays can be found and used.
         <br />
         <br />
         <Form.Check

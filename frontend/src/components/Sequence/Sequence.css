@@ -37,14 +37,20 @@
 }
 
 .div-custom {
-  display: flex;
+  display: block;
   flex-direction: column;
   justify-content: flex-end;
   text-align: left;
   font-size: 12px;
   height: 100%;
   padding-left: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;  
+  max-width: 100%;
+  width: 100%;
 }
+
 
 .edit-button {
   margin: 0;

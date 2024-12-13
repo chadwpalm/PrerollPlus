@@ -1,5 +1,11 @@
 # Preroll Plus Version History
 
+### 1.1.0
+
+### New Feature
+
+1. Added ability to select a holiday for the schedule.
+
 ## 1.0.0
 
 ### Changes

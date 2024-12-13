@@ -30,12 +30,16 @@ export default class Create extends Component {
         endMonth: info.endMonth,
         endDay: info.endDay,
         schedule: info.schedule,
+        country: info.country ?? "US",
+        holiday: info.holiday,
+        holidayList: [],
         buckets: info.buckets.map((bucket) => ({ ...bucket, uid: uuid() })),
         selectedBucket: {},
         selectedSequence: {},
         isError: false,
         isSaved: false,
         isIncomplete: false,
+        isIncompleteHoliday: false,
         show: false,
         showOverlapWarning: false,
       };
@@ -47,12 +51,16 @@ export default class Create extends Component {
         endMonth: "1",
         endDay: "1",
         schedule: "2",
+        country: "US",
+        holiday: "-1",
         buckets: [],
+        holidayList: [],
         selectedBucket: {},
         selectedSequence: {},
         isError: false,
         isSaved: false,
         isIncomplete: false,
+        isIncompleteHoliday: false,
         show: false,
         showOverlapWarning: false,
       };
@@ -61,6 +69,262 @@ export default class Create extends Component {
     this.handleFormSubmit = this.handleFormSubmit.bind(this);
 
     this.monthList = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    this.countryNames = [
+      "Albania",
+      "Andorra",
+      "Argentina",
+      "Armenia",
+      "Australia",
+      "Austria",
+      "Bahamas",
+      "Barbados",
+      "Belarus",
+      "Belgium",
+      "Belize",
+      "Benin",
+      "Bolivia",
+      "Bosnia and Herzegovina",
+      "Botswana",
+      "Brazil",
+      "Bulgaria",
+      "Canada",
+      "Chile",
+      "China",
+      "Colombia",
+      "Costa Rica",
+      "Croatia",
+      "Cuba",
+      "Cyprus",
+      "Czechia",
+      "Denmark",
+      "Dominican Republic",
+      "Ecuador",
+      "Egypt",
+      "El Salvador",
+      "Estonia",
+      "Faroe Islands",
+      "Finland",
+      "France",
+      "Gabon",
+      "Gambia",
+      "Georgia",
+      "Germany",
+      "Gibraltar",
+      "Greece",
+      "Greenland",
+      "Grenada",
+      "Guatemala",
+      "Guernsey",
+      "Guyana",
+      "Haiti",
+      "Honduras",
+      "Hong Kong",
+      "Hungary",
+      "Iceland",
+      "Indonesia",
+      "Ireland",
+      "Isle of Man",
+      "Italy",
+      "Jamaica",
+      "Japan",
+      "Jersey",
+      "Kazakhstan",
+      "Latvia",
+      "Lesotho",
+      "Liechtenstein",
+      "Lithuania",
+      "Luxembourg",
+      "Madagascar",
+      "Malta",
+      "Mexico",
+      "Moldova",
+      "Monaco",
+      "Mongolia",
+      "Montenegro",
+      "Montserrat",
+      "Morocco",
+      "Mozambique",
+      "Namibia",
+      "Netherlands",
+      "New Zealand",
+      "Nicaragua",
+      "Niger",
+      "Nigeria",
+      "North Macedonia",
+      "Norway",
+      "Panama",
+      "Papua New Guinea",
+      "Paraguay",
+      "Peru",
+      "Poland",
+      "Portugal",
+      "Puerto Rico",
+      "Romania",
+      "Russia",
+      "San Marino",
+      "Serbia",
+      "Singapore",
+      "Slovakia",
+      "Slovenia",
+      "South Africa",
+      "South Korea",
+      "Spain",
+      "Suriname",
+      "Svalbard and Jan Mayen",
+      "Sweden",
+      "Switzerland",
+      "Tunisia",
+      "Turkey",
+      "Ukraine",
+      "United Kingdom",
+      "United States",
+      "Uruguay",
+      "Vatican City",
+      "Venezuela",
+      "Vietnam",
+      "Zimbabwe",
+    ];
+
+    this.countryCodes = [
+      "AL",
+      "AD",
+      "AR",
+      "AM",
+      "AU",
+      "AT",
+      "BS",
+      "BB",
+      "BY",
+      "BE",
+      "BZ",
+      "BJ",
+      "BO",
+      "BA",
+      "BW",
+      "BR",
+      "BG",
+      "CA",
+      "CL",
+      "CN",
+      "CO",
+      "CR",
+      "HR",
+      "CU",
+      "CY",
+      "CZ",
+      "DK",
+      "DO",
+      "EC",
+      "EG",
+      "SV",
+      "EE",
+      "FO",
+      "FI",
+      "FR",
+      "GA",
+      "GM",
+      "GE",
+      "DE",
+      "GI",
+      "GR",
+      "GL",
+      "GD",
+      "GT",
+      "GG",
+      "GY",
+      "HT",
+      "HN",
+      "HK",
+      "HU",
+      "IS",
+      "ID",
+      "IE",
+      "IM",
+      "IT",
+      "JM",
+      "JP",
+      "JE",
+      "KZ",
+      "LV",
+      "LS",
+      "LI",
+      "LT",
+      "LU",
+      "MG",
+      "MT",
+      "MX",
+      "MD",
+      "MC",
+      "MN",
+      "ME",
+      "MS",
+      "MA",
+      "MZ",
+      "NA",
+      "NL",
+      "NZ",
+      "NI",
+      "NE",
+      "NG",
+      "MK",
+      "NO",
+      "PA",
+      "PG",
+      "PY",
+      "PE",
+      "PL",
+      "PT",
+      "PR",
+      "RO",
+      "RU",
+      "SM",
+      "RS",
+      "SG",
+      "SK",
+      "SI",
+      "ZA",
+      "KR",
+      "ES",
+      "SR",
+      "SJ",
+      "SE",
+      "CH",
+      "TN",
+      "TR",
+      "UA",
+      "GB",
+      "US",
+      "UY",
+      "VA",
+      "VE",
+      "VN",
+      "ZW",
+    ];
+  }
+
+  componentDidMount() {
+    let country = { country: this.state.country };
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          this.setState({ holidayList: json });
+        } else {
+          this.setState({
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+
+    xhr.open("POST", "/backend/holiday", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(country));
   }
 
   handleDate = (e) => {
@@ -69,6 +333,36 @@ export default class Create extends Component {
 
   handleSchedule = (e) => {
     this.setState({ schedule: e.target.value.toString() });
+  };
+
+  handleHoliday = (e) => {
+    this.setState({ holiday: e.target.value.toString() });
+  };
+
+  handleCountry = (e) => {
+    this.setState({ country: e.target.value.toString() });
+
+    let country = { country: e.target.value.toString() };
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          this.setState({ holidayList: json });
+        } else {
+          this.setState({
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+
+    xhr.open("POST", "/backend/holiday", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(country));
   };
 
   handleClickBuckets = (e) => {
@@ -163,6 +457,11 @@ export default class Create extends Component {
       return;
     }
 
+    if (this.state.schedule == "3" && this.state.holiday == "-1") {
+      this.setState({ isIncompleteHoliday: true });
+      return;
+    }
+
     // Check for a "no schedule" condition (schedule === "2") within other sequences
     if (
       this.state.schedule === "2" &&
@@ -186,6 +485,8 @@ export default class Create extends Component {
       startMonth: this.state.startMonth,
       endDay: this.state.endDay,
       endMonth: this.state.endMonth,
+      country: this.state.country,
+      holiday: this.state.holiday,
       buckets: this.state.buckets.map(({ uid, ...rest }) => rest),
     };
 
@@ -278,6 +579,7 @@ export default class Create extends Component {
   handleCloseOverlap = () => this.setState({ showOverlapWarning: false });
 
   render() {
+    const countries = [];
     const startMonths = [];
     const startDays = [];
     const endMonths = [];
@@ -308,6 +610,9 @@ export default class Create extends Component {
         </option>
       );
     }
+    for (let i = 0; i <= this.countryNames.length; i++) {
+      countries.push(<option value={this.countryCodes[i]}>{this.countryNames[i]}</option>);
+    }
 
     return (
       <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
@@ -337,6 +642,17 @@ export default class Create extends Component {
             onChange={this.handleSchedule}
             size="sm"
             checked={this.state.schedule === "2"}
+          />
+          <Form.Check
+            inline
+            type="radio"
+            label="Holiday"
+            value="3"
+            id="schedule"
+            name="schedule"
+            onChange={this.handleSchedule}
+            size="sm"
+            checked={this.state.schedule === "3"}
           />
         </div>
         <div className="div-seperator" />
@@ -377,6 +693,47 @@ export default class Create extends Component {
               </Form.Select>
               <Form.Select value={this.state.endDay} id="endDay" name="endDay" onChange={this.handleDate} size="sm">
                 {endDays}
+              </Form.Select>
+            </Stack>
+            <div className="div-seperator" />
+          </>
+        ) : (
+          <></>
+        )}
+        {this.state.schedule === "3" ? (
+          <>
+            <Stack gap={1} direction="horizontal">
+              Country:&nbsp;&nbsp;
+              <Form.Select
+                value={this.state.country}
+                id="country"
+                name="country"
+                onChange={this.handleCountry}
+                size="sm"
+                style={{ width: "200px" }}
+              >
+                {countries}
+              </Form.Select>
+            </Stack>
+            <div className="div-seperator" />
+            <Stack gap={1} direction="horizontal">
+              Holiday:&nbsp;&nbsp;
+              <Form.Select
+                value={this.state.holiday}
+                id="holiday"
+                name="holiday"
+                onChange={this.handleHoliday}
+                size="sm"
+                style={{ width: "600px" }}
+              >
+                <option value="-1">Select a Holiday</option>
+                {this.state.holidayList
+                  .filter((holiday) => holiday.types.includes("Public"))
+                  .map((holiday) => (
+                    <option value={holiday.name}>
+                      {holiday.name} ({holiday.localName})
+                    </option>
+                  ))}
               </Form.Select>
             </Stack>
             <div className="div-seperator" />
@@ -521,6 +878,7 @@ export default class Create extends Component {
         ) : (
           <></>
         )}
+        {this.state.isIncompleteHoliday ? <i style={{ color: "#f00" }}>&nbsp; You must select a holiday.</i> : <></>}
         {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
         <div className="div-seperator" />
         <Modal show={this.state.show} onHide={this.handleClose} size="sm" backdrop="static">
