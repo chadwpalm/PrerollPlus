@@ -24,7 +24,7 @@ function setLogLevel() {
     transports: [
       new transports.Console(),
       new DailyRotateFile({
-        filename: "/config/logs/lumunarr-%DATE%.log",
+        filename: "/config/logs/prerollplus-%DATE%.log",
         datePattern: "YYYY-MM-DD",
         maxSize: "20m",
         maxFiles: "5",

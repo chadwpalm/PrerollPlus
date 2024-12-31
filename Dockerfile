@@ -8,6 +8,8 @@ ENV BUILD=${BUILD}
 
 ENV FILEDIR=${FILEDIR}
 
+ENV GENERATE_SOURCEMAP=false
+
 COPY . /PrerollPlus
 
 WORKDIR /PrerollPlus/frontend
