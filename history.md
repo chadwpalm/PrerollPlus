@@ -1,5 +1,13 @@
 # Preroll Plus Version History
 
+### 1.1.1
+
+### Fixes
+
+1. Brought interal packages up to date.
+2. Log file names were using the wrong application.
+3. Minor code fixes.
+
 ### 1.1.0
 
 ### New Feature

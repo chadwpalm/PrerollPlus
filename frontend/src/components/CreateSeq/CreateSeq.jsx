@@ -457,7 +457,7 @@ export default class Create extends Component {
       return;
     }
 
-    if (this.state.schedule == "3" && this.state.holiday == "-1") {
+    if (this.state.schedule === "3" && this.state.holiday === "-1") {
       this.setState({ isIncompleteHoliday: true });
       return;
     }
