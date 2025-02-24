@@ -1,5 +1,11 @@
 # Preroll Plus Version History
 
+### 1.1.2
+
+### Fixes
+
+1. Sequence cards were not showing the scheduled holiday if "Holiday" is chosen as the schedule.
+
 ### 1.1.1
 
 ### Fixes
