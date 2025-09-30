@@ -288,7 +288,7 @@ export default class Create extends Component {
 
     this.setState({ isIncomplete: false });
 
-    if ((this.state.name === "" || this.state.media.length === 0) && this.state.source === "1") {
+    if (this.state.name === "" || (this.state.media.length === 0 && this.state.source === "1")) {
       this.setState({ isIncomplete: true });
       return;
     }
@@ -686,7 +686,7 @@ export default class Create extends Component {
         &nbsp;&nbsp;
         {this.state.isIncomplete ? (
           <i style={{ color: "#f00" }}>
-            &nbsp; There must be at least one item in the list and a bucket name must be filled.{" "}
+            &nbsp; There must be at least one item in the list and/or a bucket name must be filled.{" "}
           </i>
         ) : (
           <></>

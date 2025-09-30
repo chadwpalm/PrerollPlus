@@ -39,10 +39,11 @@ export default class App extends Component {
     first: false,
     dismiss: false,
     isDarkMode: false,
-    announcement: false, //master key to show an announcement after version update
+    announcement: true, //master key to show an announcement after version update
     sockConnected: false,
     cannotConnect: false,
     reconnectAttempts: 0,
+    isBucket: false,
   };
 
   componentDidMount() {
@@ -98,6 +99,8 @@ export default class App extends Component {
               config: json,
               thumb: json.thumb,
             });
+
+            if (json.buckets.length !== 0) this.setState({ isBucket: true });
 
             if (state) this.setState({ isUpdate: true });
 
@@ -281,6 +284,10 @@ export default class App extends Component {
     this.setState({ config: newSettings });
   };
 
+  handleBuckets = () => {
+    this.setState({ isBucket: true });
+  };
+
   handleDark = () => {
     this.setState((prevState) => {
       const newMode = !prevState.isDarkMode;
@@ -357,21 +364,27 @@ export default class App extends Component {
                           </>
                         ) : (
                           <>
-                            <LinkContainer to="/">
-                              <Nav.Link>Sequences</Nav.Link>
-                            </LinkContainer>
+                            {this.state.config.buckets.length === 0 ? (
+                              <LinkContainer to="/">
+                                <Nav.Link disabled>Sequences</Nav.Link>
+                              </LinkContainer>
+                            ) : (
+                              <LinkContainer to="/">
+                                <Nav.Link>Sequences</Nav.Link>
+                              </LinkContainer>
+                            )}
+
                             <LinkContainer to="/buckets">
                               <Nav.Link>Buckets</Nav.Link>
                             </LinkContainer>
                           </>
                         )}
 
-                        <>
-                          <LinkContainer to="/settings">
-                            <Nav.Link>Settings</Nav.Link>
-                          </LinkContainer>
-                        </>
+                        <LinkContainer to="/settings">
+                          <Nav.Link>Settings</Nav.Link>
+                        </LinkContainer>
                       </Nav>
+
                       <Nav className="ms-auto d-flex align-items-center">
                         <Image
                           src={this.state.isDarkMode ? Sun : Moon}
@@ -498,16 +511,33 @@ export default class App extends Component {
                       <Route path="*" element={<Navigate replace to="/settings" />} />
                     ) : (
                       <>
-                        <Route
-                          path="/"
-                          element={
-                            <Sequences
-                              settings={this.state.config}
-                              logout={this.handleLogout}
-                              isDarkMode={this.state.isDarkMode}
-                            />
-                          }
-                        />
+                        {!this.state.isBucket ? (
+                          <Route
+                            path="/"
+                            element={
+                              <Buckets
+                                settings={this.state.config}
+                                updateSettings={this.updateSettings}
+                                isDarkMode={this.state.isDarkMode}
+                                sockConnected={this.state.sockConnected}
+                                cannotConnect={this.state.cannotConnect}
+                                saved={this.handleBuckets}
+                              />
+                            }
+                          />
+                        ) : (
+                          <Route
+                            path="/"
+                            element={
+                              <Sequences
+                                settings={this.state.config}
+                                logout={this.handleLogout}
+                                isDarkMode={this.state.isDarkMode}
+                              />
+                            }
+                          />
+                        )}
+
                         <Route
                           path="/buckets"
                           element={
@@ -517,6 +547,7 @@ export default class App extends Component {
                               isDarkMode={this.state.isDarkMode}
                               sockConnected={this.state.sockConnected}
                               cannotConnect={this.state.cannotConnect}
+                              saved={this.handleBuckets}
                             />
                           }
                         />

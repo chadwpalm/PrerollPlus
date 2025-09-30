@@ -128,6 +128,7 @@ export default class Sequences extends Component {
                 delete={this.handleOpen}
                 isDarkMode={this.props.isDarkMode}
                 holiday={sequence.holiday}
+                priority={sequence.priority}
               />
               <br />
             </Col>

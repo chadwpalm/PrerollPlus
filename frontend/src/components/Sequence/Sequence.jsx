@@ -12,12 +12,10 @@ export default class Sequence extends Component {
     super(props);
     this.state = {
       id: "",
-      name: "",
       active: true,
     };
 
     this.state.id = this.props.id;
-    this.state.name = this.props.sequence;
     this.handleClick = this.handleClick.bind(this.props.id);
   }
 
@@ -40,14 +38,22 @@ export default class Sequence extends Component {
         border={(this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId ? "none" : "dark"}
       >
         <Card.Header className={`border-bottom-0 header-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
-          {this.props.isEdit || this.props.isCreating ? (
-            <Image src={Xclose} alt="Close" className="icon-noclick" />
-          ) : (
-            <Image src={Xclose} onClick={this.handleDelete} className="icon-clickable" alt="Close" />
-          )}
+          <Row>
+            <Col xs={9}>
+              <div className="div-custom">Priority: {this.props.priority || "N/A"}</div>
+            </Col>
+            <Col xs={3}>
+              {" "}
+              {this.props.isEdit || this.props.isCreating ? (
+                <Image src={Xclose} alt="Close" className="icon-noclick" />
+              ) : (
+                <Image src={Xclose} onClick={this.handleDelete} className="icon-clickable" alt="Close" />
+              )}
+            </Col>
+          </Row>
         </Card.Header>
         <Card.Subtitle className="d-flex align-items-center justify-content-center sub-custom">
-          {this.state.name}
+          {this.props.sequence}
         </Card.Subtitle>
         <Card.Footer className={`border-top-0 footer-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
           <Row>
