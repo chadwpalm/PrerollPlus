@@ -30,6 +30,10 @@ export default class Settings extends Component {
         polling: this.props.settings.settings.polling ?? "1",
         advanced: this.props.settings.advanced ?? false,
         logLevel: this.props.settings.settings.logLevel ?? "0",
+        holidaySource: this.props.settings.settings.holidaySource ?? "1",
+        apiKey: this.props.settings.settings.apiKey ?? "",
+        isCacheSuccess: false,
+        isCacheFailed: false,
       };
     } else {
       this.state = {
@@ -46,11 +50,15 @@ export default class Settings extends Component {
         polling: "1",
         advanced: this.props.settings.advanced ?? false,
         logLevel: "0",
+        holidaySource: "1",
+        apiKey: "",
+        isCacheSuccess: false,
+        isCacheFailed: false,
       };
     }
   }
 
-  handleFormSubmit = (e) => {
+  handleFormSubmit = async (e) => {
     e.preventDefault();
 
     this.setState({ isIncomplete: false });
@@ -70,39 +78,32 @@ export default class Settings extends Component {
     this.props.settings.connected = "true";
     this.props.settings.settings.polling = this.state.polling;
     this.props.settings.settings.logLevel = this.state.logLevel;
+    this.props.settings.settings.apiKey = this.state.apiKey;
     this.props.connection(1);
 
-    var xhr = new XMLHttpRequest();
+    try {
+      const saveResponse = await fetch("/backend/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json;charset=UTF-8" },
+        body: JSON.stringify(this.props.settings),
+      });
 
-    xhr.addEventListener("readystatechange", async () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ isSaved: true });
+      if (!saveResponse.ok) throw new Error(`Save failed: ${saveResponse.status}`);
 
-          var response = await fetch("/backend/monitor", { method: "GET" });
-          if (!response.ok) {
-            throw new Error(`Response status: ${response.status}`);
-          }
-          response = await fetch("/backend/logger", { method: "GET" });
-          if (!response.ok) {
-            throw new Error(`Response status: ${response.status}`);
-          }
-          response = await fetch("/webhook", { method: "GET" });
-          if (!response.ok) {
-            throw new Error(`Response status: ${response.status}`);
-          }
-        } else {
-          // error
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
+      this.setState({ isSaved: true });
 
-    xhr.open("POST", "/backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(this.props.settings));
+      const monitorResp = await fetch("/backend/monitor");
+      if (!monitorResp.ok) throw new Error(`Monitor failed: ${monitorResp.status}`);
+
+      const loggerResp = await fetch("/backend/logger");
+      if (!loggerResp.ok) throw new Error(`Logger failed: ${loggerResp.status}`);
+
+      const webhookResp = await fetch("/webhook");
+      if (!webhookResp.ok) throw new Error(`Webhook failed: ${webhookResp.status}`);
+    } catch (err) {
+      console.error(err);
+      this.setState({ error: err.message });
+    }
   };
 
   handleServerGet = () => {
@@ -214,6 +215,10 @@ export default class Settings extends Component {
     this.setState({ logLevel: e.target.value.toString(), isSaved: false });
   };
 
+  handleAPIKey = (e) => {
+    this.setState({ apiKey: e.target.value.toString() });
+  };
+
   handleAdvanced = () => {
     this.setState((prevState) => {
       const newMode = !prevState.advanced;
@@ -240,6 +245,27 @@ export default class Settings extends Component {
 
       return { advanced: newMode };
     });
+  };
+
+  handleCache = () => {
+    var xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          this.setState({ isCacheSuccess: true });
+        } else if (xhr.status === 500) {
+          this.setState({ isCacheFailed: true });
+        } else {
+          this.setState({
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+
+    xhr.open("GET", "/backend/clearcache", true);
+    xhr.send();
   };
 
   render() {
@@ -472,6 +498,61 @@ export default class Settings extends Component {
               <></>
             )}
             <div className="div-seperator" />
+            <div className="div-seperator" />
+            <h5>Holidays</h5>
+            <div className="div-seperator" />
+            <div className="div-seperator" />
+            <Form.Label for="apiKey">Calendarific API Key &nbsp;&nbsp;</Form.Label>
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  Enter Calendarific API key here.
+                  <br />
+                  <br />
+                  You can find your API key on your account dashboard toward the bottom of the page.
+                </Tooltip>
+              }
+            >
+              <img src={Info} className="image-info" alt="Info" />
+            </OverlayTrigger>
+            &nbsp;&nbsp;&nbsp;&nbsp;Get account and API key at{" "}
+            <a href="https://calendarific.com" target="_blank">
+              calendarific.com
+            </a>
+            <Form.Control
+              placeholder="Enter API Key if using Calendarific"
+              value={this.state.apiKey}
+              id="apyKey"
+              name="apyKey"
+              onChange={this.handleAPIKey}
+              size="sm"
+            />
+            <div className="div-seperator" />
+            <Stack gap={3} direction="horizontal">
+              {this.state.advanced ? (
+                <>
+                  <Button variant={this.props.isDarkMode ? "outline-light" : "light"} onClick={this.handleCache}>
+                    Clear Calendarific Cache
+                  </Button>
+                  <div className="div-seperator" />
+                </>
+              ) : (
+                <></>
+              )}
+              {this.state.isCacheSuccess ? (
+                <i style={{ color: "#00a700" }}>&nbsp; Cache cleared successfully. </i>
+              ) : (
+                <></>
+              )}
+              {this.state.isCacheFailed ? (
+                <i style={{ color: "#f00" }}>&nbsp; Error clearing cache. Check logs. </i>
+              ) : (
+                <></>
+              )}
+            </Stack>
+            <div className="div-seperator" />
+            <div className="div-seperator" />
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">
               Save
@@ -479,6 +560,8 @@ export default class Settings extends Component {
             &nbsp;&nbsp;
             {this.state.isIncomplete ? <i style={{ color: "#f00" }}>&nbsp; IP and Port must be filled. </i> : <></>}
             {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
+            <div className="div-seperator" />
+            <div className="div-seperator" />
           </Form>
         </Row>
       </>

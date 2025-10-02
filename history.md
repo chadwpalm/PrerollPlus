@@ -1,5 +1,33 @@
 # Preroll Plus Version History
 
+### 1.2.0
+
+### New Features
+
+1. Addition of a second calendar source (Calendarific) that includes hundreds more holidays to choose from. [[#15](https://github.com/chadwpalm/PrerollPlus/issues/15)]
+   a. Calendar APIs have been broken out to two sources you can choose from: Legacy (Nager.Date) which is the original API used, and Premier (Calendarific).
+   b. The use of the Premier (Calendarific) calendar API requires signing up to a free account with them which include up to 500 API calls per month.
+   c. Calendarific calendars are cached locally to reduce the number of API calls to eliminate the need to pay for a higher account tier.
+   d. Calendars are based on year/country/type with type being National, Local, Religious, and Observance.
+   e. Caches can be cleared at any time if you wish to pull a fresh copy of the calendars (Settings/Advanced), otherwise new versions will be automatically pulled at the beginning of the calendar year when needed.
+   f. The listings for the holidays in the UI now include dates (current year) and the dates should be formatted for your language/country.
+   g. In areas where there are states, provinces, or other local regions, holidays may be broken up by those local regions.
+   h. Holiday lists in the UI can now be sorted by holiday name or by date.
+2. Scheduling conflicts have been removed from the UI and schedule priorities have been put in their place. [[#16](https://github.com/chadwpalm/PrerollPlus/issues/16)]
+   a. There can still only be one Sequence that does not have a schedule.
+
+### Changes
+
+1. Changed menu behavior so if there are no buckets you cannot enter the Sequences page and user will be routed to Buckets to start creating one since Sequences are dependent on Buckets.
+2. Configuration file scheme has been updated to accommodate changes in Sequences such as priorities and information for Calendarific.
+   a. Existing configs will be backed up and migrated over to the new schema. Behavior should work as previously intended, but all priorities will be set to N/A until changed.
+
+### Fixes
+
+1. Fixed issue where not having a Bucket name was allowed when source was set to Directory.
+2. Fixed issue where information that is saved in a Sequence or Bucket were not updating immediately on cards when saved.
+3. Fixed issue where pop-ups were not showing properly in dark mode. [[#14](https://github.com/chadwpalm/PrerollPlus/issues/14)]
+
 ### 1.1.2
 
 ### Fixes
@@ -10,7 +38,7 @@
 
 ### Fixes
 
-1. Brought interal packages up to date.
+1. Brought internal packages up to date.
 2. Log file names were using the wrong application.
 3. Minor code fixes.
 

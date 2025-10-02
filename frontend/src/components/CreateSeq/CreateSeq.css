@@ -93,3 +93,7 @@
 .form-content.dark-mode .image-info {
     filter: invert(100%);
 }
+
+.modal.dark-mode .modal-content {
+    background-color: #363636;
+}

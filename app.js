@@ -14,6 +14,7 @@ var directory = require("./backend/directory");
 var streamer = require("./backend/streamer");
 var monitor = require("./backend/monitor");
 var holiday = require("./backend/holiday");
+var clearCache = require("./backend/clearcache");
 
 var app = express();
 
@@ -38,6 +39,7 @@ app.use("/backend/directory", directory);
 app.use("/backend/streamer", streamer);
 app.use("/backend/monitor", monitor);
 app.use("/backend/holiday", holiday);
+app.use("/backend/clearcache", clearCache);
 
 app.use("/webhook", webhookRouter);
 app.use("/*", uiRouter);

@@ -12,12 +12,10 @@ export default class Bucket extends Component {
     super(props);
     this.state = {
       id: "",
-      name: "",
       active: true,
     };
 
     this.state.id = this.props.id;
-    this.state.name = this.props.bucket;
     this.handleClick = this.handleClick.bind(this.props.id);
   }
 
@@ -47,7 +45,7 @@ export default class Bucket extends Component {
           )}
         </Card.Header>
         <Card.Subtitle className="d-flex align-items-center justify-content-center sub-custom">
-          {this.state.name}
+          {this.props.bucket}
         </Card.Subtitle>
         <Card.Footer className={`border-top-0 footer-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
           <Row>

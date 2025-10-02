@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 var multer = require("multer");
 var fs = require("fs");
+var path = require("path");
 var axios = require("axios").default;
 
 // Global Variables
@@ -16,100 +17,221 @@ var settings;
 
 // General Functions
 
-async function isHolidayDay(country, holiday) {
-  const today = new Date();
+async function isHolidayDay(country, holiday, states, date, type, source, apiKey) {
+  const cacheDir = path.join("/", "config", "cache");
+
+  const HolidayType = {
+    1: "national",
+    2: "local",
+    3: "religious",
+    4: "observance",
+  };
+
+  const typeName = HolidayType[parseInt(type, 10)];
+  let rawData, cacheFile;
+
+  let today = new Date();
   const currentYear = today.getFullYear();
+  today.setHours(0, 0, 0, 0);
 
-  // Set today to midnight of the current day (local time)
-  today.setHours(0, 0, 0, 0); // Normalize today's date to midnight
-
-  var url = `https://date.nager.at/api/v3/publicholidays/${currentYear}/${country}`;
-
-  try {
-    const response = await axios.get(url, {
-      timeout: 2000,
-      headers: {
-        "Content-Type": "application/json;charset=UTF-8",
-      },
-    });
-
-    const data = response.data.find((item) => item.name === holiday);
-
-    if (!data) {
-      console.log("Holiday not found:", holiday);
-      return false; // Holiday not found, return false
-    }
-
-    // Use the UTC format to ensure the date is interpreted in UTC
-    const holidayDate = new Date(`${data.date}T00:00:00Z`);
-
-    // Set holidayDate to midnight (UTC) for comparison
-    holidayDate.setUTCHours(0, 0, 0, 0);
-
-    // Now compare only the year, month, and day of both dates
-    const isHolidayToday =
-      holidayDate.getUTCFullYear() === today.getUTCFullYear() &&
-      holidayDate.getUTCMonth() === today.getUTCMonth() &&
-      holidayDate.getUTCDate() === today.getUTCDate();
-
-    return isHolidayToday; // Return the comparison result (true or false)
-  } catch (error) {
-    console.error("Error while trying to connect to the Public Holiday API: ", error.message);
-    return false; // Return false on error
+  if (source === "2") {
+    cacheFile = path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`);
   }
+
+  if (source === "2" && fs.existsSync(cacheFile)) {
+    console.log(`Reading Calendarific holidays from cache: ${cacheFile}`);
+    rawData = fs.readFileSync(cacheFile, "utf-8");
+  } else {
+    const url =
+      source === "1"
+        ? `https://date.nager.at/api/v3/publicholidays/${currentYear}/${country}`
+        : `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${country}&year=${currentYear}&type=${typeName}`;
+
+    try {
+      const response = await axios.get(url, { timeout: 2000 });
+      rawData = JSON.stringify(response.data);
+
+      // Only cache Calendarific data
+      if (source === "2") {
+        fs.writeFileSync(cacheFile, rawData, "utf-8");
+      }
+    } catch (error) {
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+
+        let message = `Error while trying to connect to the ${typeName} Holiday API. `;
+
+        if (source === "2") {
+          // 📌 Calendarific API
+          switch (status) {
+            case 401:
+              message += "Unauthorized: Missing or incorrect API token.";
+              break;
+            case 422:
+              if (data && data.meta && data.meta.error_code) {
+                switch (data.meta.error_code) {
+                  case 600:
+                    message += "API is offline for maintenance.";
+                    break;
+                  case 601:
+                    message += "Unauthorized: Missing or incorrect API token.";
+                    break;
+                  case 602:
+                    message += "Invalid query parameters.";
+                    break;
+                  case 603:
+                    message += "Subscription level required.";
+                    break;
+                  default:
+                    message += `Unprocessable Entity: ${data.meta.error_detail || "Unknown error"}`;
+                }
+              } else {
+                message += "Unprocessable Entity: Request was malformed.";
+              }
+              break;
+            case 500:
+              message += "Internal server error at Calendarific.";
+              break;
+            case 503:
+              message += "Service unavailable (planned outage).";
+              break;
+            case 429:
+              message += "Too many requests: API rate limit reached.";
+              break;
+            default:
+              message += `Unexpected HTTP status: ${status}`;
+          }
+        } else if (source === "1") {
+          // 📌 date.nager.at API (they only use standard HTTP statuses)
+          switch (status) {
+            case 400:
+              message += "Bad request: invalid parameters.";
+              break;
+            case 401:
+              message += "Unauthorized: Invalid API key or missing auth.";
+              break;
+            case 404:
+              message += "Not found: Invalid endpoint or country code.";
+              break;
+            case 429:
+              message += "Too many requests: API rate limit reached.";
+              break;
+            case 500:
+              message += "Internal server error at Nager.Date.";
+              break;
+            default:
+              message += `Unexpected HTTP status: ${status}`;
+          }
+        } else {
+          message += "Unknown source specified.";
+        }
+
+        console.error(message);
+      } else if (error.request) {
+        console.error(`No response received from API (source=${source}).`);
+      } else {
+        console.error(`Error setting up request (source=${source}): ${error.message}`);
+      }
+    }
+  }
+
+  let data;
+  let dataDate;
+  if (source === "2") {
+    const parsed = JSON.parse(rawData);
+    data = parsed.response.holidays.find(
+      (item) => item.name === holiday && item.locations === states && item.date.iso === date
+    );
+  } else if (source === "1") {
+    const parsed = JSON.parse(rawData);
+    data = parsed.find((item) => {
+      const stateString = item.counties === null ? "All" : item.counties.join(", ");
+      return item.name === holiday && stateString === states && item.date === date;
+    });
+  }
+
+  if (!data) {
+    console.log("Holiday not found:", holiday);
+    return false; // Holiday not found, return false
+  }
+
+  dataDate = source === "2" ? data.date.iso : data.date;
+
+  // Handle both "YYYY-MM-DD" and "YYYY-MM-DDTHH:mm:ssZ"
+  const [datePart] = dataDate.split("T"); // take only the date portion
+  const [year, month, day] = datePart.split("-").map(Number);
+
+  // Construct the holiday date (midnight UTC)
+  const holidayDate = new Date(Date.UTC(year, month - 1, day));
+  holidayDate.setUTCHours(0, 0, 0, 0);
+
+  // Compare only the year, month, and day
+  return (
+    holidayDate.getUTCFullYear() === today.getUTCFullYear() &&
+    holidayDate.getUTCMonth() === today.getUTCMonth() &&
+    holidayDate.getUTCDate() === today.getUTCDate()
+  );
 }
 
 async function checkSchedule() {
-  let index = -1;
-  let foundDateMatch = false;
+  let bestIndex = -1;
+  let bestPriority = Infinity; // smaller number is higher priority
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Set today to midnight (local time)
+  today.setHours(0, 0, 0, 0);
   const currentYear = today.getFullYear();
 
-  // Convert today's date to a number that can be compared to other dates
   const todayNumber = new Date(Date.UTC(currentYear, today.getMonth(), today.getDate())).getTime();
 
   for (let idx = 0; idx < settings.sequences.length; idx++) {
     const element = settings.sequences[idx];
+    const priority = element.priority ? parseInt(element.priority, 10) : Infinity;
+
+    let isMatch = false;
 
     if (element.schedule === "3") {
-      const isHoliday = await isHolidayDay(element.country, element.holiday);
-
-      if (isHoliday) {
-        index = idx;
-        foundDateMatch = true;
-        break;
-      }
-      continue;
-    }
-
-    if (element.schedule === "2") {
-      if (!foundDateMatch) {
-        index = idx;
-      }
-      continue; // Skip to the next element
-    }
-
-    // Convert the sequence start and end dates to timestamps for comparison (UTC)
-    if (!foundDateMatch) {
+      // Holiday
+      const isHoliday = await isHolidayDay(
+        element.country,
+        element.holiday,
+        element.states,
+        element.holidayDate,
+        element.type,
+        element.holidaySource,
+        settings.settings.apiKey
+      );
+      if (isHoliday) isMatch = true;
+    } else if (element.schedule === "2") {
+      // Fallback
+      isMatch = true;
+    } else {
+      // Date range
       const startNumber = new Date(Date.UTC(currentYear, element.startMonth - 1, element.startDay)).getTime();
       const endNumber = new Date(Date.UTC(currentYear, element.endMonth - 1, element.endDay)).getTime();
-
-      // Handle ranges that do not wrap and those that do wrap around the end of the year
       const isWrapped = startNumber > endNumber;
 
       if (
         (isWrapped && (todayNumber >= startNumber || todayNumber <= endNumber)) ||
         (!isWrapped && todayNumber >= startNumber && todayNumber <= endNumber)
       ) {
-        index = idx;
-        foundDateMatch = true;
-        break; // Break early if a match is found
+        isMatch = true;
+      }
+    }
+
+    // If this element matches and has a better (smaller) priority
+    if (isMatch) {
+      if (priority < bestPriority) {
+        // Pick higher-priority sequence
+        bestPriority = priority;
+        bestIndex = idx;
+      } else if (priority === Infinity && bestPriority === Infinity && bestIndex === -1) {
+        // No priorities set anywhere, fall back to first match
+        bestIndex = idx;
       }
     }
   }
 
-  return index;
+  return bestIndex;
 }
 
 async function createList(index) {
@@ -134,7 +256,6 @@ async function createList(index) {
               },
             }
           );
-          console.log(response.data);
           response.data.forEach((media) => {
             if (!media.isDir)
               files.push(`${settings.settings.plexLoc}${info.dir.replace(settings.settings.loc, "")}/${media.name}`);
@@ -215,9 +336,6 @@ function getDelayUntilTargetTime(hour, minute) {
   return targetTime - now;
 }
 
-// Schedule the initial run
-const delay = getDelayUntilTargetTime(0, 0); // 3:00 PM
-
 // Periodic Task to Check Schedules
 function myAsyncTask() {
   try {
@@ -229,13 +347,6 @@ function myAsyncTask() {
     console.error("Error in async task:", error);
   }
 }
-
-// Set the task to run every day
-setTimeout(() => {
-  myAsyncTask();
-
-  setInterval(myAsyncTask, 24 * 60 * 60 * 1000);
-}, delay);
 
 router.post("/", upload.single("thumb"), async function (req, res, next) {
   var payload = JSON.parse(req.body.payload);
@@ -256,8 +367,19 @@ router.post("/", upload.single("thumb"), async function (req, res, next) {
 
 router.get("/", function (req, res, next) {
   settings = JSON.parse(fs.readFileSync(filePath));
+
   doTask();
+
   res.sendStatus(200);
 });
+
+// Schedule the initial run
+const delay = getDelayUntilTargetTime(0, 0);
+// Set the task to run every day
+setTimeout(() => {
+  myAsyncTask();
+
+  setInterval(myAsyncTask, 24 * 60 * 60 * 1000);
+}, delay);
 
 module.exports = router;

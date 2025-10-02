@@ -43,14 +43,14 @@ export default class Buckets extends Component {
   };
 
   handleSaveCreate = () => {
+    this.props.saved();
     this.setState({ isCreating: false, isEdit: false });
   };
 
   handleClose = () => this.setState({ show: false });
 
   handleOpen = (e) => {
-    this.setState({ tempID: e });
-    this.setState({ show: true, fullscreen: "md-down" });
+    this.setState({ tempID: e, show: true, fullscreen: "md-down" });
   };
 
   handleDelete = () => {

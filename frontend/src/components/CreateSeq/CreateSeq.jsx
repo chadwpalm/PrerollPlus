@@ -11,8 +11,14 @@ import UpArrow from "bootstrap-icons/icons/arrow-up.svg";
 import LeftArrow from "bootstrap-icons/icons/arrow-left.svg";
 import DownArrow from "bootstrap-icons/icons/arrow-down.svg";
 import DownArrowShort from "bootstrap-icons/icons/arrow-down-short.svg";
+import SortName from "bootstrap-icons/icons/sort-alpha-down.svg";
+import SortDate from "bootstrap-icons/icons/sort-numeric-down.svg";
 import Modal from "react-bootstrap/Modal";
 import Image from "react-bootstrap/Image";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
+import Info from "bootstrap-icons/icons/info-circle.svg";
+import { countryNames, countryCodes, countryNamesCalrific, countryCodesCalrific } from "./countries";
 import "./CreateSeq.css";
 
 export default class Create extends Component {
@@ -32,8 +38,13 @@ export default class Create extends Component {
         schedule: info.schedule,
         country: info.country ?? "US",
         holiday: info.holiday,
+        holidaySource: info.holidaySource ?? "1",
+        states: info.states ?? "",
+        type: info.type ?? "1",
+        holidayDate: info.holidayDate ?? "",
         holidayList: [],
         buckets: info.buckets.map((bucket) => ({ ...bucket, uid: uuid() })),
+        priority: info.priority ?? "1",
         selectedBucket: {},
         selectedSequence: {},
         isError: false,
@@ -42,6 +53,8 @@ export default class Create extends Component {
         isIncompleteHoliday: false,
         show: false,
         showOverlapWarning: false,
+        sortOrder: "1",
+        apiMissing: false,
       };
     } else {
       this.state = {
@@ -53,7 +66,12 @@ export default class Create extends Component {
         schedule: "2",
         country: "US",
         holiday: "-1",
+        holidaySource: "1",
+        states: "",
+        type: "1",
+        holidayDate: "",
         buckets: [],
+        priority: 1,
         holidayList: [],
         selectedBucket: {},
         selectedSequence: {},
@@ -63,248 +81,23 @@ export default class Create extends Component {
         isIncompleteHoliday: false,
         show: false,
         showOverlapWarning: false,
+        sortOrder: "1",
+        apiMissing: false,
       };
     }
 
     this.handleFormSubmit = this.handleFormSubmit.bind(this);
 
     this.monthList = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-    this.countryNames = [
-      "Albania",
-      "Andorra",
-      "Argentina",
-      "Armenia",
-      "Australia",
-      "Austria",
-      "Bahamas",
-      "Barbados",
-      "Belarus",
-      "Belgium",
-      "Belize",
-      "Benin",
-      "Bolivia",
-      "Bosnia and Herzegovina",
-      "Botswana",
-      "Brazil",
-      "Bulgaria",
-      "Canada",
-      "Chile",
-      "China",
-      "Colombia",
-      "Costa Rica",
-      "Croatia",
-      "Cuba",
-      "Cyprus",
-      "Czechia",
-      "Denmark",
-      "Dominican Republic",
-      "Ecuador",
-      "Egypt",
-      "El Salvador",
-      "Estonia",
-      "Faroe Islands",
-      "Finland",
-      "France",
-      "Gabon",
-      "Gambia",
-      "Georgia",
-      "Germany",
-      "Gibraltar",
-      "Greece",
-      "Greenland",
-      "Grenada",
-      "Guatemala",
-      "Guernsey",
-      "Guyana",
-      "Haiti",
-      "Honduras",
-      "Hong Kong",
-      "Hungary",
-      "Iceland",
-      "Indonesia",
-      "Ireland",
-      "Isle of Man",
-      "Italy",
-      "Jamaica",
-      "Japan",
-      "Jersey",
-      "Kazakhstan",
-      "Latvia",
-      "Lesotho",
-      "Liechtenstein",
-      "Lithuania",
-      "Luxembourg",
-      "Madagascar",
-      "Malta",
-      "Mexico",
-      "Moldova",
-      "Monaco",
-      "Mongolia",
-      "Montenegro",
-      "Montserrat",
-      "Morocco",
-      "Mozambique",
-      "Namibia",
-      "Netherlands",
-      "New Zealand",
-      "Nicaragua",
-      "Niger",
-      "Nigeria",
-      "North Macedonia",
-      "Norway",
-      "Panama",
-      "Papua New Guinea",
-      "Paraguay",
-      "Peru",
-      "Poland",
-      "Portugal",
-      "Puerto Rico",
-      "Romania",
-      "Russia",
-      "San Marino",
-      "Serbia",
-      "Singapore",
-      "Slovakia",
-      "Slovenia",
-      "South Africa",
-      "South Korea",
-      "Spain",
-      "Suriname",
-      "Svalbard and Jan Mayen",
-      "Sweden",
-      "Switzerland",
-      "Tunisia",
-      "Turkey",
-      "Ukraine",
-      "United Kingdom",
-      "United States",
-      "Uruguay",
-      "Vatican City",
-      "Venezuela",
-      "Vietnam",
-      "Zimbabwe",
-    ];
-
-    this.countryCodes = [
-      "AL",
-      "AD",
-      "AR",
-      "AM",
-      "AU",
-      "AT",
-      "BS",
-      "BB",
-      "BY",
-      "BE",
-      "BZ",
-      "BJ",
-      "BO",
-      "BA",
-      "BW",
-      "BR",
-      "BG",
-      "CA",
-      "CL",
-      "CN",
-      "CO",
-      "CR",
-      "HR",
-      "CU",
-      "CY",
-      "CZ",
-      "DK",
-      "DO",
-      "EC",
-      "EG",
-      "SV",
-      "EE",
-      "FO",
-      "FI",
-      "FR",
-      "GA",
-      "GM",
-      "GE",
-      "DE",
-      "GI",
-      "GR",
-      "GL",
-      "GD",
-      "GT",
-      "GG",
-      "GY",
-      "HT",
-      "HN",
-      "HK",
-      "HU",
-      "IS",
-      "ID",
-      "IE",
-      "IM",
-      "IT",
-      "JM",
-      "JP",
-      "JE",
-      "KZ",
-      "LV",
-      "LS",
-      "LI",
-      "LT",
-      "LU",
-      "MG",
-      "MT",
-      "MX",
-      "MD",
-      "MC",
-      "MN",
-      "ME",
-      "MS",
-      "MA",
-      "MZ",
-      "NA",
-      "NL",
-      "NZ",
-      "NI",
-      "NE",
-      "NG",
-      "MK",
-      "NO",
-      "PA",
-      "PG",
-      "PY",
-      "PE",
-      "PL",
-      "PT",
-      "PR",
-      "RO",
-      "RU",
-      "SM",
-      "RS",
-      "SG",
-      "SK",
-      "SI",
-      "ZA",
-      "KR",
-      "ES",
-      "SR",
-      "SJ",
-      "SE",
-      "CH",
-      "TN",
-      "TR",
-      "UA",
-      "GB",
-      "US",
-      "UY",
-      "VA",
-      "VE",
-      "VN",
-      "ZW",
-    ];
   }
 
   componentDidMount() {
-    let country = { country: this.state.country };
+    let countryInfo = {
+      country: this.state.country,
+      source: this.state.holidaySource,
+      type: this.state.type,
+      apiKey: this.props.settings.settings.apiKey,
+    };
 
     var xhr = new XMLHttpRequest();
 
@@ -313,8 +106,14 @@ export default class Create extends Component {
         if (xhr.status === 200) {
           var response = xhr.responseText,
             json = JSON.parse(response);
+          if (json.apiKeyMissing) this.setState({ apiMissing: true });
           this.setState({ holidayList: json });
-        } else {
+        } else if (xhr.status === 400) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+        }
+        {
           this.setState({
             error: xhr.responseText,
           });
@@ -324,7 +123,7 @@ export default class Create extends Component {
 
     xhr.open("POST", "/backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(country));
+    xhr.send(JSON.stringify(countryInfo));
   }
 
   handleDate = (e) => {
@@ -336,13 +135,20 @@ export default class Create extends Component {
   };
 
   handleHoliday = (e) => {
-    this.setState({ holiday: e.target.value.toString() });
+    const [holidayName, states, date] = e.target.value.split("||");
+    this.setState({ holiday: holidayName, states: states, holidayDate: date });
   };
 
-  handleCountry = (e) => {
-    this.setState({ country: e.target.value.toString() });
+  handleSource = (e) => {
+    const newSource = e.target.value.toString();
+    const { country, type, sortOrder } = this.state;
 
-    let country = { country: e.target.value.toString() };
+    const countryInfo = {
+      country,
+      source: newSource,
+      type,
+      apiKey: this.props.settings.settings.apiKey,
+    };
 
     var xhr = new XMLHttpRequest();
 
@@ -351,7 +157,103 @@ export default class Create extends Component {
         if (xhr.status === 200) {
           var response = xhr.responseText,
             json = JSON.parse(response);
-          this.setState({ holidayList: json });
+          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          this.setState({
+            holidaySource: newSource,
+            holidayList: this.sortHolidayList(json, sortOrder),
+            holiday: "-1",
+            states: "",
+          });
+        } else if (xhr.status === 400) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+        }
+        {
+          this.setState({
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+
+    xhr.open("POST", "/backend/holiday", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(countryInfo));
+  };
+
+  handleType = (e) => {
+    const newType = e.target.value.toString();
+    const { country, holidaySource, sortOrder } = this.state;
+
+    const countryInfo = {
+      country,
+      source: holidaySource,
+      type: newType,
+      apiKey: this.props.settings.settings.apiKey,
+    };
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          this.setState({
+            type: newType,
+            holidayList: this.sortHolidayList(json, sortOrder),
+            holiday: "-1",
+            states: "",
+          });
+        } else if (xhr.status === 400) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+        }
+        {
+          this.setState({
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+
+    xhr.open("POST", "/backend/holiday", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(countryInfo));
+  };
+
+  handleCountry = (e) => {
+    const newCountry = e.target.value.toString();
+    const { holidaySource, type, sortOrder } = this.state;
+
+    const countryInfo = {
+      country: newCountry,
+      source: holidaySource,
+      type,
+      apiKey: this.props.settings.settings.apiKey,
+    };
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          this.setState({
+            apiMissing: json.apiKeyMissing,
+            country: newCountry,
+            holidayList: this.sortHolidayList(json, sortOrder),
+            holiday: "-1",
+            states: "",
+          });
+        } else if (xhr.status === 400) {
+          var response = xhr.responseText,
+            json = JSON.parse(response);
+          if (json.apiKeyMissing) this.setState({ apiMissing: true });
         } else {
           this.setState({
             error: xhr.responseText,
@@ -362,7 +264,7 @@ export default class Create extends Component {
 
     xhr.open("POST", "/backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(country));
+    xhr.send(JSON.stringify(countryInfo));
   };
 
   handleClickBuckets = (e) => {
@@ -447,6 +349,28 @@ export default class Create extends Component {
     this.setState({ name: e.target.value.toString(), isSaved: false });
   };
 
+  handlePriority = (e) => {
+    this.setState({ priority: e.target.value });
+  };
+
+  handleSortOrder = (order) => {
+    this.setState((prevState) => ({
+      sortOrder: order,
+      holidayList: this.sortHolidayList(prevState.holidayList, order),
+    }));
+  };
+
+  sortHolidayList = (list, order) => {
+    if (!list) return [];
+    if (order === "1") {
+      return [...list].sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    if (order === "2") {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return list;
+  };
+
   handleFormSubmit = async (e) => {
     e.preventDefault();
 
@@ -463,15 +387,15 @@ export default class Create extends Component {
     }
 
     // Check for a "no schedule" condition (schedule === "2") within other sequences
-    if (
-      this.state.schedule === "2" &&
-      this.props.settings.sequences
-        .filter((element) => element.id !== this.state.id)
-        .findIndex(({ schedule }) => schedule === "2") !== -1
-    ) {
-      this.setState({ show: true });
-      return;
-    }
+    // if (
+    //   this.state.schedule === "2" &&
+    //   this.props.settings.sequences
+    //     .filter((element) => element.id !== this.state.id)
+    //     .findIndex(({ schedule }) => schedule === "2") !== -1
+    // ) {
+    //   this.setState({ show: true });
+    //   return;
+    // }
 
     const settings = { ...this.props.settings };
 
@@ -487,44 +411,53 @@ export default class Create extends Component {
       endMonth: this.state.endMonth,
       country: this.state.country,
       holiday: this.state.holiday,
+      states: this.state.states,
+      type: this.state.type,
+      holidayDate: this.state.holidayDate,
+      holidaySource: this.state.holidaySource,
+      priority: this.state.priority,
       buckets: this.state.buckets.map(({ uid, ...rest }) => rest),
     };
 
-    // Improved overlap detection
-    const isOverlap = (start1, end1, start2, end2) => {
-      const dateToNumber = (month, day) => new Date(2024, month - 1, day).getTime();
+    // // Improved overlap detection
+    // const isOverlap = (start1, end1, start2, end2) => {
+    //   const dateToNumber = (month, day) => new Date(2024, month - 1, day).getTime();
 
-      const [start1Num, end1Num] = [dateToNumber(start1.month, start1.day), dateToNumber(end1.month, end1.day)];
-      const [start2Num, end2Num] = [dateToNumber(start2.month, start2.day), dateToNumber(end2.month, end2.day)];
+    //   const [start1Num, end1Num] = [dateToNumber(start1.month, start1.day), dateToNumber(end1.month, end1.day)];
+    //   const [start2Num, end2Num] = [dateToNumber(start2.month, start2.day), dateToNumber(end2.month, end2.day)];
 
-      const isWrapped1 = start1Num > end1Num;
-      const isWrapped2 = start2Num > end2Num;
+    //   const isWrapped1 = start1Num > end1Num;
+    //   const isWrapped2 = start2Num > end2Num;
 
-      if (isWrapped1 && isWrapped2) {
-        return true;
-      } else if (isWrapped1) {
-        return start1Num <= end2Num || end1Num >= start2Num || (start1Num <= end2Num && end1Num >= start2Num);
-      } else if (isWrapped2) {
-        return start2Num <= end1Num || end2Num >= start1Num || (start2Num <= end1Num && end2Num >= start1Num);
-      } else {
-        return start1Num <= end2Num && end1Num >= start2Num;
-      }
-    };
+    //   if (isWrapped1 && isWrapped2) {
+    //     return true;
+    //   } else if (isWrapped1) {
+    //     return start1Num <= end2Num || end1Num >= start2Num || (start1Num <= end2Num && end1Num >= start2Num);
+    //   } else if (isWrapped2) {
+    //     return start2Num <= end1Num || end2Num >= start1Num || (start2Num <= end1Num && end2Num >= start1Num);
+    //   } else {
+    //     return start1Num <= end2Num && end1Num >= start2Num;
+    //   }
+    // };
 
-    // Check for overlap with existing sequences, excluding itself
-    const newStart = { month: temp.startMonth, day: temp.startDay };
-    const newEnd = { month: temp.endMonth, day: temp.endDay };
+    // // Check for overlap with existing sequences, excluding itself
+    // const newStart = { month: temp.startMonth, day: temp.startDay };
+    // const newEnd = { month: temp.endMonth, day: temp.endDay };
+
+    // const overlapFound = settings.sequences
+    //   .filter(({ id, schedule }) => id !== temp.id && schedule !== "2") // Exclude the current sequence by ID
+    //   .some(({ startMonth, startDay, endMonth, endDay }) => {
+    //     if (this.state.schedule === "1") {
+    //       const existingStart = { month: startMonth, day: startDay };
+    //       const existingEnd = { month: endMonth, day: endDay };
+    //       return isOverlap(newStart, newEnd, existingStart, existingEnd);
+    //     }
+    //     return false;
+    //   });
 
     const overlapFound = settings.sequences
-      .filter(({ id, schedule }) => id !== temp.id && schedule !== "2") // Exclude the current sequence by ID
-      .some(({ startMonth, startDay, endMonth, endDay }) => {
-        if (this.state.schedule === "1") {
-          const existingStart = { month: startMonth, day: startDay };
-          const existingEnd = { month: endMonth, day: endDay };
-          return isOverlap(newStart, newEnd, existingStart, existingEnd);
-        }
-        return false;
-      });
+      .filter(({ id }) => id !== temp.id) // Exclude the current sequence by ID
+      .some(({ priority }) => priority === temp.priority);
 
     if (overlapFound) {
       this.setState({ showOverlapWarning: true });
@@ -610,14 +543,33 @@ export default class Create extends Component {
         </option>
       );
     }
-    for (let i = 0; i <= this.countryNames.length; i++) {
-      countries.push(<option value={this.countryCodes[i]}>{this.countryNames[i]}</option>);
+    if (this.state.holidaySource === "1") {
+      for (let i = 0; i < countryNames.length; i++) {
+        countries.push(<option value={countryCodes[i]}>{countryNames[i]}</option>);
+      }
+    } else {
+      for (let i = 0; i < countryNamesCalrific.length; i++) {
+        countries.push(<option value={countryCodesCalrific[i]}>{countryNamesCalrific[i]}</option>);
+      }
     }
 
     return (
       <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
         <Form.Label for="name">Name of sequence &nbsp;&nbsp;</Form.Label>
         <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
+        <div className="div-seperator" />
+        <Form.Label for="priority">Sequence Priority &nbsp;&nbsp;</Form.Label>
+        <OverlayTrigger placement="right" overlay={<Tooltip>Lower numbers have a higher priority.</Tooltip>}>
+          <img src={Info} className="image-info" alt="info" />
+        </OverlayTrigger>
+        <Form.Control
+          type="number"
+          min={1}
+          max={100}
+          defaultValue={this.state.priority}
+          style={{ width: "80px" }}
+          onChange={this.handlePriority}
+        />
         <div className="div-seperator" />
         <Form.Label for="schedule">Schedule</Form.Label>
         <div>
@@ -702,6 +654,62 @@ export default class Create extends Component {
         )}
         {this.state.schedule === "3" ? (
           <>
+            <Form.Label for="source">Source</Form.Label>&nbsp;&nbsp;
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  Legacy (Nager.Date):
+                  <br />
+                  <br />
+                  This option pulls the calendar information from the same source that has been used since v1.1.0. This
+                  comes from an API that does not require a login or API key. The drawback is that the dates are limited
+                  to federal/public holidays and fewer supported countries.
+                  <br />
+                  <br />
+                  Premier (Calendarific):
+                  <br />
+                  <br />
+                  This option pulls the calendar information from Calendarific. This site requires a login and API key,
+                  however, there is a free account which allows up to 500 API calls a day which should be plenty for the
+                  use of this app. Once you sign up you'll need to enter your API key (field only appears when Premier
+                  is selected). The advantage to this calendar is that it covers a wider variety of holidays (like
+                  Mother's Day and Easter).
+                </Tooltip>
+              }
+            >
+              <img src={Info} className="image-info" alt="info" />
+            </OverlayTrigger>
+            <div>
+              <Form.Check
+                inline
+                type="radio"
+                label="Legacy (Nager.Date)"
+                value="1"
+                id="source"
+                name="source"
+                onChange={this.handleSource}
+                size="sm"
+                checked={this.state.holidaySource === "1"}
+              />
+              <Form.Check
+                inline
+                type="radio"
+                label="Premier (Calendarific)"
+                value="2"
+                id="source"
+                name="source"
+                onChange={this.handleSource}
+                size="sm"
+                checked={this.state.holidaySource === "2"}
+              />
+              {this.state.apiMissing ? (
+                <i style={{ color: "#f00" }}>&nbsp; You must enter an API key in settings to use Calendarific</i>
+              ) : (
+                <></>
+              )}
+            </div>
+            <div className="div-seperator" />
             <Stack gap={1} direction="horizontal">
               Country:&nbsp;&nbsp;
               <Form.Select
@@ -716,10 +724,64 @@ export default class Create extends Component {
               </Form.Select>
             </Stack>
             <div className="div-seperator" />
-            <Stack gap={1} direction="horizontal">
+            {this.state.holidaySource === "2" ? (
+              <>
+                <Form.Label for="type">Type</Form.Label>
+                <div>
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="National"
+                    value="1"
+                    id="type"
+                    name="type"
+                    onChange={this.handleType}
+                    size="sm"
+                    checked={this.state.type === "1"}
+                  />
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="Local"
+                    value="2"
+                    id="type"
+                    name="type"
+                    onChange={this.handleType}
+                    size="sm"
+                    checked={this.state.type === "2"}
+                  />
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="Religious"
+                    value="3"
+                    id="type"
+                    name="type"
+                    onChange={this.handleType}
+                    size="sm"
+                    checked={this.state.type === "3"}
+                  />
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="Observance"
+                    value="4"
+                    id="type"
+                    name="type"
+                    onChange={this.handleType}
+                    size="sm"
+                    checked={this.state.type === "4"}
+                  />
+                </div>
+                <div className="div-seperator" />
+              </>
+            ) : (
+              <></>
+            )}
+            <Stack gap={2} direction="horizontal">
               Holiday:&nbsp;&nbsp;
               <Form.Select
-                value={this.state.holiday}
+                value={`${this.state.holiday}||${this.state.states}||${this.state.holidayDate}`}
                 id="holiday"
                 name="holiday"
                 onChange={this.handleHoliday}
@@ -727,14 +789,28 @@ export default class Create extends Component {
                 style={{ width: "600px" }}
               >
                 <option value="-1">Select a Holiday</option>
-                {this.state.holidayList
-                  .filter((holiday) => holiday.types.includes("Public"))
-                  .map((holiday) => (
-                    <option value={holiday.name}>
-                      {holiday.name} ({holiday.localName})
-                    </option>
-                  ))}
+                {this.state.holidayList.map((holiday) => (
+                  <option
+                    key={`${holiday.name}||${holiday.states}||${holiday.rawDate}`}
+                    value={`${holiday.name}||${holiday.states}||${holiday.rawDate}`}
+                    title={holiday.states}
+                  >
+                    {holiday.name} ({holiday.date}) {holiday.states === "All" ? "Entire Country" : holiday.states}
+                  </option>
+                ))}
               </Form.Select>
+              <Button
+                onClick={() => this.handleSortOrder("2")}
+                variant={this.props.isDarkMode ? "outline-light" : "light"}
+              >
+                <Image src={SortName} alt="Sort Name" className="arrow-icon" />
+              </Button>
+              <Button
+                onClick={() => this.handleSortOrder("1")}
+                variant={this.props.isDarkMode ? "outline-light" : "light"}
+              >
+                <Image src={SortDate} alt="Sort Date" className="arrow-icon" />
+              </Button>
             </Stack>
             <div className="div-seperator" />
           </>
@@ -881,7 +957,13 @@ export default class Create extends Component {
         {this.state.isIncompleteHoliday ? <i style={{ color: "#f00" }}>&nbsp; You must select a holiday.</i> : <></>}
         {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
         <div className="div-seperator" />
-        <Modal show={this.state.show} onHide={this.handleClose} size="sm" backdrop="static">
+        <Modal
+          show={this.state.show}
+          onHide={this.handleClose}
+          size="sm"
+          backdrop="static"
+          className={this.props.isDarkMode ? "dark-mode" : ""}
+        >
           <Modal.Header>
             <h3>Error</h3>
           </Modal.Header>
@@ -896,12 +978,18 @@ export default class Create extends Component {
             <Button onClick={this.handleClose}>Acknowledge</Button>
           </Modal.Body>
         </Modal>
-        <Modal show={this.state.showOverlapWarning} onHide={this.handleCloseOverlap} size="sm" backdrop="static">
+        <Modal
+          show={this.state.showOverlapWarning}
+          onHide={this.handleCloseOverlap}
+          size="sm"
+          backdrop="static"
+          className={this.props.isDarkMode ? "dark-mode" : ""}
+        >
           <Modal.Header>
             <h3>Error</h3>
           </Modal.Header>
           <Modal.Body>
-            To prevent conflicts, two sequences cannot overlap each other.
+            To prevent conflicts, two sequences cannot have the same priority.
             <br />
             <br />
             See Preroll Plus documentation for more information.
