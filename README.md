@@ -46,6 +46,8 @@ Scheduled sequences will automatically assert on the first day the sequence star
 - Easy to use web-based graphical interface that is also mobile friendly.
 - Combine "buckets" and "sequences" to generate your desired preroll functionality.
 - Sequences can be scheduled to change throughout the year.
+- Run a schedule based on a holiday leveraging one of the largest holiday calendar APIs.
+- Prioritize schedules so that you can layer schedules adding more power to what sequence plays for that day.
 - Can be run natively or in a Docker container.
 
 ### Support
@@ -56,6 +58,6 @@ Scheduled sequences will automatically assert on the first day the sequence star
 ### Licenses
 
 - [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)
-- Copyright 2024
+- Copyright 2025
 
 _Preroll Plus is not affiliated or endorsed by Plex Inc._
