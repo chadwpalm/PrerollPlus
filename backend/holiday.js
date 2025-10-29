@@ -89,7 +89,7 @@ router.post("/", async function (req, res, next) {
     }
 
     try {
-      const response = await axios.get(url, { timeout: 2000 });
+      const response = await axios.get(url, { timeout: 10000 });
       rawData = JSON.stringify(response.data);
 
       // Only cache Calendarific data
@@ -182,27 +182,35 @@ router.post("/", async function (req, res, next) {
 
   let countries = [];
   if (source === "2") {
-    const parsed = JSON.parse(rawData);
-    parsed.response.holidays.forEach((country) => {
-      countries.push({
-        name: country.name,
-        date: formatHolidayDate(country.date.iso, userLocale),
-        rawDate: country.date.iso,
-        states: country.locations,
-      });
-    });
-  } else if (source === "1") {
-    const parsed = JSON.parse(rawData);
-    parsed
-      .filter((holiday) => holiday.types.includes("Public"))
-      .forEach((country) => {
+    try {
+      const parsed = JSON.parse(rawData);
+      parsed.response.holidays.forEach((country) => {
         countries.push({
           name: country.name,
-          date: formatHolidayDate(country.date, userLocale),
-          rawDate: country.date,
-          states: country.counties === null ? "All" : country.counties.join(", "),
+          date: formatHolidayDate(country.date.iso, userLocale),
+          rawDate: country.date.iso,
+          states: country.locations,
         });
       });
+    } catch {
+      console.error("There was not valid data returned from the Holiday API");
+    }
+  } else if (source === "1") {
+    try {
+      const parsed = JSON.parse(rawData);
+      parsed
+        .filter((holiday) => holiday.types.includes("Public"))
+        .forEach((country) => {
+          countries.push({
+            name: country.name,
+            date: formatHolidayDate(country.date, userLocale),
+            rawDate: country.date,
+            states: country.counties === null ? "All" : country.counties.join(", "),
+          });
+        });
+    } catch {
+      console.error("There was not valid data returned from the Holiday API");
+    }
   }
 
   function dedupeHolidays(holidays) {

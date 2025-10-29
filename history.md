@@ -1,5 +1,12 @@
 # Preroll Plus Version History
 
+### 1.2.1
+
+### Hotfix
+
+1. Fixed code to prevent app crash when can't connect to calendar API servers.
+2. Increased timeout for calendar API retrieval.
+
 ### 1.2.0
 
 ### New Features
