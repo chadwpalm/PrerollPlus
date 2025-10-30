@@ -13,6 +13,7 @@ if (!fs.existsSync(cacheDir)) {
 }
 
 router.post("/", async function (req, res, next) {
+  console.log("IN POST");
   const HolidayType = {
     1: "national",
     2: "local",

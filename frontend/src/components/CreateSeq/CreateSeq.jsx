@@ -95,35 +95,37 @@ export default class Create extends Component {
   }
 
   componentDidMount() {
-    // let countryInfo = {
-    //   country: this.state.country,
-    //   source: this.state.holidaySource,
-    //   type: this.state.type,
-    //   apiKey: this.props.settings.settings.apiKey,
-    // };
-    // var xhr = new XMLHttpRequest();
-    // xhr.addEventListener("readystatechange", () => {
-    //   if (xhr.readyState === 4) {
-    //     if (xhr.status === 200) {
-    //       var response = xhr.responseText,
-    //         json = JSON.parse(response);
-    //       if (json.apiKeyMissing) this.setState({ apiMissing: true });
-    //       this.setState({ holidayList: json });
-    //     } else if (xhr.status === 400) {
-    //       var response = xhr.responseText,
-    //         json = JSON.parse(response);
-    //       if (json.apiKeyMissing) this.setState({ apiMissing: true });
-    //     }
-    //     {
-    //       this.setState({
-    //         error: xhr.responseText,
-    //       });
-    //     }
-    //   }
-    // });
-    // xhr.open("POST", "/backend/holiday", true);
-    // xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    // xhr.send(JSON.stringify(countryInfo));
+    if (this.props.isEdit && this.state.schedule === "3") {
+      let countryInfo = {
+        country: this.state.country,
+        source: this.state.holidaySource,
+        type: this.state.type,
+        apiKey: this.props.settings.settings.apiKey,
+      };
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener("readystatechange", () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            this.setState({ holidayList: json });
+          } else if (xhr.status === 400) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          }
+          {
+            this.setState({
+              error: xhr.responseText,
+            });
+          }
+        }
+      });
+      xhr.open("POST", "/backend/holiday", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.send(JSON.stringify(countryInfo));
+    }
   }
 
   handleDate = (e) => {
@@ -131,51 +133,54 @@ export default class Create extends Component {
   };
 
   handleSchedule = (e) => {
-    // this.setState({ schedule: e.target.value.toString() });
-
     const newSchedule = e.target.value.toString();
-    const { country, type, sortOrder, holidaySource } = this.state;
 
-    const countryInfo = {
-      country,
-      source: holidaySource,
-      type,
-      apiKey: this.props.settings.settings.apiKey,
-    };
+    if (newSchedule === "3") {
+      const { country, type, sortOrder, holidaySource } = this.state;
 
-    this.setState({ isLoading: true });
+      const countryInfo = {
+        country,
+        source: holidaySource,
+        type,
+        apiKey: this.props.settings.settings.apiKey,
+      };
 
-    var xhr = new XMLHttpRequest();
+      this.setState({ isLoading: true });
 
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
-          this.setState({
-            schedule: newSchedule,
-            holidayList: this.sortHolidayList(json, sortOrder),
-            holiday: "-1",
-            states: "",
-            isLoading: false,
-          });
-        } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+      var xhr = new XMLHttpRequest();
+
+      xhr.addEventListener("readystatechange", () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            this.setState({
+              schedule: newSchedule,
+              holidayList: this.sortHolidayList(json, sortOrder),
+              holiday: "-1",
+              states: "",
+              isLoading: false,
+            });
+          } else if (xhr.status === 400) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          }
+          {
+            this.setState({
+              error: xhr.responseText,
+            });
+          }
         }
-        {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
+      });
 
-    xhr.open("POST", "/backend/holiday", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(countryInfo));
+      xhr.open("POST", "/backend/holiday", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.send(JSON.stringify(countryInfo));
+    } else {
+      this.setState({ schedule: newSchedule });
+    }
   };
 
   handleHoliday = (e) => {
