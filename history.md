@@ -4,8 +4,9 @@
 
 ### Hotfix
 
-1. Fixed code to prevent app crash when can't connect to calendar API servers.
-2. Increased timeout for calendar API retrieval.
+1. Fixed code to prevent app crash when can't connect to calendar API servers. [[#19](https://github.com/chadwpalm/PrerollPlus/issues/19)]
+2. Increased timeout for calendar API retrieval. [[#19](https://github.com/chadwpalm/PrerollPlus/issues/19)]
+3. Prevent the querying of the calendar APIs when creating a new Sequence and when toggling the schedule and it is not set to Holiday. [[#19](https://github.com/chadwpalm/PrerollPlus/issues/19)]
 
 ### 1.2.0
 
