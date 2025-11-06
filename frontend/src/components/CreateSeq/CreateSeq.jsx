@@ -18,6 +18,7 @@ import Image from "react-bootstrap/Image";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 import Info from "bootstrap-icons/icons/info-circle.svg";
+import Loading from "../../images/loading-gif.gif";
 import { countryNames, countryCodes, countryNamesCalrific, countryCodesCalrific } from "./countries";
 import "./CreateSeq.css";
 
@@ -55,6 +56,7 @@ export default class Create extends Component {
         showOverlapWarning: false,
         sortOrder: "1",
         apiMissing: false,
+        isLoading: false,
       };
     } else {
       this.state = {
@@ -83,6 +85,7 @@ export default class Create extends Component {
         showOverlapWarning: false,
         sortOrder: "1",
         apiMissing: false,
+        isLoading: false,
       };
     }
 
@@ -92,38 +95,37 @@ export default class Create extends Component {
   }
 
   componentDidMount() {
-    let countryInfo = {
-      country: this.state.country,
-      source: this.state.holidaySource,
-      type: this.state.type,
-      apiKey: this.props.settings.settings.apiKey,
-    };
-
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
-          this.setState({ holidayList: json });
-        } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+    if (this.props.isEdit && this.state.schedule === "3") {
+      let countryInfo = {
+        country: this.state.country,
+        source: this.state.holidaySource,
+        type: this.state.type,
+        apiKey: this.props.settings.settings.apiKey,
+      };
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener("readystatechange", () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            this.setState({ holidayList: json });
+          } else if (xhr.status === 400) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          }
+          {
+            this.setState({
+              error: xhr.responseText,
+            });
+          }
         }
-        {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "/backend/holiday", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(countryInfo));
+      });
+      xhr.open("POST", "/backend/holiday", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.send(JSON.stringify(countryInfo));
+    }
   }
 
   handleDate = (e) => {
@@ -131,7 +133,54 @@ export default class Create extends Component {
   };
 
   handleSchedule = (e) => {
-    this.setState({ schedule: e.target.value.toString() });
+    const newSchedule = e.target.value.toString();
+
+    if (newSchedule === "3") {
+      const { country, type, sortOrder, holidaySource } = this.state;
+
+      const countryInfo = {
+        country,
+        source: holidaySource,
+        type,
+        apiKey: this.props.settings.settings.apiKey,
+      };
+
+      this.setState({ isLoading: true });
+
+      var xhr = new XMLHttpRequest();
+
+      xhr.addEventListener("readystatechange", () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            this.setState({
+              schedule: newSchedule,
+              holidayList: this.sortHolidayList(json, sortOrder),
+              holiday: "-1",
+              states: "",
+              isLoading: false,
+            });
+          } else if (xhr.status === 400) {
+            var response = xhr.responseText,
+              json = JSON.parse(response);
+            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          }
+          {
+            this.setState({
+              error: xhr.responseText,
+            });
+          }
+        }
+      });
+
+      xhr.open("POST", "/backend/holiday", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.send(JSON.stringify(countryInfo));
+    } else {
+      this.setState({ schedule: newSchedule });
+    }
   };
 
   handleHoliday = (e) => {
@@ -150,6 +199,8 @@ export default class Create extends Component {
       apiKey: this.props.settings.settings.apiKey,
     };
 
+    this.setState({ isLoading: true });
+
     var xhr = new XMLHttpRequest();
 
     xhr.addEventListener("readystatechange", () => {
@@ -163,6 +214,7 @@ export default class Create extends Component {
             holidayList: this.sortHolidayList(json, sortOrder),
             holiday: "-1",
             states: "",
+            isLoading: false,
           });
         } else if (xhr.status === 400) {
           var response = xhr.responseText,
@@ -195,6 +247,8 @@ export default class Create extends Component {
 
     var xhr = new XMLHttpRequest();
 
+    this.setState({ isLoading: true });
+
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
@@ -206,6 +260,7 @@ export default class Create extends Component {
             holidayList: this.sortHolidayList(json, sortOrder),
             holiday: "-1",
             states: "",
+            isLoading: false,
           });
         } else if (xhr.status === 400) {
           var response = xhr.responseText,
@@ -238,6 +293,8 @@ export default class Create extends Component {
 
     var xhr = new XMLHttpRequest();
 
+    this.setState({ isLoading: true });
+
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
@@ -249,6 +306,7 @@ export default class Create extends Component {
             holidayList: this.sortHolidayList(json, sortOrder),
             holiday: "-1",
             states: "",
+            isLoading: false,
           });
         } else if (xhr.status === 400) {
           var response = xhr.responseText,
@@ -607,6 +665,13 @@ export default class Create extends Component {
             checked={this.state.schedule === "3"}
           />
         </div>
+        {this.state.isLoading ? (
+          <div>
+            <img src={Loading} alt="Loading" width="25" />
+          </div>
+        ) : (
+          <></>
+        )}
         <div className="div-seperator" />
         {this.state.schedule === "1" ? (
           <>
@@ -703,6 +768,7 @@ export default class Create extends Component {
                 size="sm"
                 checked={this.state.holidaySource === "2"}
               />
+
               {this.state.apiMissing ? (
                 <i style={{ color: "#f00" }}>&nbsp; You must enter an API key in settings to use Calendarific</i>
               ) : (
@@ -787,8 +853,13 @@ export default class Create extends Component {
                 onChange={this.handleHoliday}
                 size="sm"
                 style={{ width: "600px" }}
+                disabled={this.state.holidayList.length === 0}
               >
-                <option value="-1">Select a Holiday</option>
+                {this.state.holidayList.length === 0 ? (
+                  <option value="-1">No Holidays Returned</option>
+                ) : (
+                  <option value="-1">Select a Holiday</option>
+                )}
                 {this.state.holidayList.map((holiday) => (
                   <option
                     key={`${holiday.name}||${holiday.states}||${holiday.rawDate}`}
