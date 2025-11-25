@@ -1,6 +1,16 @@
 # Preroll Plus Version History
 
-### 1.2.1
+## 1.2.2
+
+### New Feature
+
+1. Added a blue box around the currently used Sequence for that day.
+
+### Fix
+
+1. Fixed issue where deleting a newly made Sequence wasn't removing it from the list of cards.
+
+## 1.2.1
 
 ### Hotfix
 
@@ -8,7 +18,7 @@
 2. Increased timeout for calendar API retrieval. [[#19](https://github.com/chadwpalm/PrerollPlus/issues/19)]
 3. Prevent the querying of the calendar APIs when creating a new Sequence and when toggling the schedule and it is not set to Holiday. [[#19](https://github.com/chadwpalm/PrerollPlus/issues/19)]
 
-### 1.2.0
+## 1.2.0
 
 ### New Features
 
@@ -36,13 +46,13 @@
 2. Fixed issue where information that is saved in a Sequence or Bucket were not updating immediately on cards when saved.
 3. Fixed issue where pop-ups were not showing properly in dark mode. [[#14](https://github.com/chadwpalm/PrerollPlus/issues/14)]
 
-### 1.1.2
+## 1.1.2
 
 ### Fixes
 
 1. Sequence cards were not showing the scheduled holiday if "Holiday" is chosen as the schedule.
 
-### 1.1.1
+## 1.1.1
 
 ### Fixes
 
@@ -50,7 +60,7 @@
 2. Log file names were using the wrong application.
 3. Minor code fixes.
 
-### 1.1.0
+## 1.1.0
 
 ### New Feature
 

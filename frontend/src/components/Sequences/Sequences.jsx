@@ -14,7 +14,7 @@ export default class Sequences extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      sequences: this.props.settings.sequences,
+      // sequences: this.props.settings.sequences,
       isCreating: false,
       id: "-1",
       isEdit: false,
@@ -22,6 +22,10 @@ export default class Sequences extends Component {
       tempID: "",
     };
   }
+
+  refreshSettings = () => {
+    this.props.onSettingsChanged?.(); // calls refreshConfig() in App.jsx
+  };
 
   handleAddSequence = () => {
     this.setState({
@@ -50,8 +54,7 @@ export default class Sequences extends Component {
   handleClose = () => this.setState({ show: false });
 
   handleOpen = (e) => {
-    this.setState({ tempID: e });
-    this.setState({ show: true, fullscreen: "md-down" });
+    this.setState({ tempID: e, show: true, fullscreen: "md-down" });
   };
 
   handleDelete = (e) => {
@@ -74,6 +77,7 @@ export default class Sequences extends Component {
           xhr2.addEventListener("readystatechange", () => {
             if (xhr2.readyState === 4) {
               if (xhr2.status === 200) {
+                this.refreshSettings();
               } else {
                 this.setState({
                   error: xhr2.responseText,
@@ -99,6 +103,7 @@ export default class Sequences extends Component {
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
+    this.props.updateSettings(settings);
     this.handleSaveCreate();
   };
 
@@ -109,7 +114,7 @@ export default class Sequences extends Component {
           <h3>Sequences</h3>
         </Row>
         <Row xs={2} sm="auto">
-          {this.state.sequences?.map((sequence) => (
+          {this.props.settings.sequences?.map((sequence) => (
             <Col key={sequence.id}>
               <Sequence
                 settings={this.props.settings}
@@ -129,6 +134,7 @@ export default class Sequences extends Component {
                 isDarkMode={this.props.isDarkMode}
                 holiday={sequence.holiday}
                 priority={sequence.priority}
+                currentSeq={this.props.settings.currentSeq}
               />
               <br />
             </Col>
@@ -166,9 +172,15 @@ export default class Sequences extends Component {
               id={this.state.id}
               isEdit={this.state.isEdit}
               isDarkMode={this.props.isDarkMode}
+              onSettingsSaved={this.refreshSettings}
             />
           ) : (
-            <h6>Click the plus to add a new Sequence.</h6>
+            <>
+              <p className="mb-3" style={{ fontSize: "12px" }}>
+                Blue Border: Current Sequence  Red Border: Currently Editing Sequence
+              </p>
+              <h6 className="mb-0">Click the plus to add a new Sequence.</h6>
+            </>
           )}
         </Row>
         <Modal

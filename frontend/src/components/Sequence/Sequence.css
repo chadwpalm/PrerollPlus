@@ -3,7 +3,11 @@
 }
 
 .card.card-error {
-  border: 2px solid red;
+  border: 2px solid red !important;
+}
+
+.card.card-current {
+  border: 2px solid blue !important;
 }
 
 .card.card-unselected {
@@ -78,7 +82,11 @@
 }
 
 .card-error.dark-mode {
-  border: 2px solid red;
+  border: 2px solid red !important;
+}
+
+.card-current.dark-mode {
+  border: 2px solid blue !important;
 }
 
 .card-unselected.dark-mode {

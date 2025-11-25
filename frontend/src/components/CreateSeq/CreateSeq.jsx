@@ -539,6 +539,7 @@ export default class Create extends Component {
           xhr2.addEventListener("readystatechange", () => {
             if (xhr2.readyState === 4) {
               if (xhr2.status === 200) {
+                this.props.onSettingsSaved?.();
               } else {
                 this.setState({
                   error: xhr2.responseText,

@@ -533,6 +533,8 @@ export default class App extends Component {
                                 settings={this.state.config}
                                 logout={this.handleLogout}
                                 isDarkMode={this.state.isDarkMode}
+                                onSettingsChanged={this.refreshConfig.bind(this)}
+                                updateSettings={this.updateSettings}
                               />
                             }
                           />

@@ -174,6 +174,14 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
   );
 }
 
+async function saveId(id) {
+  var settingsCopy = { ...settings };
+
+  settingsCopy.currentSeq = id;
+
+  fs.writeFileSync("/config/settings.js", JSON.stringify(settingsCopy));
+}
+
 async function checkSchedule() {
   let bestIndex = -1;
   let bestPriority = Infinity; // smaller number is higher priority
@@ -230,7 +238,7 @@ async function checkSchedule() {
       }
     }
   }
-
+  await saveId(bestIndex !== -1 ? settings.sequences[bestIndex].id : "");
   return bestIndex;
 }
 
@@ -307,7 +315,9 @@ async function sendList(string) {
       },
     })
     .then((response) => {
-      console.log("Preroll updated successfully: ", string);
+      string === ""
+        ? console.log("No string to update in Plex")
+        : console.log("Preroll updated successfully: ", string);
     })
     .catch((error) => {
       console.error("Error updating preroll:", error);

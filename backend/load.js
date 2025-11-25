@@ -4,6 +4,7 @@ var fs = require("fs");
 var os = require("os");
 var uuid = require("uuid").v4;
 var updates = require("./migrate.js");
+var axios = require("axios").default;
 
 var appVersion, branch, UID, GID, build;
 
@@ -111,6 +112,17 @@ try {
     });
     console.info(`Config file updated to UID: ${UID} GID: ${GID}`);
     console.info("Settings file read");
+  }
+
+  if (temp.settings) {
+    try {
+      axios
+        .get("http://localhost:4949/webhook") // Make sure the path is correct
+        .then((response) => {})
+        .catch((error) => {});
+    } catch {
+      console.error("Could not create initial sequence");
+    }
   }
 } catch (err) {
   console.info("Settings file not found, creating");

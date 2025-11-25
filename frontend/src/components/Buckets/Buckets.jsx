@@ -156,7 +156,12 @@ export default class Buckets extends Component {
               cannotConnect={this.props.cannotConnect}
             />
           ) : (
-            <h6>Click the plus to add a new Bucket.</h6>
+            <>
+              <p className="mb-3" style={{ fontSize: "12px" }}>
+                Red Border: Currently Editing Bucket
+              </p>
+              <h6 className="mb-0">Click the plus to add a new Bucket.</h6>
+            </>
           )}
         </Row>
         <Modal
