@@ -15,9 +15,11 @@ const filePath = "/config/settings.js";
 
 var settings;
 
+// const calendarCache = new Map();
+
 // General Functions
 
-async function isHolidayDay(country, holiday, states, date, type, source, apiKey) {
+async function isHolidayDay(country, holiday, states, date, type, source, apiKey, checkDate = null) {
   const cacheDir = path.join("/", "config", "cache");
 
   const HolidayType = {
@@ -30,16 +32,16 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
   const typeName = HolidayType[parseInt(type, 10)];
   let rawData, cacheFile;
 
-  let today = new Date();
-  const currentYear = today.getFullYear();
+  const today = checkDate ? new Date(checkDate + "T00:00:00") : new Date();
   today.setHours(0, 0, 0, 0);
+  const currentYear = today.getFullYear();
 
   if (source === "2") {
     cacheFile = path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`);
   }
 
   if (source === "2" && fs.existsSync(cacheFile)) {
-    console.log(`Reading Calendarific holidays from cache: ${cacheFile}`);
+    // console.log(`Reading Calendarific holidays from cache: ${cacheFile}`);
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
     const url =
@@ -140,14 +142,12 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
   let dataDate;
   if (source === "2") {
     const parsed = JSON.parse(rawData);
-    data = parsed.response.holidays.find(
-      (item) => item.name === holiday && item.locations === states && item.date.iso === date
-    );
+    data = parsed.response.holidays.find((item) => item.name === holiday && item.locations === states);
   } else if (source === "1") {
     const parsed = JSON.parse(rawData);
     data = parsed.find((item) => {
       const stateString = item.counties === null ? "All" : item.counties.join(", ");
-      return item.name === holiday && stateString === states && item.date === date;
+      return item.name === holiday && stateString === states;
     });
   }
 
@@ -182,10 +182,10 @@ async function saveId(id) {
   fs.writeFileSync("/config/settings.js", JSON.stringify(settingsCopy));
 }
 
-async function checkSchedule() {
+async function checkSchedule(forceDate = null) {
   let bestIndex = -1;
   let bestPriority = Infinity; // smaller number is higher priority
-  const today = new Date();
+  const today = forceDate ? new Date(forceDate + "T00:00:00") : new Date();
   today.setHours(0, 0, 0, 0);
   const currentYear = today.getFullYear();
 
@@ -206,7 +206,8 @@ async function checkSchedule() {
         element.holidayDate,
         element.type,
         element.holidaySource,
-        settings.settings.apiKey
+        settings.settings.apiKey,
+        forceDate
       );
       if (isHoliday) isMatch = true;
     } else if (element.schedule === "2") {
@@ -238,7 +239,7 @@ async function checkSchedule() {
       }
     }
   }
-  await saveId(bestIndex !== -1 ? settings.sequences[bestIndex].id : "");
+  if (!forceDate) await saveId(bestIndex !== -1 ? settings.sequences[bestIndex].id : "");
   return bestIndex;
 }
 
@@ -381,6 +382,30 @@ router.get("/", function (req, res, next) {
   doTask();
 
   res.sendStatus(200);
+});
+
+router.get("/calendar", async (req, res) => {
+  const { year, month } = req.query;
+  if (!year || !month) return res.status(400).json({ error: "year and month required" });
+
+  const y = parseInt(year);
+  const m = parseInt(month) - 1;
+  const start = new Date(Date.UTC(y, m, 1));
+  const end = new Date(Date.UTC(y, m + 1, 0));
+
+  const events = [];
+
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const dateStr = d.toISOString().split("T")[0];
+    const index = await checkSchedule(dateStr);
+    const seq = index !== -1 ? settings.sequences[index] : null;
+    if (seq) {
+      events.push({ title: seq.name, date: dateStr });
+    }
+  }
+
+  console.log(JSON.stringify(events)); // optional
+  res.json(events);
 });
 
 // Schedule the initial run
