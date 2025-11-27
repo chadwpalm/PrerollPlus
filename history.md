@@ -5,21 +5,12 @@
 ### New Feature
 
 1. New calendar page. You can now view and cycle through calendar months to see which Sequence will play on a particular day. You can view all current and upcoming year's months.
+2. Added a blue box around the currently used Sequence for that day in the Sequences page.
 
 ### Fixs
 
 1. Fixed a critical issue where holidays would not have worked correctly for years past 2025.
-2. Fixed issue where blue current sequence boxes were turning red when a different sequence was being edited or created.
-
-## 1.2.2
-
-### New Feature
-
-1. Added a blue box around the currently used Sequence for that day.
-
-### Fix
-
-1. Fixed issue where deleting a newly made Sequence wasn't removing it from the list of cards.
+2. Fixed issue where deleting a newly made Sequence wasn't removing it from the list of cards.
 
 ## 1.2.1
 

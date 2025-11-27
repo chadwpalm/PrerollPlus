@@ -801,7 +801,7 @@ export default class Create extends Component {
             <Stack gap={2} direction="horizontal">
               Holiday:&nbsp;&nbsp;
               <Form.Select
-                value={`${this.state.holiday}||${this.state.states}||${this.state.holidayDate}`}
+                value={`${this.state.holiday}||${this.state.states}`}
                 id="holiday"
                 name="holiday"
                 onChange={this.handleHoliday}
@@ -816,8 +816,8 @@ export default class Create extends Component {
                 )}
                 {this.state.holidayList.map((holiday) => (
                   <option
-                    key={`${holiday.name}||${holiday.states}||${holiday.rawDate}`}
-                    value={`${holiday.name}||${holiday.states}||${holiday.rawDate}`}
+                    key={`${holiday.name}||${holiday.states}`}
+                    value={`${holiday.name}||${holiday.states}`}
                     title={holiday.states}
                   >
                     {holiday.name} ({holiday.date}) {holiday.states === "All" ? "Entire Country" : holiday.states}
