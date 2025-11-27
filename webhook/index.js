@@ -386,23 +386,61 @@ router.get("/", function (req, res, next) {
 
 router.get("/calendar", async (req, res) => {
   const { year, month } = req.query;
-  if (!year || !month) return res.status(400).json({ error: "year and month required" });
+  if (!year || !month) {
+    return res.status(400).json({ error: "year and month required" });
+  }
 
-  const y = parseInt(year);
-  const m = parseInt(month) - 1;
-  const start = new Date(Date.UTC(y, m, 1));
-  const end = new Date(Date.UTC(y, m + 1, 0));
+  const y = parseInt(year, 10);
+  const m = parseInt(month, 10) - 1; // JS months are 0-based
 
   const events = [];
 
-  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-    const dateStr = d.toISOString().split("T")[0];
+  // Build bucket ID → name lookup map (once per request)
+  const bucketMap = {};
+  settings.buckets.forEach((bucket) => {
+    bucketMap[bucket.id] = bucket.name;
+  });
+
+  // Start and end of the requested month (UTC)
+  let currentDate = new Date(Date.UTC(y, m, 1));
+  const endDate = new Date(Date.UTC(y, m + 1, 0)); // Last day of month
+
+  console.log(
+    `Fetching calendar: ${year}-${month} (${currentDate.toISOString().split("T")[0]} to ${
+      endDate.toISOString().split("T")[0]
+    })`
+  );
+
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+
+    // DEBUG: See every date being processed
+    // console.log("Processing:", dateStr);
+
     const index = await checkSchedule(dateStr);
     const seq = index !== -1 ? settings.sequences[index] : null;
-    if (seq) {
-      events.push({ title: seq.name, date: dateStr });
+
+    if (seq && Array.isArray(seq.buckets) && seq.buckets.length > 0) {
+      const bucketNames = seq.buckets
+        .map((b) => (typeof b === "object" && b.id ? bucketMap[b.id] : null))
+        .filter(Boolean);
+
+      events.push({
+        title: seq.name,
+        date: dateStr,
+        buckets: bucketNames,
+      });
     }
+
+    // Move to next day — safely, without mutation bugs
+    currentDate = new Date(
+      Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1)
+    );
   }
+
+  console.log(`Returning ${events.length} events for ${year}-${month}`);
+  console.log(JSON.stringify(events, null, 2)); // Pretty print for debugging
+
   res.json(events);
 });
 
