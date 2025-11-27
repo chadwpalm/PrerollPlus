@@ -31,10 +31,10 @@ export default class Sequence extends Component {
     return (
       <Card
         className={`card-global ${
-          this.props.id === this.props.currentSeq
-            ? this.props.isEdit || this.props.isCreating
-              ? "card-error"
-              : "card-current"
+          (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId
+            ? "card-error"
+            : this.props.id === this.props.currentSeq
+            ? "card-current"
             : "card-default"
         } ${this.props.isDarkMode ? "dark-mode" : ""}`}
         border={

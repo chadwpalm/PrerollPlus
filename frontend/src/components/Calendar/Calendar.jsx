@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import { addMonths, startOfMonth, format } from "date-fns";
+import { addMonths, startOfMonth, format, startOfYear } from "date-fns";
 import "./Calendar.css";
 
 const today = new Date();
-const start = format(startOfMonth(today), "yyyy-MM-dd");
-const end = format(addMonths(startOfMonth(today), 12), "yyyy-MM-dd");
+const start = format(startOfYear(today), "yyyy-MM-dd");
+const end = format(addMonths(startOfYear(today), 24), "yyyy-MM-dd");
 
 export default function SequenceCalendar({ events, isDarkMode = false }) {
   const [monthEvents, setMonthEvents] = useState([]);
@@ -71,7 +71,7 @@ export default function SequenceCalendar({ events, isDarkMode = false }) {
               {arg.dayNumberText.replace(/\D/g, "")} {/* removes "st", "nd", "rd", "th" */}
             </div>
 
-            {/* Sequence title — stays where FullCalendar wants it (we don't fight anymore) */}
+            {/* Sequence title */}
             {ev && (
               <div
                 style={{

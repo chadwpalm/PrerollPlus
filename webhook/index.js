@@ -403,8 +403,6 @@ router.get("/calendar", async (req, res) => {
       events.push({ title: seq.name, date: dateStr });
     }
   }
-
-  console.log(JSON.stringify(events)); // optional
   res.json(events);
 });
 

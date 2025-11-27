@@ -444,17 +444,6 @@ export default class Create extends Component {
       return;
     }
 
-    // Check for a "no schedule" condition (schedule === "2") within other sequences
-    // if (
-    //   this.state.schedule === "2" &&
-    //   this.props.settings.sequences
-    //     .filter((element) => element.id !== this.state.id)
-    //     .findIndex(({ schedule }) => schedule === "2") !== -1
-    // ) {
-    //   this.setState({ show: true });
-    //   return;
-    // }
-
     const settings = { ...this.props.settings };
 
     if (!settings.sequences) settings.sequences = [];
@@ -476,42 +465,6 @@ export default class Create extends Component {
       priority: this.state.priority,
       buckets: this.state.buckets.map(({ uid, ...rest }) => rest),
     };
-
-    // // Improved overlap detection
-    // const isOverlap = (start1, end1, start2, end2) => {
-    //   const dateToNumber = (month, day) => new Date(2024, month - 1, day).getTime();
-
-    //   const [start1Num, end1Num] = [dateToNumber(start1.month, start1.day), dateToNumber(end1.month, end1.day)];
-    //   const [start2Num, end2Num] = [dateToNumber(start2.month, start2.day), dateToNumber(end2.month, end2.day)];
-
-    //   const isWrapped1 = start1Num > end1Num;
-    //   const isWrapped2 = start2Num > end2Num;
-
-    //   if (isWrapped1 && isWrapped2) {
-    //     return true;
-    //   } else if (isWrapped1) {
-    //     return start1Num <= end2Num || end1Num >= start2Num || (start1Num <= end2Num && end1Num >= start2Num);
-    //   } else if (isWrapped2) {
-    //     return start2Num <= end1Num || end2Num >= start1Num || (start2Num <= end1Num && end2Num >= start1Num);
-    //   } else {
-    //     return start1Num <= end2Num && end1Num >= start2Num;
-    //   }
-    // };
-
-    // // Check for overlap with existing sequences, excluding itself
-    // const newStart = { month: temp.startMonth, day: temp.startDay };
-    // const newEnd = { month: temp.endMonth, day: temp.endDay };
-
-    // const overlapFound = settings.sequences
-    //   .filter(({ id, schedule }) => id !== temp.id && schedule !== "2") // Exclude the current sequence by ID
-    //   .some(({ startMonth, startDay, endMonth, endDay }) => {
-    //     if (this.state.schedule === "1") {
-    //       const existingStart = { month: startMonth, day: startDay };
-    //       const existingEnd = { month: endMonth, day: endDay };
-    //       return isOverlap(newStart, newEnd, existingStart, existingEnd);
-    //     }
-    //     return false;
-    //   });
 
     const overlapFound = settings.sequences
       .filter(({ id }) => id !== temp.id) // Exclude the current sequence by ID
