@@ -7,7 +7,7 @@
 }
 
 .card.card-current {
-  border: 2px solid blue !important;
+  border: 2px solid #3A7BD5 !important;
 }
 
 .card.card-unselected {
