@@ -41,7 +41,7 @@ export default class App extends Component {
     first: false,
     dismiss: false,
     isDarkMode: false,
-    announcement: false, //master key to show an announcement after version update
+    announcement: true, //master key to show an announcement after version update
     sockConnected: false,
     cannotConnect: false,
     reconnectAttempts: 0,
