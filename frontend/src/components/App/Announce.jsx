@@ -18,55 +18,38 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         <Modal.Title>Announcement</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <b>Major Update v1.2.0 - Keeping up with the Joneses!</b>
+        <b>Major Update v1.3.0 - What are my Sequences?</b>
         <br />
         <br />
-        It seems like some catching up was in order to keep up with other apps (or really one other app) that lets you
-        manage prerolls for Plex, so there are two major changes that have been added to this release with the hope that
-        managing prerolls can be a bit more powerful.
+        One thought occurred to me recently when a Preroll Plus user submitted a request: they wanted to see exactly
+        which files were being sent to Plex for the current sequence. That thought was, “Why haven’t I thought of this
+        sooner?”
         <br />
         <br />
-        <b>Change #1</b>
+        It wasn’t so much about knowing the exact files being played, but about being able to see at a glance which
+        sequence was active. So I added two new elements to Preroll Plus that do just that!
         <br />
         <br />
-        A second source for holidays has been added which contains 100's more holidays to choose from. The reason for
-        this is because the original source was limited to public/federal holidays so it didn't include non-public
-        observed holidays such as Mother's Day, Valentines Day, Halloween, etc.
+        The first is simple: a blue border now appears around the sequence that is being used for that day. Now, with
+        one quick look, you can instantly see which sequence is active at any given moment.
         <br />
         <br />
-        I used the original source because it was completely free and did not require an API key to use. I've now
-        included the ability to use the API from Calendarific. The catch is that Calendarific requires an account to
-        obtain an API key for its use. The good news is that their free plan allows up to 500 API calls a month. I've
-        implemented a caching system which downloads the calendars locally on the first call to the API so that calls to
-        the online API can be reduced and you never hit the 500 maximum calls. This occurs on both the frontend UI and
-        during webhooks when the Plex string is updated.
+        I decided to take it a step further and add a calendar page that shows which sequence will play on each day of
+        the month. Just open the Calendar page and you’ll see a calendar for the current month, with each day clearly
+        labeled with the sequence that will be used — based on your schedules and priorities. This lets you verify in
+        advance whether your schedules and priorities are working the way you intend, eliminating guesswork or having to
+        wait for the day to arrive. You can also step through the months for the current year and the upcoming year.
         <br />
         <br />
-        The obtained API key will need to be entered into the settings page. You still have the ability to use the
-        original (Legacy) API if you are averse to signing up for new online accounts, and if you do nothing then the
-        app should still work as you had it set up.
+        <b>Major Bug Fix</b>
         <br />
         <br />
-        <b>Change #2</b>
+        It’s actually a good thing I went through the exercise of adding the calendar, because it revealed a bug in the
+        code that would have prevented the correct holiday dates for 2026 from working — the app would have kept using
+        2025’s dates instead. This is now fixed.
         <br />
         <br />
-        Priorities have now been added to Sequences. This means that schedules (and holidays) can now overlap and the
-        sequence that is chosen during overlaps is the one with the higher priority (lower number, meaning 1 is the
-        highest priority). There are 100 priority slots which should be plenty to play around with.
-        <br />
-        <br />
-        This new priority system should allow you to schedule a month-long preroll sequence (for example) but still have
-        a shorter schedule or holiday inside the month-long schedule and the schedule with the higher priority will be
-        chosen for that day.
-        <br />
-        <br />
-        There is just one rule enforced to still avoid conflicts: 1. No two schedules can have the same priority as the
-        backend will not know which one to use if they fall on the same day.
-        <br />
-        <br />
-        I've lifted the rule that there can only be one no-schedule sequence, but be aware that only the one with the
-        highest priority will ever be used. It could be useful if you want to easily re-arrange priorities on them to
-        choose which ones to use.
+        We’ve come a long way with Preroll Plus, and I’m excited for whatever features come next!
         <br />
         <br />
         As always, if you have any issues please{" "}

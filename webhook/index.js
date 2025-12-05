@@ -15,9 +15,11 @@ const filePath = "/config/settings.js";
 
 var settings;
 
+// const calendarCache = new Map();
+
 // General Functions
 
-async function isHolidayDay(country, holiday, states, date, type, source, apiKey) {
+async function isHolidayDay(country, holiday, states, date, type, source, apiKey, checkDate = null) {
   const cacheDir = path.join("/", "config", "cache");
 
   const HolidayType = {
@@ -30,16 +32,16 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
   const typeName = HolidayType[parseInt(type, 10)];
   let rawData, cacheFile;
 
-  let today = new Date();
-  const currentYear = today.getFullYear();
+  const today = checkDate ? new Date(checkDate + "T00:00:00") : new Date();
   today.setHours(0, 0, 0, 0);
+  const currentYear = today.getFullYear();
 
   if (source === "2") {
     cacheFile = path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`);
   }
 
   if (source === "2" && fs.existsSync(cacheFile)) {
-    console.log(`Reading Calendarific holidays from cache: ${cacheFile}`);
+    // console.log(`Reading Calendarific holidays from cache: ${cacheFile}`);
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
     const url =
@@ -140,14 +142,12 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
   let dataDate;
   if (source === "2") {
     const parsed = JSON.parse(rawData);
-    data = parsed.response.holidays.find(
-      (item) => item.name === holiday && item.locations === states && item.date.iso === date
-    );
+    data = parsed.response.holidays.find((item) => item.name === holiday && item.locations === states);
   } else if (source === "1") {
     const parsed = JSON.parse(rawData);
     data = parsed.find((item) => {
       const stateString = item.counties === null ? "All" : item.counties.join(", ");
-      return item.name === holiday && stateString === states && item.date === date;
+      return item.name === holiday && stateString === states;
     });
   }
 
@@ -174,10 +174,18 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
   );
 }
 
-async function checkSchedule() {
+async function saveId(id) {
+  var settingsCopy = { ...settings };
+
+  settingsCopy.currentSeq = id;
+
+  fs.writeFileSync("/config/settings.js", JSON.stringify(settingsCopy));
+}
+
+async function checkSchedule(forceDate = null) {
   let bestIndex = -1;
   let bestPriority = Infinity; // smaller number is higher priority
-  const today = new Date();
+  const today = forceDate ? new Date(forceDate + "T00:00:00") : new Date();
   today.setHours(0, 0, 0, 0);
   const currentYear = today.getFullYear();
 
@@ -198,7 +206,8 @@ async function checkSchedule() {
         element.holidayDate,
         element.type,
         element.holidaySource,
-        settings.settings.apiKey
+        settings.settings.apiKey,
+        forceDate
       );
       if (isHoliday) isMatch = true;
     } else if (element.schedule === "2") {
@@ -230,7 +239,7 @@ async function checkSchedule() {
       }
     }
   }
-
+  if (!forceDate) await saveId(bestIndex !== -1 ? settings.sequences[bestIndex].id : "");
   return bestIndex;
 }
 
@@ -307,7 +316,9 @@ async function sendList(string) {
       },
     })
     .then((response) => {
-      console.log("Preroll updated successfully: ", string);
+      string === ""
+        ? console.log("No string to update in Plex")
+        : console.log("Preroll updated successfully: ", string);
     })
     .catch((error) => {
       console.error("Error updating preroll:", error);
@@ -371,6 +382,66 @@ router.get("/", function (req, res, next) {
   doTask();
 
   res.sendStatus(200);
+});
+
+router.get("/calendar", async (req, res) => {
+  const { year, month } = req.query;
+  if (!year || !month) {
+    return res.status(400).json({ error: "year and month required" });
+  }
+
+  const y = parseInt(year, 10);
+  const m = parseInt(month, 10) - 1; // JS months are 0-based
+
+  const events = [];
+
+  // Build bucket ID → name lookup map (once per request)
+  const bucketMap = {};
+  settings.buckets.forEach((bucket) => {
+    bucketMap[bucket.id] = bucket.name;
+  });
+
+  // Start and end of the requested month (UTC)
+  let currentDate = new Date(Date.UTC(y, m, 1));
+  const endDate = new Date(Date.UTC(y, m + 1, 0)); // Last day of month
+
+  console.log(
+    `Fetching calendar: ${year}-${month} (${currentDate.toISOString().split("T")[0]} to ${
+      endDate.toISOString().split("T")[0]
+    })`
+  );
+
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+
+    // DEBUG: See every date being processed
+    // console.log("Processing:", dateStr);
+
+    const index = await checkSchedule(dateStr);
+    const seq = index !== -1 ? settings.sequences[index] : null;
+
+    if (seq && Array.isArray(seq.buckets) && seq.buckets.length > 0) {
+      const bucketNames = seq.buckets
+        .map((b) => (typeof b === "object" && b.id ? bucketMap[b.id] : null))
+        .filter(Boolean);
+
+      events.push({
+        title: seq.name,
+        date: dateStr,
+        buckets: bucketNames,
+      });
+    }
+
+    // Move to next day — safely, without mutation bugs
+    currentDate = new Date(
+      Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1)
+    );
+  }
+
+  console.log(`Returning ${events.length} events for ${year}-${month}`);
+  console.log(JSON.stringify(events, null, 2)); // Pretty print for debugging
+
+  res.json(events);
 });
 
 // Schedule the initial run

@@ -22,6 +22,8 @@ import Image from "react-bootstrap/Image";
 import Badge from "react-bootstrap/Badge";
 import { default as axios } from "axios";
 import "./App.css";
+// import FullCalendar from "@fullcalendar/react";
+import SequenceCalendar from "../Calendar/Calendar";
 
 export default class App extends Component {
   state = {
@@ -39,7 +41,7 @@ export default class App extends Component {
     first: false,
     dismiss: false,
     isDarkMode: false,
-    announcement: false, //master key to show an announcement after version update
+    announcement: true, //master key to show an announcement after version update
     sockConnected: false,
     cannotConnect: false,
     reconnectAttempts: 0,
@@ -358,6 +360,9 @@ export default class App extends Component {
                             <LinkContainer to="/">
                               <Nav.Link disabled>Sequences</Nav.Link>
                             </LinkContainer>
+                            <LinkContainer to="/calendar">
+                              <Nav.Link disabled>Calendar</Nav.Link>
+                            </LinkContainer>
                             <LinkContainer to="/buckets">
                               <Nav.Link disabled>Buckets</Nav.Link>
                             </LinkContainer>
@@ -365,13 +370,23 @@ export default class App extends Component {
                         ) : (
                           <>
                             {this.state.config.buckets.length === 0 ? (
-                              <LinkContainer to="/">
-                                <Nav.Link disabled>Sequences</Nav.Link>
-                              </LinkContainer>
+                              <>
+                                <LinkContainer to="/">
+                                  <Nav.Link disabled>Sequences</Nav.Link>
+                                </LinkContainer>
+                                <LinkContainer to="/calendar">
+                                  <Nav.Link disabled>Calendar</Nav.Link>
+                                </LinkContainer>
+                              </>
                             ) : (
-                              <LinkContainer to="/">
-                                <Nav.Link>Sequences</Nav.Link>
-                              </LinkContainer>
+                              <>
+                                <LinkContainer to="/">
+                                  <Nav.Link>Sequences</Nav.Link>
+                                </LinkContainer>
+                                <LinkContainer to="/calendar">
+                                  <Nav.Link>Calendar</Nav.Link>
+                                </LinkContainer>
+                              </>
                             )}
 
                             <LinkContainer to="/buckets">
@@ -533,6 +548,8 @@ export default class App extends Component {
                                 settings={this.state.config}
                                 logout={this.handleLogout}
                                 isDarkMode={this.state.isDarkMode}
+                                onSettingsChanged={this.refreshConfig.bind(this)}
+                                updateSettings={this.updateSettings}
                               />
                             }
                           />
@@ -551,6 +568,7 @@ export default class App extends Component {
                             />
                           }
                         />
+                        <Route path="/calendar" element={<SequenceCalendar isDarkMode={this.state.isDarkMode} />} />
                         <Route path="*" element={<Navigate replace to="/" />} />
                       </>
                     )}
