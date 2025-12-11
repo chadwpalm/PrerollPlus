@@ -1,13 +1,19 @@
 # Preroll Plus Version History
 
-## 1.3.0
+## 1.3.1
 
 ### New Feature
+
+1. Ability to extend a holiday schedule out any number of days before or after the actually holiday to create a "holiday window" rather than using a schedule.
+
+## 1.3.0
+
+### New Features
 
 1. New calendar page. You can now view and cycle through calendar months to see which Sequence will play on a particular day. You can view all current and upcoming year's months.
 2. Added a blue box around the currently used Sequence for that day in the Sequences page.
 
-### Fixs
+### Fixes
 
 1. Fixed a critical issue where holidays would not have worked correctly for years past 2025.
 2. Fixed issue where deleting a newly made Sequence wasn't removing it from the list of cards.
