@@ -69,7 +69,15 @@ export default class Sequence extends Component {
                   <>{this.props.holiday}</>
                 ) : (
                   <>
-                    {this.props.startMonth}/{this.props.startDay} - {this.props.endMonth}/{this.props.endDay}
+                    {new Intl.DateTimeFormat(undefined, {
+                      day: "2-digit",
+                      month: "2-digit",
+                    }).format(new Date(2023, this.props.startMonth - 1, this.props.startDay))}
+                    {" - "}
+                    {new Intl.DateTimeFormat(undefined, {
+                      day: "2-digit",
+                      month: "2-digit",
+                    }).format(new Date(2023, this.props.endMonth - 1, this.props.endDay))}
                   </>
                 )}
               </div>
