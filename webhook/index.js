@@ -15,33 +15,36 @@ const filePath = "/config/settings.js";
 
 var settings;
 
-// const calendarCache = new Map();
-
 // General Functions
 
-async function isHolidayDay(country, holiday, states, date, type, source, apiKey, checkDate = null) {
+async function isHolidayDay(country, holiday, states, type, source, apiKey, checkDate = null, pre = "0", post = "0") {
   const cacheDir = path.join("/", "config", "cache");
-
   const HolidayType = {
     1: "national",
     2: "local",
     3: "religious",
     4: "observance",
   };
-
   const typeName = HolidayType[parseInt(type, 10)];
+
+  const today = checkDate
+    ? new Date(
+        Date.UTC(
+          Number(checkDate.split("-")[0]), // year
+          Number(checkDate.split("-")[1]) - 1, // month (0-based)
+          Number(checkDate.split("-")[2]) // day
+        )
+      )
+    : new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const currentYear = today.getUTCFullYear();
+
   let rawData, cacheFile;
-
-  const today = checkDate ? new Date(checkDate + "T00:00:00") : new Date();
-  today.setHours(0, 0, 0, 0);
-  const currentYear = today.getFullYear();
-
   if (source === "2") {
     cacheFile = path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`);
   }
 
   if (source === "2" && fs.existsSync(cacheFile)) {
-    // console.log(`Reading Calendarific holidays from cache: ${cacheFile}`);
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
     const url =
@@ -52,8 +55,6 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
     try {
       const response = await axios.get(url, { timeout: 2000 });
       rawData = JSON.stringify(response.data);
-
-      // Only cache Calendarific data
       if (source === "2") {
         fs.writeFileSync(cacheFile, rawData, "utf-8");
       }
@@ -61,11 +62,8 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
       if (error.response) {
         const status = error.response.status;
         const data = error.response.data;
-
         let message = `Error while trying to connect to the ${typeName} Holiday API. `;
-
         if (source === "2") {
-          // 📌 Calendarific API
           switch (status) {
             case 401:
               message += "Unauthorized: Missing or incorrect API token.";
@@ -105,7 +103,6 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
               message += `Unexpected HTTP status: ${status}`;
           }
         } else if (source === "1") {
-          // 📌 date.nager.at API (they only use standard HTTP statuses)
           switch (status) {
             case 400:
               message += "Bad request: invalid parameters.";
@@ -128,18 +125,17 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
         } else {
           message += "Unknown source specified.";
         }
-
         console.error(message);
       } else if (error.request) {
         console.error(`No response received from API (source=${source}).`);
       } else {
         console.error(`Error setting up request (source=${source}): ${error.message}`);
       }
+      return false;
     }
   }
 
   let data;
-  let dataDate;
   if (source === "2") {
     const parsed = JSON.parse(rawData);
     data = parsed.response.holidays.find((item) => item.name === holiday && item.locations === states);
@@ -153,25 +149,38 @@ async function isHolidayDay(country, holiday, states, date, type, source, apiKey
 
   if (!data) {
     console.log("Holiday not found:", holiday);
-    return false; // Holiday not found, return false
+    return false;
   }
 
-  dataDate = source === "2" ? data.date.iso : data.date;
-
-  // Handle both "YYYY-MM-DD" and "YYYY-MM-DDTHH:mm:ssZ"
-  const [datePart] = dataDate.split("T"); // take only the date portion
+  const holidayDateStr = source === "2" ? data.date.iso : data.date;
+  const [datePart] = holidayDateStr.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
 
-  // Construct the holiday date (midnight UTC)
   const holidayDate = new Date(Date.UTC(year, month - 1, day));
   holidayDate.setUTCHours(0, 0, 0, 0);
 
-  // Compare only the year, month, and day
-  return (
-    holidayDate.getUTCFullYear() === today.getUTCFullYear() &&
-    holidayDate.getUTCMonth() === today.getUTCMonth() &&
-    holidayDate.getUTCDate() === today.getUTCDate()
-  );
+  const preDays = parseInt(pre, 10) || 0;
+  const postDays = parseInt(post, 10) || 0;
+
+  var windowStart, windowEnd;
+
+  windowStart = new Date(holidayDate);
+  windowStart.setUTCDate(holidayDate.getUTCDate() - preDays);
+
+  windowEnd = new Date(holidayDate);
+  windowEnd.setUTCDate(holidayDate.getUTCDate() + postDays);
+  windowEnd.setUTCHours(23, 59, 59, 999);
+
+  if (today < windowStart) {
+    windowStart.setFullYear(windowStart.getFullYear() - 1);
+    windowEnd.setFullYear(windowEnd.getFullYear() - 1);
+  }
+  if (today > windowEnd) {
+    windowStart.setFullYear(windowStart.getFullYear() + 1);
+    windowEnd.setFullYear(windowEnd.getFullYear() + 1);
+  }
+
+  return today >= windowStart && today <= windowEnd;
 }
 
 async function saveId(id) {
@@ -203,11 +212,12 @@ async function checkSchedule(forceDate = null) {
         element.country,
         element.holiday,
         element.states,
-        element.holidayDate,
         element.type,
         element.holidaySource,
         settings.settings.apiKey,
-        forceDate
+        forceDate,
+        element.preHoliday || "0",
+        element.postHoliday || "0"
       );
       if (isHoliday) isMatch = true;
     } else if (element.schedule === "2") {
@@ -300,6 +310,7 @@ async function createList(index) {
       }
     }
   }
+  console.log("Updating using Sequence: ", settings.sequences[index].name);
   return plexString;
 }
 
@@ -439,7 +450,7 @@ router.get("/calendar", async (req, res) => {
   }
 
   console.log(`Returning ${events.length} events for ${year}-${month}`);
-  console.log(JSON.stringify(events, null, 2)); // Pretty print for debugging
+  // console.log(JSON.stringify(events, null, 2)); // Pretty print for debugging
 
   res.json(events);
 });

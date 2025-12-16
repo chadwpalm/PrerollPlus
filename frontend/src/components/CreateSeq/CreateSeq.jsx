@@ -44,6 +44,8 @@ export default class Create extends Component {
         type: info.type ?? "1",
         holidayDate: info.holidayDate ?? "",
         holidayList: [],
+        preHoliday: info.preHoliday ?? "0",
+        postHoliday: info.postHoliday ?? "0",
         buckets: info.buckets.map((bucket) => ({ ...bucket, uid: uuid() })),
         priority: info.priority ?? "1",
         selectedBucket: {},
@@ -75,6 +77,8 @@ export default class Create extends Component {
         buckets: [],
         priority: 1,
         holidayList: [],
+        preHoliday: "0",
+        postHoliday: "0",
         selectedBucket: {},
         selectedSequence: {},
         isError: false,
@@ -411,6 +415,14 @@ export default class Create extends Component {
     this.setState({ priority: e.target.value });
   };
 
+  handlePreHoliday = (e) => {
+    this.setState({ preHoliday: e.target.value });
+  };
+
+  handlePostHoliday = (e) => {
+    this.setState({ postHoliday: e.target.value });
+  };
+
   handleSortOrder = (order) => {
     this.setState((prevState) => ({
       sortOrder: order,
@@ -459,6 +471,8 @@ export default class Create extends Component {
       country: this.state.country,
       holiday: this.state.holiday,
       states: this.state.states,
+      preHoliday: this.state.preHoliday,
+      postHoliday: this.state.postHoliday,
       type: this.state.type,
       holidayDate: this.state.holidayDate,
       holidaySource: this.state.holidaySource,
@@ -836,6 +850,34 @@ export default class Create extends Component {
               >
                 <Image src={SortDate} alt="Sort Date" className="arrow-icon" />
               </Button>
+            </Stack>
+            <div className="div-seperator" />
+            <Stack gap={2} direction="horizontal">
+              <Form.Label for="priority">Days Before: &nbsp;&nbsp;</Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={364}
+                defaultValue={this.state.preHoliday}
+                style={{ width: "80px" }}
+                onChange={this.handlePreHoliday}
+              />
+              <div className="div-seperator" />
+              <Form.Label for="priority">Days After: &nbsp;&nbsp;</Form.Label>
+              <Form.Control
+                type="number"
+                min={0}
+                max={364}
+                defaultValue={this.state.postHoliday}
+                style={{ width: "80px" }}
+                onChange={this.handlePostHoliday}
+              />{" "}
+              <OverlayTrigger
+                placement="right"
+                overlay={<Tooltip>Number of days before and after holiday to trigger.</Tooltip>}
+              >
+                <img src={Info} className="image-info" alt="info" />
+              </OverlayTrigger>
             </Stack>
             <div className="div-seperator" />
           </>
