@@ -34,6 +34,7 @@ export default class Settings extends Component {
         apiKey: this.props.settings.settings.apiKey ?? "",
         isCacheSuccess: false,
         isCacheFailed: false,
+        dayOfWeek: this.props.settings.settings.dayOfWeek ?? "0",
       };
     } else {
       this.state = {
@@ -54,6 +55,7 @@ export default class Settings extends Component {
         apiKey: "",
         isCacheSuccess: false,
         isCacheFailed: false,
+        dayOfWeek: "0",
       };
     }
   }
@@ -79,6 +81,7 @@ export default class Settings extends Component {
     this.props.settings.settings.polling = this.state.polling;
     this.props.settings.settings.logLevel = this.state.logLevel;
     this.props.settings.settings.apiKey = this.state.apiKey;
+    this.props.settings.settings.dayOfWeek = this.state.dayOfWeek;
     this.props.connection(1);
 
     try {
@@ -217,6 +220,10 @@ export default class Settings extends Component {
 
   handleAPIKey = (e) => {
     this.setState({ apiKey: e.target.value.toString() });
+  };
+
+  handleDayOfWeek = (e) => {
+    this.setState({ dayOfWeek: e.target.value.toString() });
   };
 
   handleAdvanced = () => {
@@ -552,6 +559,42 @@ export default class Settings extends Component {
               )}
             </Stack>
             <div className="div-seperator" />
+            <Form.Label for="dayOfWeek">Calendar Day of Week Start</Form.Label>
+            <div>
+              <Form.Check
+                inline
+                type="radio"
+                label="Sunday"
+                value="0"
+                id="dayOfWeek"
+                name="dayOfWeek"
+                onChange={this.handleDayOfWeek}
+                size="sm"
+                checked={this.state.dayOfWeek === "0"}
+              />
+              <Form.Check
+                inline
+                type="radio"
+                label="Monday"
+                value="1"
+                id="dayOfWeek"
+                name="dayOfWeek"
+                onChange={this.handleDayOfWeek}
+                size="sm"
+                checked={this.state.dayOfWeek === "1"}
+              />
+              <Form.Check
+                inline
+                type="radio"
+                label="Saturday"
+                value="6"
+                id="dayOfWeek"
+                name="dayOfWeek"
+                onChange={this.handleDayOfWeek}
+                size="sm"
+                checked={this.state.dayOfWeek === "6"}
+              />
+            </div>
             <div className="div-seperator" />
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">

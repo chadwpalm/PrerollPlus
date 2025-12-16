@@ -568,7 +568,10 @@ export default class App extends Component {
                             />
                           }
                         />
-                        <Route path="/calendar" element={<SequenceCalendar isDarkMode={this.state.isDarkMode} />} />
+                        <Route
+                          path="/calendar"
+                          element={<SequenceCalendar isDarkMode={this.state.isDarkMode} settings={this.state.config} />}
+                        />
                         <Route path="*" element={<Navigate replace to="/" />} />
                       </>
                     )}

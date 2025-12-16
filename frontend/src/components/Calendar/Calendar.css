@@ -6,5 +6,5 @@
 
 /* Optional: darken the header in dark mode if FullCalendar doesn't respect it */
 .fc .fc-col-header-cell {
-  background-color: inherit !important;
+  background-color: #333333 !important;
 }
