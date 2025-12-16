@@ -1,10 +1,21 @@
-/* Kill all default FullCalendar underlines and blue links — once and for all */
+/* Kill all default FullCalendar underlines and blue links */
 .fc a {
   text-decoration: none !important;
   color: inherit !important;
 }
 
-/* Optional: darken the header in dark mode if FullCalendar doesn't respect it */
+/* Day-of-the-week header cells (Sun, Mon, Tue, etc.) */
 .fc .fc-col-header-cell {
-  background-color: #333333 !important;
+  background-color: #e2e2e2 !important;  /* Light mode: medium-light gray */
+  color: #000000 !important;             /* Black text for readability */
+}
+
+.dark-mode .fc .fc-col-header-cell {
+  background-color: #2c2c2c !important;  /* Dark mode: medium-dark gray */
+  color: #e0e0e0 !important;             /* Light gray text */
+}
+
+/* Optional: Improve text padding/alignment in headers */
+.fc .fc-col-header-cell-cushion {
+  padding: 8px 4px !important;
 }
