@@ -166,10 +166,7 @@ export default class Sequences extends Component {
         </Row>
         <Row className="mb-4">
           <div className="sort-buttons-group">
-            <OverlayTrigger
-              placement="top" // or "bottom", "left", etc. – "top" works well here
-              overlay={<Tooltip id="tooltip-name">Sort by Name</Tooltip>}
-            >
+            <OverlayTrigger placement="top" overlay={<Tooltip id="tooltip-name">Sort by Name</Tooltip>}>
               <Button
                 onClick={() => this.handleSortOrder("2")}
                 variant={this.props.isDarkMode ? "outline-light" : "light"}
