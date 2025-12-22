@@ -7,13 +7,17 @@ import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import SortName from "bootstrap-icons/icons/sort-alpha-up.svg";
+import Image from "react-bootstrap/Image";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
 import "../Sequences/Sequences.css";
 
 export default class Buckets extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      buckets: this.props.settings.buckets,
+      // buckets: this.props.settings.buckets,
       isCreating: false,
       id: "-1",
       isEdit: false,
@@ -21,6 +25,10 @@ export default class Buckets extends Component {
       tempID: "",
     };
   }
+
+  refreshSettings = () => {
+    this.props.onSettingsChanged?.(); // calls refreshConfig() in App.jsx
+  };
 
   handleAddBucket = () => {
     this.setState({
@@ -94,14 +102,57 @@ export default class Buckets extends Component {
     this.handleSaveCreate();
   };
 
+  handleSortOrder = () => {
+    const settings = { ...this.props.settings };
+    let buckets = [...settings.buckets]; // Always work on a copy
+
+    buckets.sort((a, b) => a.name.localeCompare(b.name));
+
+    settings.buckets = buckets;
+
+    // Save to backend
+    const xhr = new XMLHttpRequest();
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          this.refreshSettings();
+        } else {
+          this.setState({
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+    xhr.open("POST", "/backend/save", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(settings));
+
+    // Instant UI update
+    this.props.updateSettings(settings);
+    this.handleSaveCreate();
+  };
+
   render() {
     return (
       <>
         <Row>
           <h3>Buckets</h3>
         </Row>
+        <Row className="mb-4">
+          <div className="sort-buttons-group">
+            <OverlayTrigger placement="top" overlay={<Tooltip id="tooltip-name">Sort by Name</Tooltip>}>
+              <Button
+                onClick={() => this.handleSortOrder()}
+                variant={this.props.isDarkMode ? "outline-light" : "light"}
+                className="sort-button"
+              >
+                <Image src={SortName} alt="Sort Name" className="arrow-icon" />
+              </Button>
+            </OverlayTrigger>
+          </div>
+        </Row>
         <Row xs={2} sm="auto">
-          {this.state.buckets?.map((bucket) => (
+          {this.props.settings.buckets?.map((bucket) => (
             <Col key={bucket.id}>
               <Bucket
                 settings={this.props.settings}

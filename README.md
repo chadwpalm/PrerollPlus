@@ -54,6 +54,7 @@ Scheduled sequences will automatically assert on the first day the sequence star
 
 - [Discussions](https://github.com/chadwpalm/PrerollPlus/discussions)
 - [Issues](https://github.com/chadwpalm/PrerollPlus/issues)
+- [Discord](https://discord.gg/sXse6H8fMF)
 
 ### Licenses
 

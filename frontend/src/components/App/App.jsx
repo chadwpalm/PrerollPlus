@@ -536,6 +536,7 @@ export default class App extends Component {
                                 isDarkMode={this.state.isDarkMode}
                                 sockConnected={this.state.sockConnected}
                                 cannotConnect={this.state.cannotConnect}
+                                onSettingsChanged={this.refreshConfig.bind(this)}
                                 saved={this.handleBuckets}
                               />
                             }
@@ -564,6 +565,7 @@ export default class App extends Component {
                               isDarkMode={this.state.isDarkMode}
                               sockConnected={this.state.sockConnected}
                               cannotConnect={this.state.cannotConnect}
+                              onSettingsChanged={this.refreshConfig.bind(this)}
                               saved={this.handleBuckets}
                             />
                           }
