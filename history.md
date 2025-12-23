@@ -7,6 +7,7 @@
 1. Added an option in the Settings page to choose the starting day of the week for the Calendar page. Can be set to Sunday, Monday, or Saturday. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
 2. Dates shown in the Sequence cards on the Sequences page will be formatted per user locale. (eg. 12/30 for U.S. and 30/12 for U.K.) [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
 3. Sequences on the Sequences page can now be sorted by priority or name. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
+4. Buckets on the Buckets page can now be sorted by name. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
 
 ### Fix
 
