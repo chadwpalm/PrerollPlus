@@ -8,7 +8,7 @@ const today = new Date();
 const start = format(startOfYear(today), "yyyy-MM-dd");
 const end = format(addMonths(startOfYear(today), 24), "yyyy-MM-dd");
 
-export default function SequenceCalendar({ events, isDarkMode = false }) {
+export default function SequenceCalendar({ events, isDarkMode = false, settings }) {
   const [monthEvents, setMonthEvents] = useState([]);
   const currentMonthRef = useRef("");
 
@@ -54,6 +54,7 @@ export default function SequenceCalendar({ events, isDarkMode = false }) {
         height="auto"
         events={events}
         validRange={{ start, end }}
+        firstDay={parseInt(settings.settings.dayOfWeek, 10) || 0}
         datesSet={(info) => {
           const currentDate = info.view.calendar.getDate();
           const year = currentDate.getFullYear();

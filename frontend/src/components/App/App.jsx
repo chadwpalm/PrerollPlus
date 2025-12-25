@@ -536,6 +536,7 @@ export default class App extends Component {
                                 isDarkMode={this.state.isDarkMode}
                                 sockConnected={this.state.sockConnected}
                                 cannotConnect={this.state.cannotConnect}
+                                onSettingsChanged={this.refreshConfig.bind(this)}
                                 saved={this.handleBuckets}
                               />
                             }
@@ -564,11 +565,15 @@ export default class App extends Component {
                               isDarkMode={this.state.isDarkMode}
                               sockConnected={this.state.sockConnected}
                               cannotConnect={this.state.cannotConnect}
+                              onSettingsChanged={this.refreshConfig.bind(this)}
                               saved={this.handleBuckets}
                             />
                           }
                         />
-                        <Route path="/calendar" element={<SequenceCalendar isDarkMode={this.state.isDarkMode} />} />
+                        <Route
+                          path="/calendar"
+                          element={<SequenceCalendar isDarkMode={this.state.isDarkMode} settings={this.state.config} />}
+                        />
                         <Route path="*" element={<Navigate replace to="/" />} />
                       </>
                     )}

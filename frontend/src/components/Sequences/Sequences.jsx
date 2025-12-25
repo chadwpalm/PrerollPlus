@@ -8,6 +8,10 @@ import Card from "react-bootstrap/Card";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import Image from "react-bootstrap/Image";
+import SortName from "bootstrap-icons/icons/sort-alpha-up.svg";
+import SortPriority from "bootstrap-icons/icons/sort-numeric-up.svg";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
 import "./Sequences.css";
 
 export default class Sequences extends Component {
@@ -55,6 +59,53 @@ export default class Sequences extends Component {
 
   handleOpen = (e) => {
     this.setState({ tempID: e, show: true, fullscreen: "md-down" });
+  };
+
+  handleSortOrder = (order) => {
+    const settings = { ...this.props.settings };
+    let sequences = [...settings.sequences]; // Always work on a copy
+
+    if (order === "1") {
+      sequences.sort((a, b) => a.priority - b.priority);
+    }
+
+    if (order === "2") {
+      sequences.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    settings.sequences = sequences;
+
+    // Save to backend
+    const xhr = new XMLHttpRequest();
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          this.refreshSettings();
+        } else {
+          this.setState({
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+    xhr.open("POST", "/backend/save", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(settings));
+
+    // Instant UI update
+    this.props.updateSettings(settings);
+    this.handleSaveCreate();
+  };
+
+  sortHolidayList = (list, order) => {
+    if (!list) return [];
+    if (order === "1") {
+      return [...list].sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    if (order === "2") {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return list;
   };
 
   handleDelete = (e) => {
@@ -112,6 +163,29 @@ export default class Sequences extends Component {
       <>
         <Row>
           <h3>Sequences</h3>
+        </Row>
+        <Row className="mb-4">
+          <div className="sort-buttons-group">
+            <OverlayTrigger placement="top" overlay={<Tooltip id="tooltip-name">Sort by Name</Tooltip>}>
+              <Button
+                onClick={() => this.handleSortOrder("2")}
+                variant={this.props.isDarkMode ? "outline-light" : "light"}
+                className="sort-button"
+              >
+                <Image src={SortName} alt="Sort Name" className="arrow-icon" />
+              </Button>
+            </OverlayTrigger>
+
+            <OverlayTrigger placement="top" overlay={<Tooltip id="tooltip-priority">Sort by Priority</Tooltip>}>
+              <Button
+                onClick={() => this.handleSortOrder("1")}
+                variant={this.props.isDarkMode ? "outline-light" : "light"}
+                className="sort-button"
+              >
+                <Image src={SortPriority} alt="Sort Priority" className="arrow-icon" />
+              </Button>
+            </OverlayTrigger>
+          </div>
         </Row>
         <Row xs={2} sm="auto">
           {this.props.settings.sequences?.map((sequence) => (

@@ -643,43 +643,51 @@ export default class Create extends Component {
         <div className="div-seperator" />
         {this.state.schedule === "1" ? (
           <>
-            <Stack gap={1} direction="horizontal">
-              Start Date:&nbsp;&nbsp;
-              <Form.Select
-                value={this.state.startMonth}
-                id="startMonth"
-                name="startMonth"
-                onChange={this.handleDate}
-                size="sm"
-              >
-                {startMonths}
-              </Form.Select>
-              <Form.Select
-                value={this.state.startDay}
-                id="startDay"
-                name="startDay"
-                onChange={this.handleDate}
-                size="sm"
-              >
-                {startDays}
-              </Form.Select>
-            </Stack>
+            <Form.Label>Start Date:</Form.Label>
+            <div>
+              <Stack gap={2} direction="horizontal">
+                Month:
+                <Form.Select
+                  value={this.state.startMonth}
+                  id="startMonth"
+                  name="startMonth"
+                  onChange={this.handleDate}
+                  size="sm"
+                >
+                  {startMonths}
+                </Form.Select>
+                &nbsp;&nbsp;Day:
+                <Form.Select
+                  value={this.state.startDay}
+                  id="startDay"
+                  name="startDay"
+                  onChange={this.handleDate}
+                  size="sm"
+                >
+                  {startDays}
+                </Form.Select>
+              </Stack>
+            </div>
             <div className="div-seperator" />
-            <Stack gap={1} direction="horizontal">
-              End Date:&nbsp;&nbsp;
-              <Form.Select
-                value={this.state.endMonth}
-                id="endMonth"
-                name="endMonth"
-                onChange={this.handleDate}
-                size="sm"
-              >
-                {endMonths}
-              </Form.Select>
-              <Form.Select value={this.state.endDay} id="endDay" name="endDay" onChange={this.handleDate} size="sm">
-                {endDays}
-              </Form.Select>
-            </Stack>
+            <Form.Label>End Date:</Form.Label>
+            <div>
+              <Stack gap={2} direction="horizontal">
+                Month:
+                <Form.Select
+                  value={this.state.endMonth}
+                  id="endMonth"
+                  name="endMonth"
+                  onChange={this.handleDate}
+                  size="sm"
+                >
+                  {endMonths}
+                </Form.Select>
+                &nbsp;&nbsp;Day:
+                <Form.Select value={this.state.endDay} id="endDay" name="endDay" onChange={this.handleDate} size="sm">
+                  {endDays}
+                </Form.Select>
+              </Stack>
+            </div>
             <div className="div-seperator" />
           </>
         ) : (

@@ -1,5 +1,18 @@
 # Preroll Plus Version History
 
+## 1.3.2
+
+### New Features
+
+1. Added an option in the Settings page to choose the starting day of the week for the Calendar page. Can be set to Sunday, Monday, or Saturday. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
+2. Dates shown in the Sequence cards on the Sequences page will be formatted per user locale. (eg. 12/30 for U.S. and 30/12 for U.K.) [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
+3. Sequences on the Sequences page can now be sorted by priority or name. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
+4. Buckets on the Buckets page can now be sorted by name. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
+
+### Fix
+
+1. Added "Month" and "Day" labels when editing schedules to remove ambiguity and make it more international friendly.
+
 ## 1.3.1
 
 ### New Feature
@@ -11,7 +24,7 @@
 ### New Features
 
 1. New calendar page. You can now view and cycle through calendar months to see which Sequence will play on a particular day. You can view all current and upcoming year's months.
-2. Added a blue box around the currently used Sequence for that day in the Sequences page.
+2. Added a blue box around the currently used Sequence for that day in the Sequences page. [[#22](https://github.com/chadwpalm/PrerollPlus/discussions/22)]
 
 ### Fixes
 
