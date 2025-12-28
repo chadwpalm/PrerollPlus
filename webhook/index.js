@@ -309,8 +309,9 @@ async function createList(index) {
         }
       }
     }
+    console.log("Updating using Sequence: ", settings.sequences[index].name);
   }
-  console.log("Updating using Sequence: ", settings.sequences[index].name);
+
   return plexString;
 }
 

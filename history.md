@@ -1,5 +1,11 @@
 # Preroll Plus Version History
 
+### 1.3.3
+
+### Hotfix
+
+1. An issue in the code was causing the app to crash when setting up for the first time. This only affects first time users.
+
 ## 1.3.2
 
 ### New Features
