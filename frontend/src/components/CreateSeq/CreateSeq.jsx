@@ -892,6 +892,19 @@ export default class Create extends Component {
         ) : (
           <></>
         )}
+        <div className="div-seperator" />
+        <Button onClick={this.handleRemove} type="submit" variant={this.props.isDarkMode ? "outline-light" : "light"}>
+          Remove
+        </Button>
+        &nbsp;&nbsp;
+        <Button onClick={this.handleMoveUp} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+          <Image src={UpArrow} alt="UpArrow" className="arrow-icon" />
+        </Button>
+        &nbsp;&nbsp;
+        <Button onClick={this.handleMoveDown} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+          <Image src={DownArrow} alt="DownArrow" className="arrow-icon" />
+        </Button>
+        <div className="div-seperator" />
         <Row xs={1} sm="auto">
           <Col xs="auto">
             {/* File Listing */}
@@ -941,22 +954,6 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div className="div-seperator" />
-            <Button
-              onClick={this.handleRemove}
-              type="submit"
-              variant={this.props.isDarkMode ? "outline-light" : "light"}
-            >
-              Remove
-            </Button>
-            &nbsp;&nbsp;
-            <Button onClick={this.handleMoveUp} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-              <Image src={UpArrow} alt="UpArrow" className="arrow-icon" />
-            </Button>
-            &nbsp;&nbsp;
-            <Button onClick={this.handleMoveDown} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-              <Image src={DownArrow} alt="DownArrow" className="arrow-icon" />
-            </Button>
             <div className="div-seperator" />
           </Col>
           <Col xs="auto" className="d-flex align-items-center justify-content-center">
