@@ -9,7 +9,12 @@ const cacheDir = path.join("/", "config", "cache");
 // Make sure the directory exists
 if (!fs.existsSync(cacheDir)) {
   console.info("Cache directory doesn't exist....creating....");
-  fs.mkdirSync(cacheDir, { recursive: true });
+  try {
+    fs.mkdirSync(cacheDir, { recursive: true });
+    console.info(`Cache directory has been created at: ${cacheDir}`);
+  } catch {
+    console.error("Cache directory could not be created. Check file system permissions.");
+  }
 }
 
 router.post("/", async function (req, res, next) {

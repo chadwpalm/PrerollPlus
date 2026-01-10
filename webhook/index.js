@@ -15,6 +15,8 @@ const filePath = "/config/settings.js";
 
 var settings;
 
+const [hours, minutes] = (process.env.SCHEDULE_TIME?.split(":") || ["0", "0"]).map((part) => parseInt(part, 10) || 0);
+
 // General Functions
 
 async function isHolidayDay(country, holiday, states, type, source, apiKey, checkDate = null, pre = "0", post = "0") {
@@ -344,7 +346,10 @@ async function doTask() {
 }
 
 // Function to calculate delay until the desired time (3:00 PM)
-function getDelayUntilTargetTime(hour, minute) {
+function getDelayUntilTargetTime(hour = 0, minute = 0) {
+  console.info(
+    `Daily update of Plex string set to ${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+  );
   const now = new Date();
   const targetTime = new Date();
 
@@ -457,7 +462,8 @@ router.get("/calendar", async (req, res) => {
 });
 
 // Schedule the initial run
-const delay = getDelayUntilTargetTime(0, 0);
+const delay = getDelayUntilTargetTime(hours, minutes);
+console.log("Delay: ", delay);
 // Set the task to run every day
 setTimeout(() => {
   myAsyncTask();

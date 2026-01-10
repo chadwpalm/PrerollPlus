@@ -1,5 +1,16 @@
 # Preroll Plus Version History
 
+### 1.3.4
+
+### New Feature
+
+1. Added the ability to override the daily update of the pre-roll in Plex (typically midnight) using an ENV variable.
+
+### Changes
+
+1. Moved the "Remove" button and the "Up" and "Down" arrow buttons from the bottom of the "Bucket Sequence" table to the top when creating/editing Sequences in order to match the location of the buttons to be similar to when creating/editing Buckets.
+2. Added a log output for when the cache directory has successfully been created.
+
 ### 1.3.3
 
 ### Hotfix
