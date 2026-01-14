@@ -49,7 +49,11 @@ export default class Bucket extends Component {
         </Card.Subtitle>
         <Card.Footer className={`border-top-0 footer-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
           <Row>
-            <Col></Col>
+            <Col>
+              <div className="div-custom">
+                {this.state.id === this.props.settings.settings.defaultBucket ? <>Default</> : <></>}
+              </div>
+            </Col>
             <Col>
               <div style={{ textAlign: "right" }}>
                 {this.props.isEdit || this.props.isCreating ? (

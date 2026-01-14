@@ -463,7 +463,6 @@ router.get("/calendar", async (req, res) => {
 
 // Schedule the initial run
 const delay = getDelayUntilTargetTime(hours, minutes);
-console.log("Delay: ", delay);
 // Set the task to run every day
 setTimeout(() => {
   myAsyncTask();

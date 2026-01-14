@@ -332,7 +332,7 @@ export default class Settings extends Component {
                     const certInfo = server.secure ? `${server.cert}.plex.direct` : "";
                     const ip = server.secure ? server.ip.replace(/\./g, "-") : server.ip;
                     const location = `[${server.location}]`;
-                    const socket = server.socket ? `(socket hang up)` : "";
+                    const socket = server.socket ? `(Insecure connection not allowed)` : "";
                     const secure = server.secure ? `[secure]` : "";
 
                     return (

@@ -1,5 +1,11 @@
 # Preroll Plus Version History
 
+### 1.3.5
+
+### New Feature
+
+1. You can now designate any Bucket to be a default Bucket and it will auto-populate as the first Bucket when creating a new Sequence.
+
 ### 1.3.4
 
 ### New Feature
