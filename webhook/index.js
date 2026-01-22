@@ -320,23 +320,44 @@ async function createList(index) {
 async function sendList(string) {
   const url = `http${settings.settings.ssl ? "s" : ""}://${settings.settings.ip}:${settings.settings.port}/:/prefs`;
 
-  await axios
-    .put(url, null, {
+  try {
+    await axios.put(url, null, {
       headers: {
         "X-Plex-Token": `${settings.token}`,
       },
       params: {
         CinemaTrailersPrerollID: string,
       },
-    })
-    .then((response) => {
-      string === ""
-        ? console.log("No string to update in Plex")
-        : console.log("Preroll updated successfully: ", string);
-    })
-    .catch((error) => {
-      console.error("Error updating preroll:", error);
     });
+
+    // Success path
+    if (string === "") {
+      console.log("No string to update in Plex");
+    } else {
+      console.log("Preroll updated successfully: ", string);
+    }
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      console.warn(
+        "Plex returned 401 Unauthorized → token likely invalid. Please log in via the webpage to create a valid token."
+      );
+      settings.isLoggedIn = "false";
+
+      const settingsToSave = { ...settings };
+
+      try {
+        await axios.post("http://localhost:4949/backend/save", settingsToSave, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (saveError) {
+        console.error("Failed to save settings after 401:", saveError.message);
+      }
+    } else {
+      console.error("Error updating preroll:", error.message || error);
+    }
+  }
 }
 
 async function doTask() {

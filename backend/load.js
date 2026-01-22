@@ -34,7 +34,7 @@ if (process.env.BUILD) {
   build = "Native";
 }
 
-var fileData = `{"connected": "false","platform":"${
+var fileData = `{"connected": "false","isLoggedIn": "false","platform":"${
   os.platform
 }","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}", "sequences": [], "buckets": [],"message":true}`;
 
@@ -44,6 +44,10 @@ try {
 
   if (build !== "Native") {
     temp.settings.loc = "/prerolls";
+  }
+
+  if (!("isLoggedIn" in temp)) {
+    temp.isLoggedIn = "token" in temp ? "true" : "false";
   }
 
   if (temp.api !== "v2") {
@@ -72,7 +76,7 @@ try {
         newTemp.branch = branch;
         newTemp.message = true;
 
-        delete newTemp["token"];
+        newTemp.isLoggedIn = "false";
       }
 
       fs.writeFileSync("/config/settings.js", JSON.stringify(newTemp));
@@ -103,7 +107,7 @@ try {
       temp.branch = branch;
       temp.message = true;
 
-      delete temp["token"];
+      temp.isLoggedIn = "false";
     }
 
     fs.writeFileSync("/config/settings.js", JSON.stringify(temp));

@@ -106,7 +106,7 @@ export default class App extends Component {
 
             if (state) this.setState({ isUpdate: true });
 
-            if (json.token) this.setState({ isLoggedIn: true });
+            if (json.isLoggedIn === "true") this.setState({ isLoggedIn: true });
 
             if (json.connected === "true") {
               this.setState({ isConnected: true });
@@ -197,7 +197,6 @@ export default class App extends Component {
 
   handleLogin = () => {
     window.location.reload(false);
-    // this.setState({ isLoggedIn: true });
   };
 
   handleConnectionChange = (change) => {
@@ -257,7 +256,7 @@ export default class App extends Component {
   handleLogout = () => {
     var settings = { ...this.state.config };
 
-    delete settings["token"];
+    settings.isLoggedIn = "false";
     delete settings["thumb"];
     delete settings["email"];
     delete settings["username"];
