@@ -127,6 +127,7 @@ export default class Login extends Component {
     settings.thumb = this.thumb;
     settings.email = this.email;
     settings.username = this.username;
+    settings.isLoggedIn = "true";
 
     var xhr = new XMLHttpRequest();
 

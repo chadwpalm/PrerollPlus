@@ -209,6 +209,9 @@ export default class Buckets extends Component {
           ) : (
             <>
               <p className="mb-3" style={{ fontSize: "12px" }}>
+                Default: This indicates the default bucket which will be automatically added to a new sequence
+              </p>
+              <p className="mb-3" style={{ fontSize: "12px" }}>
                 Red Border: Currently Editing Bucket
               </p>
               <h6 className="mb-0">Click the plus to add a new Bucket.</h6>

@@ -40,6 +40,9 @@ export default class Create extends Component {
         tempLength: 0,
         source: info.source ?? "1",
         sourceDir: info.dir ?? "",
+        isDefault: info.id === this.props.settings.settings.defaultBucket,
+        default: false,
+        removeDefault: false,
       };
     } else {
       this.state = {
@@ -60,6 +63,9 @@ export default class Create extends Component {
         tempLength: 0,
         source: "1",
         sourceDir: "",
+        isDefault: false,
+        default: false,
+        removeDefault: false,
       };
     }
 
@@ -309,6 +315,14 @@ export default class Create extends Component {
     temp.source = this.state.source;
     temp.dir = this.state.currentDir;
 
+    if (this.state.default) {
+      settings.settings.defaultBucket = this.state.id;
+    }
+
+    if (this.state.removeDefault) {
+      settings.settings.defaultBucket = "";
+    }
+
     if (this.props.isEdit) {
       const index = settings.buckets.findIndex(({ id }) => id === this.state.id);
       settings.buckets.splice(index, 1, temp);
@@ -400,9 +414,60 @@ export default class Create extends Component {
     this.setState({ source: e.target.value.toString() });
   };
 
+  handleDefault = (e) => {
+    this.setState({ default: e.target.checked, isSaved: false });
+  };
+
+  handleRemoveDefault = (e) => {
+    this.setState({ removeDefault: e.target.checked, isSaved: false });
+  };
+
   render() {
     return (
       <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
+        {this.state.isDefault ? (
+          <>
+            <Form.Label for="default">
+              Remove default?&nbsp;&nbsp;
+              <OverlayTrigger
+                placement="right"
+                overlay={
+                  <Tooltip>
+                    This will remove the bucket as the default and there will be no default bucket until another one is
+                    set.
+                  </Tooltip>
+                }
+              >
+                <img src={Info} className="image-info" alt="Info" />
+              </OverlayTrigger>
+            </Form.Label>
+            <Form.Check
+              checked={this.state.removeDefault}
+              id="removeDefault"
+              name="removeDefault"
+              onChange={this.handleRemoveDefault}
+            />
+          </>
+        ) : (
+          <>
+            <Form.Label for="removeDefault">
+              Set as default?&nbsp;&nbsp;
+              <OverlayTrigger
+                placement="right"
+                overlay={
+                  <Tooltip>
+                    This will set this bucket as the current default which will automatically be added to a newly
+                    created sequence.
+                  </Tooltip>
+                }
+              >
+                <img src={Info} className="image-info" alt="Info" />
+              </OverlayTrigger>
+            </Form.Label>
+            <Form.Check checked={this.state.default} id="default" name="default" onChange={this.handleDefault} />
+          </>
+        )}
+        <div className="div-seperator" />
         <Form.Label for="name">Name of bucket &nbsp;&nbsp;</Form.Label>
         <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
         <div className="div-seperator" />

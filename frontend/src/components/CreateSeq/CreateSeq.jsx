@@ -130,6 +130,16 @@ export default class Create extends Component {
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(countryInfo));
     }
+
+    if (this.props.isEdit) return; // ← early exit if editing
+
+    const defaultBucket = this.props.settings?.settings?.defaultBucket?.trim?.() ?? "";
+
+    if (!defaultBucket) return; // ← exit if missing, null, undefined, or empty/whitespace
+
+    this.setState({
+      buckets: [{ id: defaultBucket, uid: uuid() }],
+    });
   }
 
   handleDate = (e) => {

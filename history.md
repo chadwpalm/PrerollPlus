@@ -1,5 +1,16 @@
 # Preroll Plus Version History
 
+### 1.3.5
+
+### New Feature
+
+1. You can now designate any Bucket to be a default Bucket and it will auto-populate as the first Bucket when creating a new Sequence. [[#30](https://github.com/chadwpalm/PrerollPlus/discussions/30)]
+
+### Fixes
+
+1. Fixed issue where Preroll Plus could not connect to the Plex server after a version update. [[#31](https://github.com/chadwpalm/PrerollPlus/issues/31)]
+2. Force a new Plex login in the UI to create a new Plex token if the token becomes invalid. Updated logs to present a warning and instructions for when this occurs.
+
 ### 1.3.4
 
 ### New Feature
