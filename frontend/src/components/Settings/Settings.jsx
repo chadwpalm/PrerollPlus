@@ -524,7 +524,7 @@ export default class Settings extends Component {
               <img src={Info} className="image-info" alt="Info" />
             </OverlayTrigger>
             &nbsp;&nbsp;&nbsp;&nbsp;Get account and API key at{" "}
-            <a href="https://calendarific.com" target="_blank">
+            <a href="https://calendarific.com" target="_blank" rel="noreferrer">
               calendarific.com
             </a>
             <Form.Control

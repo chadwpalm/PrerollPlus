@@ -53,11 +53,11 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         <br />
         <br />
         As always, if you have any issues please{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank">
+        <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank" rel="noreferrer">
           create an issue on GitHub
         </a>
         , or if you simply have a question or want to discuss any features you and use the{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank">
+        <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank" rel="noreferrer">
           discussion board
         </a>
         .

@@ -109,17 +109,25 @@ export default class Create extends Component {
       var xhr = new XMLHttpRequest();
       xhr.addEventListener("readystatechange", () => {
         if (xhr.readyState === 4) {
+          let response;
+          let json;
+
           if (xhr.status === 200) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            response = xhr.responseText;
+            json = JSON.parse(response);
+
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
             this.setState({ holidayList: json });
           } else if (xhr.status === 400) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
-          }
-          {
+            response = xhr.responseText;
+            json = JSON.parse(response);
+
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
+          } else {
             this.setState({
               error: xhr.responseText,
             });
@@ -165,10 +173,14 @@ export default class Create extends Component {
 
       xhr.addEventListener("readystatechange", () => {
         if (xhr.readyState === 4) {
+          let response;
+          let json;
           if (xhr.status === 200) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            response = xhr.responseText;
+            json = JSON.parse(response);
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
             this.setState({
               schedule: newSchedule,
               holidayList: this.sortHolidayList(json, sortOrder),
@@ -177,15 +189,15 @@ export default class Create extends Component {
               isLoading: false,
             });
           } else if (xhr.status === 400) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            response = xhr.responseText;
+            json = JSON.parse(response);
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
           }
-          {
-            this.setState({
-              error: xhr.responseText,
-            });
-          }
+          this.setState({
+            error: xhr.responseText,
+          });
         }
       });
 
@@ -219,10 +231,14 @@ export default class Create extends Component {
 
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
+        let response;
+        let json;
         if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
           this.setState({
             holidaySource: newSource,
             holidayList: this.sortHolidayList(json, sortOrder),
@@ -231,15 +247,15 @@ export default class Create extends Component {
             isLoading: false,
           });
         } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
         }
-        {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
+        this.setState({
+          error: xhr.responseText,
+        });
       }
     });
 
@@ -265,10 +281,14 @@ export default class Create extends Component {
 
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
+        let response;
+        let json;
         if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
           this.setState({
             type: newType,
             holidayList: this.sortHolidayList(json, sortOrder),
@@ -277,15 +297,15 @@ export default class Create extends Component {
             isLoading: false,
           });
         } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
         }
-        {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
+        this.setState({
+          error: xhr.responseText,
+        });
       }
     });
 
@@ -311,9 +331,11 @@ export default class Create extends Component {
 
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
+        let response;
+        let json;
         if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
+          response = xhr.responseText;
+          json = JSON.parse(response);
           this.setState({
             apiMissing: json.apiKeyMissing,
             country: newCountry,
@@ -323,9 +345,11 @@ export default class Create extends Component {
             isLoading: false,
           });
         } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
         } else {
           this.setState({
             error: xhr.responseText,
@@ -557,26 +581,26 @@ export default class Create extends Component {
       startMonths.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
       endMonths.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
     }
     for (let i = 1; i <= this.monthList[this.state.startMonth]; i++) {
       startDays.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
     }
     for (let i = 1; i <= this.monthList[this.state.endMonth]; i++) {
       endDays.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
     }
     if (this.state.holidaySource === "1") {
@@ -1006,7 +1030,7 @@ export default class Create extends Component {
                           >
                             {bucket.name}
                           </ListGroup.Item>
-                        )
+                        ),
                       )}
                   </ListGroup>
                 </Card.Body>

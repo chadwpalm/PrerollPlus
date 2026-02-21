@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import { addMonths, startOfMonth, format, startOfYear } from "date-fns";
+import { addMonths, format, startOfYear } from "date-fns";
 import "./Calendar.css";
 
 const today = new Date();

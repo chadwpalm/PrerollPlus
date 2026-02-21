@@ -1,6 +1,13 @@
 {
   "name": "frontend",
   "private": true,
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "webpack-dev-server": "^5.2.1",
+    "postcss": "^8.4.47",
+    "nth-check": "^2.1.1",
+    "jsonpath": "npm:jsonpath-plus@^10.4.0"
+  },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
     "@fullcalendar/daygrid": "^6.1.19",
@@ -11,7 +18,7 @@
     "bootstrap-icons": "^1.10.3",
     "cross-env": "^7.0.3",
     "date-fns": "^4.1.0",
-    "plex-oauth": "^2.1.0",
+    "qs": "^6.15.0",
     "react": "^18.1.0",
     "react-bootstrap": "^2.7.0",
     "react-dom": "^18.1.0",

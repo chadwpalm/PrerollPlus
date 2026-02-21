@@ -1,6 +1,16 @@
 # Preroll Plus Version History
 
-### 1.3.5
+## 1.4.0
+
+### Changes
+
+1. Security updates. Updated all node packages to current versions which removed all package vulnerabilities.
+2. Updated Node version to 20 LTS in Docker image.
+3. Updated Plex login code to remove outdated and unmaintained 3rd party package which depended on old and vulnerable packages.
+4. Updated Docker build process to generate smaller Docker images by removing unnecessary frontend build tools and development dependencies.
+5. General code cleanup and housekeeping.
+
+## 1.3.5
 
 ### New Feature
 
@@ -11,7 +21,7 @@
 1. Fixed issue where Preroll Plus could not connect to the Plex server after a version update. [[#31](https://github.com/chadwpalm/PrerollPlus/issues/31)]
 2. Force a new Plex login in the UI to create a new Plex token if the token becomes invalid. Updated logs to present a warning and instructions for when this occurs.
 
-### 1.3.4
+## 1.3.4
 
 ### New Feature
 
@@ -22,7 +32,7 @@
 1. Moved the "Remove" button and the "Up" and "Down" arrow buttons from the bottom of the "Bucket Sequence" table to the top when creating/editing Sequences in order to match the location of the buttons to be similar to when creating/editing Buckets.
 2. Added a log output for when the cache directory has successfully been created.
 
-### 1.3.3
+## 1.3.3
 
 ### Hotfix
 

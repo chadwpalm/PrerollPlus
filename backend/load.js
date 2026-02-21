@@ -7,6 +7,8 @@ var updates = require("./migrate.js");
 var axios = require("axios").default;
 
 var appVersion, branch, UID, GID, build;
+var hostname = os.hostname;
+var platform = `${os.platform().charAt(0).toUpperCase()}${os.platform().slice(1).toLowerCase()} ${os.release}`;
 
 try {
   var info = fs.readFileSync("version.json");
@@ -35,7 +37,7 @@ if (process.env.BUILD) {
 }
 
 var fileData = `{"connected": "false","isLoggedIn": "false","platform":"${
-  os.platform
+  platform
 }","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}", "sequences": [], "buckets": [],"message":true}`;
 
 try {
@@ -69,12 +71,13 @@ try {
           "build",
           build,
           "branch",
-          branch
+          branch,
         );
         newTemp.version = appVersion;
         newTemp.build = build;
         newTemp.branch = branch;
         newTemp.message = true;
+        newTemp.platform = platform;
 
         newTemp.isLoggedIn = "false";
       }
@@ -100,12 +103,13 @@ try {
         "build",
         build,
         "branch",
-        branch
+        branch,
       );
       temp.version = appVersion;
       temp.build = build;
       temp.branch = branch;
       temp.message = true;
+      temp.platform = platform;
 
       temp.isLoggedIn = "false";
     }
