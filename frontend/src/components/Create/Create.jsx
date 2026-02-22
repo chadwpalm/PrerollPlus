@@ -43,6 +43,7 @@ export default class Create extends Component {
         isDefault: info.id === this.props.settings.settings.defaultBucket,
         default: false,
         removeDefault: false,
+        includeSub: info.includeSub ?? false,
       };
     } else {
       this.state = {
@@ -66,6 +67,7 @@ export default class Create extends Component {
         isDefault: false,
         default: false,
         removeDefault: false,
+        includeSub: false,
       };
     }
 
@@ -115,7 +117,8 @@ export default class Create extends Component {
     xhr.send(
       JSON.stringify({
         dir: `${this.state.source === "2" ? this.state.currentDir : this.state.root}`,
-      })
+        isSub: false,
+      }),
     );
   }
 
@@ -136,7 +139,7 @@ export default class Create extends Component {
               } catch (err) {
                 console.error("Error calling fetchDirectoryList:", err);
               }
-            }
+            },
           );
         }
       } else {
@@ -151,7 +154,7 @@ export default class Create extends Component {
             } catch (err) {
               console.error("Error calling fetchDirectoryList:", err);
             }
-          }
+          },
         );
       }
     }
@@ -191,7 +194,7 @@ export default class Create extends Component {
           () => {
             // Callback to handle state changes and perform subsequent actions
             this.fetchDirectoryList();
-          }
+          },
         );
       } else {
         this.setState(
@@ -208,7 +211,7 @@ export default class Create extends Component {
           () => {
             // Callback to handle state changes and perform subsequent actions
             this.fetchDirectoryList();
-          }
+          },
         );
       }
     } else {
@@ -243,7 +246,7 @@ export default class Create extends Component {
     });
     xhr.open("POST", "/backend/directory", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify({ dir: `${this.state.currentDir}` }));
+    xhr.send(JSON.stringify({ dir: `${this.state.currentDir}`, isSub: false }));
   };
 
   handleAdd = (e) => {
@@ -314,6 +317,7 @@ export default class Create extends Component {
     temp.media = this.state.media;
     temp.source = this.state.source;
     temp.dir = this.state.currentDir;
+    temp.includeSub = this.state.includeSub;
 
     if (this.state.default) {
       settings.settings.defaultBucket = this.state.id;
@@ -379,7 +383,7 @@ export default class Create extends Component {
           this.videoRef.current.load();
           this.videoRef.current.play(); // Start playing the first video
         }
-      }
+      },
     );
   };
 
@@ -420,6 +424,10 @@ export default class Create extends Component {
 
   handleRemoveDefault = (e) => {
     this.setState({ removeDefault: e.target.checked, isSaved: false });
+  };
+
+  handleSub = (e) => {
+    this.setState({ includeSub: e.target.checked });
   };
 
   render() {
@@ -520,6 +528,21 @@ export default class Create extends Component {
           />
         </div>
         <div className="div-seperator" />
+        <div className="div-seperator" />
+        {this.state.source === "2" ? (
+          <Form.Check
+            key="includeSub"
+            inline
+            type="checkbox"
+            id="includeSub"
+            label="Include Subdirectories"
+            checked={this.state.includeSub}
+            onChange={this.handleSub}
+            size="sm"
+          />
+        ) : (
+          <></>
+        )}
         <Row xs={1} sm="auto">
           {this.state.source === "1" ? (
             <>
@@ -549,7 +572,7 @@ export default class Create extends Component {
                             this.state.media.reduce((acc, item) => {
                               acc[item.file] = (acc[item.file] || 0) + 1;
                               return acc;
-                            }, {})
+                            }, {}),
                           )
                             .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
                             .map(([file, count]) => {
@@ -605,7 +628,7 @@ export default class Create extends Component {
               </Col>
             </>
           ) : (
-            ""
+            <></>
           )}
           <Col>
             {this.state.source === "1" ? (
@@ -699,7 +722,7 @@ export default class Create extends Component {
                             )
                           ) : (
                             ""
-                          )
+                          ),
                         )
                     ) : (
                       <ListGroup.Item>Directory does not exist</ListGroup.Item> // Display this if directoryList is null or empty

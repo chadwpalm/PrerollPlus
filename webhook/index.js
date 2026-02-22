@@ -262,9 +262,8 @@ async function createList(index) {
   let plexString = "";
   if (index !== -1) {
     const bucketIds = settings.sequences[index].buckets;
-    let usedFiles = new Set(); // Set to keep track of used files
+    let usedFiles = new Set();
 
-    // Using `for...of` loop to await `axios` inside the loop
     for (const [idx, bucketId] of bucketIds.entries()) {
       let files = [];
       const info = settings.buckets.find(({ id }) => id === bucketId.id.toString());
@@ -273,7 +272,7 @@ async function createList(index) {
         try {
           const response = await axios.post(
             "http://localhost:4949/backend/directory",
-            { dir: `${info.dir}` },
+            { dir: `${info.dir}`, isSub: info.includeSub || false },
             {
               headers: {
                 "Content-Type": "application/json;charset=UTF-8",
@@ -282,7 +281,7 @@ async function createList(index) {
           );
           response.data.forEach((media) => {
             if (!media.isDir)
-              files.push(`${settings.settings.plexLoc}${info.dir.replace(settings.settings.loc, "")}/${media.name}`);
+              files.push(`${settings.settings.plexLoc}${media.path.replace(settings.settings.loc, "")}/${media.name}`);
           });
         } catch (error) {
           if (error.response) {
@@ -302,10 +301,9 @@ async function createList(index) {
       if (files.length !== 0) {
         let randomFile;
         do {
-          randomFile = files[Math.floor(Math.random() * files.length)]; // Fix: `info.media.length` -> `files.length`
-        } while (usedFiles.has(randomFile)); // Keep picking until an unused file is found
-
-        usedFiles.add(randomFile); // Mark the selected file as used
+          randomFile = files[Math.floor(Math.random() * files.length)];
+        } while (usedFiles.has(randomFile));
+        usedFiles.add(randomFile);
 
         if (idx === bucketIds.length - 1) {
           plexString += randomFile;
