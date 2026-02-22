@@ -209,6 +209,7 @@ export default class Sequences extends Component {
                 holiday={sequence.holiday}
                 priority={sequence.priority}
                 currentSeq={this.props.settings.currentSeq}
+                days={sequence.days}
               />
               <br />
             </Col>

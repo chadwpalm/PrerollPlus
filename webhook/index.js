@@ -17,6 +17,16 @@ var settings;
 
 const [hours, minutes] = (process.env.SCHEDULE_TIME?.split(":") || ["0", "0"]).map((part) => parseInt(part, 10) || 0);
 
+const DAY_BITS = {
+  M: 1 << 0,
+  T: 1 << 1,
+  W: 1 << 2,
+  Th: 1 << 3,
+  F: 1 << 4,
+  Sa: 1 << 5,
+  Su: 1 << 6,
+};
+
 // General Functions
 
 async function isHolidayDay(country, holiday, states, type, source, apiKey, checkDate = null, pre = "0", post = "0") {
@@ -30,22 +40,16 @@ async function isHolidayDay(country, holiday, states, type, source, apiKey, chec
   const typeName = HolidayType[parseInt(type, 10)];
 
   const today = checkDate
-    ? new Date(
-        Date.UTC(
-          Number(checkDate.split("-")[0]), // year
-          Number(checkDate.split("-")[1]) - 1, // month (0-based)
-          Number(checkDate.split("-")[2]) // day
-        )
-      )
+    ? new Date(Number(checkDate.split("-")[0]), Number(checkDate.split("-")[1]) - 1, Number(checkDate.split("-")[2]))
     : new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const currentYear = today.getUTCFullYear();
+  today.setHours(0, 0, 0, 0);
+
+  const currentYear = today.getFullYear();
 
   let rawData, cacheFile;
   if (source === "2") {
     cacheFile = path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`);
   }
-
   if (source === "2" && fs.existsSync(cacheFile)) {
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
@@ -53,7 +57,6 @@ async function isHolidayDay(country, holiday, states, type, source, apiKey, chec
       source === "1"
         ? `https://date.nager.at/api/v3/publicholidays/${currentYear}/${country}`
         : `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${country}&year=${currentYear}&type=${typeName}`;
-
     try {
       const response = await axios.get(url, { timeout: 2000 });
       rawData = JSON.stringify(response.data);
@@ -158,20 +161,19 @@ async function isHolidayDay(country, holiday, states, type, source, apiKey, chec
   const [datePart] = holidayDateStr.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
 
-  const holidayDate = new Date(Date.UTC(year, month - 1, day));
-  holidayDate.setUTCHours(0, 0, 0, 0);
+  const holidayDate = new Date(year, month - 1, day);
+  holidayDate.setHours(0, 0, 0, 0);
 
   const preDays = parseInt(pre, 10) || 0;
   const postDays = parseInt(post, 10) || 0;
 
   var windowStart, windowEnd;
-
   windowStart = new Date(holidayDate);
-  windowStart.setUTCDate(holidayDate.getUTCDate() - preDays);
+  windowStart.setDate(holidayDate.getDate() - preDays);
 
   windowEnd = new Date(holidayDate);
-  windowEnd.setUTCDate(holidayDate.getUTCDate() + postDays);
-  windowEnd.setUTCHours(23, 59, 59, 999);
+  windowEnd.setDate(holidayDate.getDate() + postDays);
+  windowEnd.setHours(23, 59, 59, 999);
 
   if (today < windowStart) {
     windowStart.setFullYear(windowStart.getFullYear() - 1);
@@ -195,12 +197,14 @@ async function saveId(id) {
 
 async function checkSchedule(forceDate = null) {
   let bestIndex = -1;
-  let bestPriority = Infinity; // smaller number is higher priority
+  let bestPriority = Infinity;
+
   const today = forceDate ? new Date(forceDate + "T00:00:00") : new Date();
   today.setHours(0, 0, 0, 0);
   const currentYear = today.getFullYear();
-
   const todayNumber = new Date(Date.UTC(currentYear, today.getMonth(), today.getDate())).getTime();
+  const jsDay = today.getDay();
+  const bitForToday = 1 << (jsDay === 0 ? 6 : jsDay - 1); //adjusting for discrepency between indexes of today.getDay and PR+
 
   for (let idx = 0; idx < settings.sequences.length; idx++) {
     const element = settings.sequences[idx];
@@ -209,7 +213,6 @@ async function checkSchedule(forceDate = null) {
     let isMatch = false;
 
     if (element.schedule === "3") {
-      // Holiday
       const isHoliday = await isHolidayDay(
         element.country,
         element.holiday,
@@ -219,14 +222,17 @@ async function checkSchedule(forceDate = null) {
         settings.settings.apiKey,
         forceDate,
         element.preHoliday || "0",
-        element.postHoliday || "0"
+        element.postHoliday || "0",
       );
       if (isHoliday) isMatch = true;
+    } else if (element.schedule === "4") {
+      const daysMask = parseInt(element.days, 10) || 0;
+      if ((daysMask & bitForToday) !== 0) {
+        isMatch = true;
+      }
     } else if (element.schedule === "2") {
-      // Fallback
       isMatch = true;
     } else {
-      // Date range
       const startNumber = new Date(Date.UTC(currentYear, element.startMonth - 1, element.startDay)).getTime();
       const endNumber = new Date(Date.UTC(currentYear, element.endMonth - 1, element.endDay)).getTime();
       const isWrapped = startNumber > endNumber;
@@ -239,14 +245,11 @@ async function checkSchedule(forceDate = null) {
       }
     }
 
-    // If this element matches and has a better (smaller) priority
     if (isMatch) {
       if (priority < bestPriority) {
-        // Pick higher-priority sequence
         bestPriority = priority;
         bestIndex = idx;
       } else if (priority === Infinity && bestPriority === Infinity && bestIndex === -1) {
-        // No priorities set anywhere, fall back to first match
         bestIndex = idx;
       }
     }
@@ -275,7 +278,7 @@ async function createList(index) {
               headers: {
                 "Content-Type": "application/json;charset=UTF-8",
               },
-            }
+            },
           );
           response.data.forEach((media) => {
             if (!media.isDir)
@@ -339,7 +342,7 @@ async function sendList(string) {
   } catch (error) {
     if (error.response && error.response.status === 401) {
       console.warn(
-        "Plex returned 401 Unauthorized → token likely invalid. Please log in via the webpage to create a valid token."
+        "Plex returned 401 Unauthorized → token likely invalid. Please log in via the webpage to create a valid token.",
       );
       settings.isLoggedIn = "false";
 
@@ -369,7 +372,7 @@ async function doTask() {
 // Function to calculate delay until the desired time (3:00 PM)
 function getDelayUntilTargetTime(hour = 0, minute = 0) {
   console.info(
-    `Daily update of Plex string set to ${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+    `Daily update of Plex string set to ${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`,
   );
   const now = new Date();
   const targetTime = new Date();
@@ -446,7 +449,7 @@ router.get("/calendar", async (req, res) => {
   console.log(
     `Fetching calendar: ${year}-${month} (${currentDate.toISOString().split("T")[0]} to ${
       endDate.toISOString().split("T")[0]
-    })`
+    })`,
   );
 
   while (currentDate <= endDate) {
@@ -472,7 +475,7 @@ router.get("/calendar", async (req, res) => {
 
     // Move to next day — safely, without mutation bugs
     currentDate = new Date(
-      Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1)
+      Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1),
     );
   }
 

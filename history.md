@@ -7,8 +7,16 @@
 1. Security updates. Updated all node packages to current versions which removed all package vulnerabilities.
 2. Updated Node version to 20 LTS in Docker image.
 3. Updated Plex login code to remove outdated and unmaintained 3rd party package which depended on old and vulnerable packages.
-4. Updated Docker build process to generate smaller Docker images by removing unnecessary frontend build tools and development dependencies.
+4. Updated Docker build process to generate smaller Docker images by stripping out the frontend build files and node modules.
 5. General code cleanup and housekeeping.
+
+### New Features
+
+1. Schedules can now be based on days of the week.
+
+### Fixes
+
+1. Fixed issue where holidays were using UTC time rather than local time zones.
 
 ## 1.3.5
 
