@@ -20,11 +20,5 @@ RUN npm ci --production --no-audit --no-fund
 COPY backend ./backend
 COPY bin ./bin
 COPY webhook ./webhook
-HEALTHCHECK \
-    --interval=30s \
-    --timeout=5s \
-    --start-period=10s \
-    --retries=3 \
-    CMD node -e "require('http').get('http://localhost:4949', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["npm", "start"]

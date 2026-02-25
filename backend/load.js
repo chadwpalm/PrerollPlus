@@ -5,6 +5,7 @@ var os = require("os");
 var uuid = require("uuid").v4;
 var updates = require("./migrate.js");
 var axios = require("axios").default;
+const { getActivePort } = require("../backend/config");
 
 const LOG_TAG = "[LOAD]";
 
@@ -126,7 +127,7 @@ try {
   if (temp.settings) {
     try {
       axios
-        .get("http://localhost:4949/webhook") // Make sure the path is correct
+        .get(`http://localhost:${getActivePort()}/webhook`) // Make sure the path is correct
         .then((response) => {})
         .catch((error) => {});
     } catch {
@@ -134,7 +135,7 @@ try {
     }
   }
 } catch (err) {
-  console.info(`${LOG_TAG} Settings file not found, creating...`);
+  console.info(`${LOG_TAG} Settings file not found, creating... ${err}`);
   try {
     if (!fs.existsSync("/config")) {
       fs.mkdirSync("/config");

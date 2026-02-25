@@ -4,6 +4,7 @@ var multer = require("multer");
 var fs = require("fs");
 var path = require("path");
 var axios = require("axios").default;
+const { getActivePort } = require("../backend/config");
 
 // Global Variables
 
@@ -311,7 +312,7 @@ async function createList(index) {
       if (info.source === "2") {
         try {
           const response = await axios.post(
-            "http://localhost:4949/backend/directory",
+            `http://localhost:${getActivePort()}/backend/directory`,
             { dir: `${info.dir}`, isSub: info.includeSub || false },
             {
               headers: {
@@ -380,7 +381,7 @@ async function sendList(string) {
     console.info(
       string === ""
         ? `${LOG_TAG} Plex preroll cleared successfully`
-        : `${LOG_TAG} Plex preroll updated successfully (${string.split(",").length} files)`,
+        : `${LOG_TAG} Plex preroll updated successfully: ${string} (${string.split(",").length} files)`,
     );
   } catch (error) {
     if (error.response && error.response.status === 401) {
@@ -392,7 +393,7 @@ async function sendList(string) {
       const settingsToSave = { ...settings };
 
       try {
-        await axios.post("http://localhost:4949/backend/save", settingsToSave, {
+        await axios.post(`http://localhost:${getActivePort()}/backend/save`, settingsToSave, {
           headers: {
             "Content-Type": "application/json",
           },

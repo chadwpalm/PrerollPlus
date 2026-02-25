@@ -15,6 +15,7 @@
 
 1. Schedules can now be based on days of the week. [[#32](https://github.com/chadwpalm/PrerollPlus/discussions/32)]
 2. Added ability to include subdirectories when using a directory as a file source for buckets. [[#33](https://github.com/chadwpalm/PrerollPlus/issues/33)]
+3. Added ability to change the port the app is running on from settings. The app also accepts an ENV variable on startup APP_PORT which overrides the port in the settings.
 
 ### Fixes
 

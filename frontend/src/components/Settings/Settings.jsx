@@ -37,6 +37,8 @@ export default class Settings extends Component {
         dayOfWeek: this.props.settings.settings.dayOfWeek ?? "0",
         logSize: this.props.settings.settings.logSize ?? "1",
         logFiles: this.props.settings.settings.logFiles ?? "5",
+        appPort: this.props.settings.settings.appPort ?? "4949",
+        baseURL: this.props.settings.settings.baseURL ?? "",
       };
     } else {
       this.state = {
@@ -60,6 +62,8 @@ export default class Settings extends Component {
         dayOfWeek: "0",
         logSize: "1",
         logFiles: "5",
+        appPort: "4949",
+        baseURL: "",
       };
     }
   }
@@ -88,6 +92,8 @@ export default class Settings extends Component {
     this.props.settings.settings.logFiles = this.state.logFiles;
     this.props.settings.settings.apiKey = this.state.apiKey;
     this.props.settings.settings.dayOfWeek = this.state.dayOfWeek;
+    this.props.settings.settings.appPort = this.state.appPort;
+    this.props.settings.settings.baseURL = this.state.baseURL;
     this.props.connection(1);
 
     try {
@@ -287,6 +293,14 @@ export default class Settings extends Component {
 
     xhr.open("GET", "/backend/clearcache", true);
     xhr.send();
+  };
+
+  handleAppPort = (e) => {
+    this.setState({ appPort: e.target.value.toString() });
+  };
+
+  handleBaseURL = (e) => {
+    this.setState({ baseURL: e.target.value.toString() });
   };
 
   render() {
@@ -654,6 +668,57 @@ export default class Settings extends Component {
             ) : (
               <></>
             )}
+            <div className="div-seperator" />
+            <div className="div-seperator" />
+            <h5>Host</h5>
+            <div className="div-seperator" />
+            <Form.Label for="appPort">Port Number &nbsp;&nbsp;</Form.Label>
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  The port number Preroll Plus runs on. If left blank the port will default to "4949".
+                  <br />
+                  <br />
+                  Note: If running in a Docker container this will be the port as seen <i>inside</i> the container. If
+                  APP_PORT is used as an ENV variable, it will override this port setting.
+                </Tooltip>
+              }
+            >
+              <img src={Info} className="image-info" alt="Info" />
+            </OverlayTrigger>
+            <Form.Control
+              value={this.state.appPort}
+              id="appPort"
+              name="appPort"
+              onChange={this.handleAppPort}
+              size="sm"
+            />
+            <div className="footnote">Requires restart to take effect</div>
+            <div className="div-seperator" />
+            <Form.Label for="baseURL">URL Base &nbsp;&nbsp;</Form.Label>
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  For reverse proxy support, default is empty.
+                  <br />
+                  <br />
+                  Note: If using a reverse proxy (example: mydomain.com/prerollplus) you would enter '/prerollplus' for
+                  URL Base.
+                </Tooltip>
+              }
+            >
+              <img src={Info} className="image-info" alt="Info" />
+            </OverlayTrigger>
+            <Form.Control
+              value={this.state.baseURL}
+              id="baseURL"
+              name="baseURL"
+              onChange={this.handleBaseURL}
+              size="sm"
+            />
+            <div className="footnote">Requires restart to take effect</div>
             <div className="div-seperator" />
             <div className="div-seperator" />
             {/* Cancel/Save */}

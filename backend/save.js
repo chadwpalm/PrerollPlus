@@ -9,7 +9,7 @@ router.post("/", function (req, res, next) {
 
   try {
     fs.writeFileSync("/config/settings.js", fileData);
-    console.info(`${LOG_TAG} Settings file saved`);
+    console.debug(`${LOG_TAG} Settings file saved`);
   } catch (err) {
     console.error(`${LOG_TAG} Failed to create/write/own settings file: ${err.message}`);
     if (err.code) {

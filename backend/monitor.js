@@ -5,6 +5,7 @@ var path = require("path");
 var chokidar = require("chokidar");
 var axios = require("axios");
 const { broadcastUpdate } = require("./websocket");
+const { getActivePort } = require("../backend/config");
 
 const LOG_TAG = "[MONITOR]";
 
@@ -193,7 +194,7 @@ function handleRenameOrMove(oldPath, newPath) {
       console.info(`${LOG_TAG} Settings file saved`);
 
       axios
-        .get("http://localhost:4949/webhook") // Make sure the path is correct
+        .get(`http://localhost:${getActivePort()}/webhook`) // Make sure the path is correct
         .then((response) => {})
         .catch((error) => {});
     } catch (err) {
@@ -230,7 +231,7 @@ function handleRemove(oldPath) {
       fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
       console.info(`${LOG_TAG} Settings file saved`);
       axios
-        .get("http://localhost:4949/webhook") // Make sure the path is correct
+        .get(`http://localhost:${getActivePort()}/webhook`) // Make sure the path is correct
         .then((response) => {})
         .catch((error) => {});
     } catch (err) {
