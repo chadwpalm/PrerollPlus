@@ -6,6 +6,8 @@ var chokidar = require("chokidar");
 var axios = require("axios");
 const { broadcastUpdate } = require("./websocket");
 
+const LOG_TAG = "[MONITOR]";
+
 let pendingAdds = new Map(); // Store added files with relevant information
 let pendingRemovals = new Map(); // Track removed files
 let renameDelay; // Delay for rename detection
@@ -18,7 +20,7 @@ let initTime = 2000;
 
 function initializeWatcher() {
   if (watcher) {
-    console.info("Closing existing watcher before reinitializing...");
+    console.info(`${LOG_TAG} Closing existing watcher before reinitializing...`);
     watcher.close();
     watcher = null;
     isInit = true;
@@ -32,112 +34,107 @@ function initializeWatcher() {
       renameDelay = settings.settings.polling === "1" ? 500 : 1000;
     }
   } catch (err) {
-    console.error("Cannot grab dir location", err);
+    console.error(`${LOG_TAG} Cannot grab dir location ${err}`);
     return;
   }
 
   if (fs.existsSync(pathToWatch)) {
     watcher = chokidar.watch(pathToWatch, {
-      ignored: /(^|[\/\\])\../, // Ignore dotfiles
+      ignored: /(^|[\/\\])\../,
       persistent: true,
       usePolling: settings.settings.polling === "2",
       interval: 100,
     });
 
+    console.debug(
+      `${LOG_TAG} Watcher started - path: ${pathToWatch}, polling: ${settings.settings.polling === "2" ? "yes" : "no"}, interval: 100ms`,
+    );
+
     watcher.on("addDir", (filePath) => {
       if (!isInit) {
-        console.info(`Directory ${filePath} has been added`);
+        console.debug(`${LOG_TAG} Directory ${filePath} has been added`);
         broadcastUpdate();
       }
     });
 
     watcher.on("unlinkDir", (filePath) => {
       if (!isInit) {
-        console.info(`Directory ${filePath} has been removed`);
+        console.debug(`${LOG_TAG} Directory ${filePath} has been removed`);
         broadcastUpdate();
       }
     });
 
-    // When a file is added
     watcher.on("add", (filePath) => {
       filePath = filePath
-        .replace(/@SynoEAStream/i, "")
+        .replace(/@SynoEAStream/i, "") // Fix for Synology issue
         .replace(/@SynoResource/i, "")
-        .replace(/@eaDir\//i, ""); // Fix for Synology issue
+        .replace(/@eaDir\//i, "");
       const baseName = path.basename(filePath);
       const dirName = path.dirname(filePath);
 
-      // Store the added file with its path
       pendingAdds.set(filePath, { baseName, dirName });
-      // console.log("PA", pendingAdds);
 
-      // Check for any corresponding removals
       for (const [removedPath, removedFile] of pendingRemovals) {
         if (removedFile.dirName === dirName && removedFile.baseName !== baseName) {
-          console.info(`File ${removedPath} was renamed to ${filePath}`);
-          // Execute your specific rename/move handling code here
+          console.info(`${LOG_TAG} File ${removedPath} was renamed to ${filePath}`);
+
           handleRenameOrMove(removedPath, filePath);
 
-          // Clean up both the added and removed paths
           pendingAdds.delete(filePath);
           isRemoved = false;
           return;
         }
         if (removedFile.baseName === baseName && removedFile.dirName !== dirName) {
-          console.info(`File ${removedPath} was moved to ${filePath}`);
-          // Execute your specific rename/move handling code here
+          console.info(`${LOG_TAG} File ${removedPath} was moved to ${filePath}`);
+
           handleRenameOrMove(removedPath, filePath);
 
-          // Clean up both the added and removed paths
           pendingAdds.delete(filePath);
           isRemoved = false;
           return;
         }
       }
 
-      // Delay to confirm if it's a rename
+      if (!isInit) {
+        console.debug(`${LOG_TAG} Queued potential add: ${filePath} (pendingAdds size: ${pendingAdds.size})`);
+      }
+
       setTimeout(() => {
         if (!isInit && isAdded) {
-          console.info(`File ${filePath} has been added`);
+          console.debug(`${LOG_TAG} File ${filePath} has been added`);
           broadcastUpdate();
         }
         if (pendingAdds.has(filePath)) {
-          // Confirm it's still an add
-
           pendingAdds.delete(filePath);
           isAdded = true;
         }
       }, renameDelay);
     });
 
-    // When a file is removed
     watcher.on("unlink", (filePath) => {
       filePath = filePath
-        .replace(/@SynoEAStream/i, "")
+        .replace(/@SynoEAStream/i, "") // Fix for Synology issue
         .replace(/@SynoResource/i, "")
-        .replace(/@eaDir\//i, ""); // Fix for Synology issue
+        .replace(/@eaDir\//i, "");
       const baseName = path.basename(filePath);
       const dirName = path.dirname(filePath);
 
-      // Store the removed file for potential rename detection
       pendingRemovals.set(filePath, { baseName, dirName });
-
-      // Check for any corresponding adds
+      console.debug(`${LOG_TAG} Queued potential removal: ${filePath} (pendingRemovals size: ${pendingRemovals.size})`);
 
       for (const [addedPath, addedFile] of pendingAdds) {
         if (addedFile.dirName === dirName && addedFile.baseName !== baseName) {
-          console.info(`File ${filePath} was renamed to ${addedPath}`);
-          // Execute your specific rename/move handling code here
+          console.info(`${LOG_TAG} File ${filePath} was renamed to ${addedPath}`);
+
           handleRenameOrMove(filePath, addedPath);
 
-          // Clean up both the added and removed paths
           pendingRemovals.delete(filePath);
           isAdded = false;
           return;
         }
-        // Handle files across different directories
+
         if (addedFile.baseName === baseName && addedFile.dirName !== dirName) {
-          console.info(`File ${filePath} was moved to ${addedPath}`);
+          console.info(`${LOG_TAG} File ${filePath} was moved to ${addedPath}`);
           handleRenameOrMove(filePath, addedPath);
 
           pendingRemovals.delete(filePath);
@@ -146,14 +143,12 @@ function initializeWatcher() {
         }
       }
 
-      // Delay to confirm if it's a rename
       setTimeout(() => {
         if (isRemoved) {
-          // If no corresponding add was found, treat it as a normal removal
-          console.info(`File ${filePath} has been removed`);
-
-          // Execute your specific removal handling code here
+          console.debug(`${LOG_TAG} File ${filePath} has been removed`);
           handleRemove(filePath);
+        } else {
+          console.debug(`${LOG_TAG} Removal was part of rename/move - ignored standalone remove`);
         }
         pendingRemovals.delete(filePath);
         isRemoved = true;
@@ -163,19 +158,19 @@ function initializeWatcher() {
     // Handle errors
     watcher.on("error", (error) => console.error(`Watcher error: ${error}`));
   } else {
-    console.warn(`Watcher not started. Directory ${pathToWatch} not found`);
+    console.warn(`${LOG_TAG} Watcher not started. Directory ${pathToWatch} not found`);
     return;
   }
 
   setTimeout(() => {
     isInit = false;
-    console.info("Ready to start monitoring directories");
+    console.debug(`${LOG_TAG} Ready to start monitoring directories`);
   }, initTime);
 }
 
 function handleRenameOrMove(oldPath, newPath) {
   settings = JSON.parse(fs.readFileSync("/config/settings.js"));
-  console.info(`Handling rename from ${oldPath} to ${newPath} in buckets`);
+  console.info(`${LOG_TAG} Handling rename from ${oldPath} to ${newPath} in buckets`);
   let settingsUpdated = false;
   settings.buckets.forEach((bucket) => {
     bucket.media.forEach((file) => {
@@ -185,7 +180,9 @@ function handleRenameOrMove(oldPath, newPath) {
       ) {
         file.file = path.basename(newPath);
         file.dir = path.dirname(newPath).replace(settings.settings.loc, "");
-        console.info(`Updated settings for renamed file: ${oldPath} to ${newPath} in bucket "${bucket.name}"`);
+        console.info(
+          `${LOG_TAG} Updated settings for renamed file: ${oldPath} to ${newPath} in bucket "${bucket.name}"`,
+        );
         settingsUpdated = true;
       }
     });
@@ -193,14 +190,14 @@ function handleRenameOrMove(oldPath, newPath) {
   if (settingsUpdated) {
     try {
       fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-      console.info("Settings file saved");
+      console.info(`${LOG_TAG} Settings file saved`);
 
       axios
         .get("http://localhost:4949/webhook") // Make sure the path is correct
         .then((response) => {})
         .catch((error) => {});
     } catch (err) {
-      console.error("Error saving settings file", err);
+      console.error(`${LOG_TAG} Error saving settings file ${err}`);
     }
   }
   broadcastUpdate();
@@ -208,7 +205,7 @@ function handleRenameOrMove(oldPath, newPath) {
 
 function handleRemove(oldPath) {
   settings = JSON.parse(fs.readFileSync("/config/settings.js"));
-  console.info(`Handling removal of ${oldPath} in buckets...`);
+  console.info(`${LOG_TAG} Handling removal of ${oldPath} in buckets...`);
 
   let settingsUpdated = false;
 
@@ -217,11 +214,13 @@ function handleRemove(oldPath) {
 
     bucket.media = bucket.media.filter(
       (file) =>
-        !(file.file === path.basename(oldPath) && file.dir === path.dirname(oldPath).replace(settings.settings.loc, ""))
+        !(
+          file.file === path.basename(oldPath) && file.dir === path.dirname(oldPath).replace(settings.settings.loc, "")
+        ),
     );
 
     if (bucket.media.length !== initialMediaLength) {
-      console.info(`Removed all occurrences of ${oldPath} from bucket "${bucket.name}"`);
+      console.info(`${LOG_TAG} Removed all occurrences of ${oldPath} from bucket "${bucket.name}"`);
       settingsUpdated = true;
     }
   });
@@ -229,16 +228,16 @@ function handleRemove(oldPath) {
   if (settingsUpdated) {
     try {
       fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-      console.info("Settings file saved");
+      console.info(`${LOG_TAG} Settings file saved`);
       axios
         .get("http://localhost:4949/webhook") // Make sure the path is correct
         .then((response) => {})
         .catch((error) => {});
     } catch (err) {
-      console.error("Error saving settings file", err);
+      console.error(`${LOG_TAG} Error saving settings file ${err}`);
     }
   } else {
-    console.info("No changes made to settings.");
+    console.info(`${LOG_TAG} No changes made to settings`);
   }
   broadcastUpdate();
 }

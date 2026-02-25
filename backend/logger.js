@@ -4,12 +4,18 @@ var fs = require("fs");
 const { createLogger, format, transports } = require("winston");
 const DailyRotateFile = require("winston-daily-rotate-file");
 
+var settings;
+
 function setLogLevel() {
   let level = "info";
+  let size = "1";
+  let files = "5";
   try {
     if (fs.existsSync("/config/settings.js")) {
-      const settings = JSON.parse(fs.readFileSync("/config/settings.js"));
-      level = settings.settings?.logLevel === "1" ? "debug" : "info";
+      settings = JSON.parse(fs.readFileSync("/config/settings.js"));
+      level = settings?.settings?.logLevel === "1" ? "debug" : level;
+      size = settings?.settings?.logSize ?? size;
+      files = settings?.settings?.logFiles ?? files;
     }
   } catch (err) {
     console.error("Error reading or parsing settings.js:", err);
@@ -19,15 +25,19 @@ function setLogLevel() {
     level: level,
     format: format.combine(
       format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-      format.printf((info) => `[${info.timestamp}] [${info.level}] ${info.message}`)
+      format.printf((info) => {
+        const paddedLevel = info.level.toUpperCase().padEnd(5);
+        const timestamp = info.timestamp.padEnd(19);
+        return `[${timestamp}] [${paddedLevel}] ${info.message}`;
+      }),
     ),
     transports: [
       new transports.Console(),
       new DailyRotateFile({
         filename: "/config/logs/prerollplus-%DATE%.log",
         datePattern: "YYYY-MM-DD",
-        maxSize: "20m",
-        maxFiles: "5",
+        maxSize: `${size}m`,
+        maxFiles: `${files}`,
       }),
     ],
   });
@@ -39,7 +49,9 @@ function setLogLevel() {
   console.warn = (...args) => logger.log("warn", args.join(" "));
   console.debug = (...args) => logger.log("debug", args.join(" "));
 
-  console.info(`Log level set to "${level}"`);
+  console.info(`[LOGGER] Log level set to "${level}"`);
+  console.info(`[LOGGER] Log Size limit set to ${size}MB`);
+  console.info(`[LOGGER] Max files set to ${files}`);
 }
 
 setLogLevel();

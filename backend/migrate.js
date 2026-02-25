@@ -1,8 +1,11 @@
 var axios = require("axios").default;
 
+const LOG_TAG = "[MIGRATE]";
+
 async function updateSequences(temp) {
+  console.log(`${LOG_TAG} Starting migration to configuration schema v2`);
   if (!temp || !Array.isArray(temp.sequences)) {
-    console.warn("No sequences found to migrate.");
+    console.warn(`${LOG_TAG} No sequences found to migrate`);
     return temp;
   }
 
@@ -10,7 +13,6 @@ async function updateSequences(temp) {
   today.setHours(0, 0, 0, 0);
   const currentYear = today.getFullYear();
 
-  // helper delay
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   for (let i = 0; i < temp.sequences.length; i++) {
@@ -30,23 +32,23 @@ async function updateSequences(temp) {
         sequence.holidayDate = match.date;
         sequence.holidaySource = sequence.holidaySource ?? "1";
 
-        console.info(`Migrated sequence "${sequence.name}" (${sequence.id}) -> holiday ${match.date}`);
+        console.info(`${LOG_TAG} Migrated sequence "${sequence.name}" (${sequence.id}) -> holiday ${match.date}`);
       } else {
-        console.info(`No holiday match for sequence "${sequence.name}" in country ${sequence.country}`);
+        console.info(`${LOG_TAG} No holiday match for sequence "${sequence.name}" in country ${sequence.country}`);
       }
     } catch (error) {
       console.error(
-        `Error fetching holidays for country=${sequence.country} (sequence="${sequence.name}"):`,
-        error.message
+        `${LOG_TAG} Error fetching holidays for country=${sequence.country} (sequence="${sequence.name}"):`,
+        error.message,
       );
     }
 
-    // Add a 100ms delay before the next iteration to avoid hammering the API
     if (i < temp.sequences.length - 1) {
       await delay(100);
     }
   }
 
+  console.log(`${LOG_TAG} Migration complete`);
   return temp;
 }
 

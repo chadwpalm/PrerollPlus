@@ -6,8 +6,9 @@ var uuid = require("uuid").v4;
 var updates = require("./migrate.js");
 var axios = require("axios").default;
 
+const LOG_TAG = "[LOAD]";
+
 var appVersion, branch, UID, GID, build;
-var hostname = os.hostname;
 var platform = `${os.platform().charAt(0).toUpperCase()}${os.platform().slice(1).toLowerCase()} ${os.release}`;
 
 try {
@@ -15,7 +16,7 @@ try {
   appVersion = JSON.parse(info).version;
   branch = JSON.parse(info).branch;
 } catch (err) {
-  console.error("Cannot grab version and branch info", err);
+  console.error(`${LOG_TAG} Cannot grab version and branch info ${err}`);
 }
 
 if (process.env.PUID) {
@@ -53,7 +54,7 @@ try {
   }
 
   if (temp.api !== "v2") {
-    console.info('Backing up old settings file to "settings_v1.bak"');
+    console.info(`${LOG_TAG} Backing up old settings file to "settings_v1.bak"`);
     fs.writeFileSync("/config/settings_v1.bak", JSON.stringify(temp));
 
     updates.updateSequences(temp).then((newTemp) => {
@@ -86,8 +87,8 @@ try {
       fs.chownSync("/config/settings.js", UID, GID, (err) => {
         if (err) throw err;
       });
-      console.info(`Config file updated to UID: ${UID} GID: ${GID}`);
-      console.info("Settings file read");
+      console.info(`${LOG_TAG} Config file updated to UID: ${UID} GID: ${GID}`);
+      console.info(`${LOG_TAG} Settings file read`);
     });
   } else {
     if (temp.version !== appVersion || temp.build !== build || temp.branch !== branch) {
@@ -118,8 +119,8 @@ try {
     fs.chownSync("/config/settings.js", UID, GID, (err) => {
       if (err) throw err;
     });
-    console.info(`Config file updated to UID: ${UID} GID: ${GID}`);
-    console.info("Settings file read");
+    console.info(`${LOG_TAG} Config file updated to UID: ${UID} GID: ${GID}`);
+    console.info(`${LOG_TAG} Settings file read`);
   }
 
   if (temp.settings) {
@@ -129,32 +130,38 @@ try {
         .then((response) => {})
         .catch((error) => {});
     } catch {
-      console.error("Could not create initial sequence");
+      console.error(`${LOG_TAG} Could not create initial sequence`);
     }
   }
 } catch (err) {
-  console.info("Settings file not found, creating");
+  console.info(`${LOG_TAG} Settings file not found, creating...`);
   try {
     if (!fs.existsSync("/config")) {
       fs.mkdirSync("/config");
+      console.info(`${LOG_TAG} Created /config directory`);
     }
     fs.writeFileSync("/config/settings.js", fileData);
-    console.info("Settings file created");
-    fs.chownSync("/config/settings.js", UID, GID, (err) => {
-      if (err) throw err;
-    });
-    console.info(`Config file set to UID: ${UID} GID: ${GID}`);
+    console.info(`${LOG_TAG} Settings file created/written`);
+    fs.chownSync("/config/settings.js", UID, GID);
+
+    console.info(`${LOG_TAG} Config file ownership set to UID: ${UID} GID: ${GID}`);
   } catch (err) {
-    if (err) throw err;
+    console.error(`${LOG_TAG} Failed to create/write/own settings file: ${err.message}`);
+    if (err.code) {
+      console.error(`${LOG_TAG} Error code: ${err.code}`);
+    }
+    if (err.stack) {
+      console.debug(`${LOG_TAG} Stack: ${err.stack}`);
+    }
   }
 }
 
 router.get("/", function (req, res, next) {
   try {
     fileData = fs.readFileSync("/config/settings.js");
-    console.info("Settings file read");
+    console.info(`${LOG_TAG} Settings file read`);
   } catch (err) {
-    console.error("Settings file not found");
+    console.error(`${LOG_TAG} Settings file not found`);
   }
 
   res.send(fileData);

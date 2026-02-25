@@ -684,10 +684,30 @@ export default class Create extends Component {
                       </ListGroup.Item>
                     ) : null}
                     {this.state.directoryList ? (
-                      this.state.directoryList
-                        .filter((file) => !file.name.startsWith(".") && !file.name.startsWith("@")) // Filter out files starting with . or @
-                        .map((file) =>
-                          file.isDir ? (
+                      this.state.directoryList.map((file) =>
+                        file.isDir ? (
+                          <ListGroup.Item
+                            key={file.name}
+                            value={JSON.stringify(file)}
+                            action
+                            onClick={this.handleClick}
+                            className="listgroup-custom-b"
+                          >
+                            {file.name}/
+                          </ListGroup.Item>
+                        ) : this.state.source === "1" ? (
+                          this.state.selectedList.includes(file.name) ? (
+                            <ListGroup.Item
+                              key={file.name}
+                              value={JSON.stringify(file)}
+                              action
+                              active
+                              onClick={this.handleClick}
+                              className="listgroup-custom-active"
+                            >
+                              {file.name}
+                            </ListGroup.Item>
+                          ) : (
                             <ListGroup.Item
                               key={file.name}
                               value={JSON.stringify(file)}
@@ -695,35 +715,13 @@ export default class Create extends Component {
                               onClick={this.handleClick}
                               className="listgroup-custom-b"
                             >
-                              {file.name}/
+                              {file.name}
                             </ListGroup.Item>
-                          ) : this.state.source === "1" ? (
-                            this.state.selectedList.includes(file.name) ? (
-                              <ListGroup.Item
-                                key={file.name}
-                                value={JSON.stringify(file)}
-                                action
-                                active
-                                onClick={this.handleClick}
-                                className="listgroup-custom-active"
-                              >
-                                {file.name}
-                              </ListGroup.Item>
-                            ) : (
-                              <ListGroup.Item
-                                key={file.name}
-                                value={JSON.stringify(file)}
-                                action
-                                onClick={this.handleClick}
-                                className="listgroup-custom-b"
-                              >
-                                {file.name}
-                              </ListGroup.Item>
-                            )
-                          ) : (
-                            ""
-                          ),
-                        )
+                          )
+                        ) : (
+                          ""
+                        ),
+                      )
                     ) : (
                       <ListGroup.Item>Directory does not exist</ListGroup.Item> // Display this if directoryList is null or empty
                     )}

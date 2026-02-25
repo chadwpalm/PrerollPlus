@@ -8,7 +8,8 @@
 2. Updated Node version to 20 LTS in Docker image.
 3. Updated Plex login code to remove outdated and unmaintained 3rd party package which depended on old and vulnerable packages.
 4. Updated Docker build process to generate smaller Docker images by stripping out the frontend build files and node modules.
-5. General code cleanup and housekeeping.
+5. Greatly improved logging including more detailed debug code and the ability to set log size limits and maximum archived log files. (Reminder: Debug logging can be turned on in settings, Show Advanced)
+6. General code cleanup and housekeeping.
 
 ### New Features
 
@@ -18,6 +19,7 @@
 ### Fixes
 
 1. Fixed issue where holidays were using UTC time rather than local time zones.
+2. Improved filtering of system files (like Synology) to cover more operating systems.
 
 ## 1.3.5
 
@@ -105,7 +107,7 @@
 ### Changes
 
 1. Changed menu behavior so if there are no buckets you cannot enter the Sequences page and user will be routed to Buckets to start creating one since Sequences are dependent on Buckets.
-2. Configuration file scheme has been updated to accommodate changes in Sequences such as priorities and information for Calendarific.
+2. Configuration file schema has been updated to accommodate changes in Sequences such as priorities and information for Calendarific.
    a. Existing configs will be backed up and migrated over to the new schema. Behavior should work as previously intended, but all priorities will be set to N/A until changed.
 
 ### Fixes
