@@ -14,28 +14,56 @@ var streamer = require("./backend/streamer");
 var monitor = require("./backend/monitor");
 var holiday = require("./backend/holiday");
 var clearCache = require("./backend/clearcache");
+const { getBaseURL } = require("./backend/config");
 
 var app = express();
+
+const baseURL = (getBaseURL() || "").replace(/\/$/, "");
+
+console.log(`[APP] Preroll Plus Base URL: "${baseURL}" (empty = running at root)`);
+
+let base = baseURL;
+if (base && !base.startsWith("/")) {
+  base = "/" + base;
+}
+
+if (base) {
+  app.get("/", (req, res) => {
+    res.redirect(base + "/");
+  });
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "frontend/production")));
 
-app.use("/backend/logger", logger);
-app.use("/backend/load", load);
-app.use("/backend/save", save);
-app.use("/backend/thumb", thumb);
-app.use("/backend/settings", settings);
-app.use("/backend/directory", directory);
-app.use("/backend/streamer", streamer);
-app.use("/backend/monitor", monitor);
-app.use("/backend/holiday", holiday);
-app.use("/backend/clearcache", clearCache);
-app.use("/webhook", webhookRouter);
+app.use(base + "/backend/logger", logger);
+app.use(base + "/backend/load", load);
+app.use(base + "/backend/save", save);
+app.use(base + "/backend/thumb", thumb);
+app.use(base + "/backend/settings", settings);
+app.use(base + "/backend/directory", directory);
+app.use(base + "/backend/streamer", streamer);
+app.use(base + "/backend/monitor", monitor);
+app.use(base + "/backend/holiday", holiday);
+app.use(base + "/backend/clearcache", clearCache);
+app.use(base + "/webhook", webhookRouter);
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend/production/index.html"));
+app.use(
+  base,
+  express.static(path.join(__dirname, "frontend/production"), {
+    redirect: false,
+  }),
+);
+
+app.get(base + "*", (req, res) => {
+  const indexPath = path.join(__dirname, "frontend/production", "index.html"); // correct join
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error("[SPA] Failed to send index.html:", err);
+      res.status(500).send("Failed to load application");
+    }
+  });
 });
 
 // catch 404 and forward to error handler
@@ -46,13 +74,14 @@ app.use(function (req, res, next) {
 // error handler
 app.use(function (err, req, res, next) {
   console.error(err);
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
+  const status = err.status || 500;
+  res.status(status);
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render("error");
+  if (req.accepts("json")) {
+    res.json({ error: err.message || "Internal Server Error" });
+  } else {
+    res.type("text/plain").send("Internal Server Error");
+  }
 });
 
 module.exports = app;

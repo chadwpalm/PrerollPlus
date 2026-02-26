@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 let activePort = null;
+let baseURL = null;
 
 function getActivePort() {
   if (activePort !== null) return activePort;
@@ -35,4 +36,27 @@ function getActivePort() {
   return 4949;
 }
 
-module.exports = { getActivePort };
+function getBaseURL() {
+  if (baseURL !== null) return baseURL;
+
+  try {
+    const settingsPath = path.join("/", "config", "settings.js");
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+      const cfgURL = settings?.settings?.baseURL;
+
+      baseURL = (typeof cfgURL === "string" ? cfgURL : "").replace(/\/$/, "");
+
+      console.info(`[CONFIG] Base URL loaded: "${baseURL}"`);
+      return baseURL;
+    }
+  } catch (err) {
+    console.error("[CONFIG] Error reading settings.js for port:", err.message);
+  }
+
+  activePort = 4949;
+  console.info("[CONFIG] Using default port: 4949");
+  return 4949;
+}
+
+module.exports = { getActivePort, getBaseURL };
