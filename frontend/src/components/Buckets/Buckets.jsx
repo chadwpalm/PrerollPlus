@@ -80,7 +80,7 @@ export default class Buckets extends Component {
         if (xhr.status === 200) {
           this.setState({ show: false });
 
-          const response = await fetch("/webhook", { method: "GET" });
+          const response = await fetch("webhook", { method: "GET" });
           if (!response.ok) {
             throw new Error(`Response status: ${response.status}`);
           }
@@ -94,7 +94,7 @@ export default class Buckets extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
@@ -123,7 +123,7 @@ export default class Buckets extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 

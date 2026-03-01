@@ -150,7 +150,7 @@ export default class Create extends Component {
           }
         }
       });
-      xhr.open("POST", "/backend/holiday", true);
+      xhr.open("POST", "backend/holiday", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(countryInfo));
     }
@@ -217,7 +217,7 @@ export default class Create extends Component {
         }
       });
 
-      xhr.open("POST", "/backend/holiday", true);
+      xhr.open("POST", "backend/holiday", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(countryInfo));
     } else {
@@ -275,7 +275,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/holiday", true);
+    xhr.open("POST", "backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(countryInfo));
   };
@@ -325,7 +325,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/holiday", true);
+    xhr.open("POST", "backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(countryInfo));
   };
@@ -374,7 +374,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/holiday", true);
+    xhr.open("POST", "backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(countryInfo));
   };
@@ -571,7 +571,7 @@ export default class Create extends Component {
             }
           });
 
-          xhr2.open("GET", "/webhook", true);
+          xhr2.open("GET", "webhook", true);
           xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
           xhr2.send();
         } else {
@@ -582,7 +582,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 

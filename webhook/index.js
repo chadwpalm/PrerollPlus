@@ -4,7 +4,7 @@ var multer = require("multer");
 var fs = require("fs");
 var path = require("path");
 var axios = require("axios").default;
-const { getActivePort } = require("../backend/config");
+const { getActivePort, getBaseURL } = require("../backend/config");
 
 // Global Variables
 
@@ -17,6 +17,11 @@ const filePath = "/config/settings.js";
 var settings;
 
 const [hours, minutes] = (process.env.SCHEDULE_TIME?.split(":") || ["0", "0"]).map((part) => parseInt(part, 10) || 0);
+
+function getInternalURL(path) {
+  const base = (getBaseURL() || "").replace(/\/$/, "");
+  return `http://localhost:${getActivePort()}${base}${path}`;
+}
 
 // General Functions
 
@@ -312,7 +317,7 @@ async function createList(index) {
       if (info.source === "2") {
         try {
           const response = await axios.post(
-            `http://localhost:${getActivePort()}/backend/directory`,
+            getInternalURL("/backend/directory"),
             { dir: `${info.dir}`, isSub: info.includeSub || false },
             {
               headers: {
@@ -393,7 +398,7 @@ async function sendList(string) {
       const settingsToSave = { ...settings };
 
       try {
-        await axios.post(`http://localhost:${getActivePort()}/backend/save`, settingsToSave, {
+        await axios.post(getInternalURL("/backend/save"), settingsToSave, {
           headers: {
             "Content-Type": "application/json",
           },
@@ -473,10 +478,10 @@ router.post("/", upload.single("thumb"), async function (req, res, next) {
   }
 });
 
-router.get("/", function (req, res, next) {
+router.get("/", async function (req, res, next) {
   settings = JSON.parse(fs.readFileSync(filePath));
   console.debug(`${LOG_TAG} Manual preroll update triggered`);
-  doTask();
+  await doTask();
 
   res.sendStatus(200);
 });

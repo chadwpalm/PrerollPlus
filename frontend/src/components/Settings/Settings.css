@@ -15,6 +15,11 @@
     color: rgb(255, 94, 0);
 }
 
+.form-content.dark-mode .form-control::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+            color: rgb(141, 141, 141) !important;
+            opacity: 1; /* Firefox */
+}
+
 .form-content.dark-mode .repeat-icon {
     filter: invert(100%);
 }

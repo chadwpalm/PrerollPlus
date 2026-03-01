@@ -112,7 +112,7 @@ export default class Create extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/directory", true);
+    xhr.open("POST", "backend/directory", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(
       JSON.stringify({
@@ -244,7 +244,7 @@ export default class Create extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/directory", true);
+    xhr.open("POST", "backend/directory", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify({ dir: `${this.state.currentDir}`, isSub: false }));
   };
@@ -341,12 +341,12 @@ export default class Create extends Component {
         if (xhr.status === 200) {
           this.setState({ isSaved: true });
 
-          const response = await fetch("/webhook", { method: "GET" });
+          const response = await fetch("webhook", { method: "GET" });
           if (!response.ok) {
             throw new Error(`Response status: ${response.status}`);
           }
 
-          const response2 = await fetch("/backend/monitor", { method: "GET" });
+          const response2 = await fetch("backend/monitor", { method: "GET" });
           if (!response2.ok) {
             throw new Error(`Response status: ${response.status}`);
           }
@@ -359,7 +359,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
@@ -377,7 +377,7 @@ export default class Create extends Component {
       () => {
         if (this.videoRef.current && this.state.tempList.length > 0) {
           // Set the initial video source
-          this.videoRef.current.src = `/backend/streamer${this.state.currentDir}/${
+          this.videoRef.current.src = `backend/streamer${this.state.currentDir}/${
             this.state.tempList[this.state.videoIndex]
           }`;
           this.videoRef.current.load();
@@ -393,7 +393,7 @@ export default class Create extends Component {
 
       if (nextIndex < prevState.tempLength) {
         // Update the video index and set the next video source
-        this.videoRef.current.src = `/backend/streamer${this.state.currentDir}/${prevState.tempList[nextIndex]}`;
+        this.videoRef.current.src = `backend/streamer${this.state.currentDir}/${prevState.tempList[nextIndex]}`;
         this.videoRef.current.load();
         this.videoRef.current.play(); // Start playing the next video
       } else {

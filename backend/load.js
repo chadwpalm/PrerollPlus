@@ -5,9 +5,14 @@ var os = require("os");
 var uuid = require("uuid").v4;
 var updates = require("./migrate.js");
 var axios = require("axios").default;
-const { getActivePort } = require("../backend/config");
+const { getActivePort, getBaseURL } = require("../backend/config");
 
 const LOG_TAG = "[LOAD]";
+
+function getInternalURL(path) {
+  const base = (getBaseURL() || "").replace(/\/$/, "");
+  return `http://localhost:${getActivePort()}${base}${path}`;
+}
 
 var appVersion, branch, UID, GID, build;
 var platform = `${os.platform().charAt(0).toUpperCase()}${os.platform().slice(1).toLowerCase()} ${os.release}`;
@@ -125,14 +130,15 @@ try {
   }
 
   if (temp.settings) {
-    try {
-      axios
-        .get(`http://localhost:${getActivePort()}/webhook`) // Make sure the path is correct
-        .then((response) => {})
-        .catch((error) => {});
-    } catch {
-      console.error(`${LOG_TAG} Could not create initial sequence`);
-    }
+    console.info(`${LOG_TAG} Creating initial sequence`);
+    axios
+      .get(getInternalURL("/webhook"))
+      .then((response) => {
+        console.info(`${LOG_TAG} Initial sequence created successfully`);
+      })
+      .catch((error) => {
+        console.error(`${LOG_TAG} Failed to create initial sequence`, error.message);
+      });
   }
 } catch (err) {
   console.info(`${LOG_TAG} Settings file not found, creating... ${err}`);

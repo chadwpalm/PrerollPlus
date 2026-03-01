@@ -33,7 +33,7 @@ function getActivePort() {
 
   activePort = 4949;
   console.info("[CONFIG] Using default port: 4949");
-  return 4949;
+  return activePort;
 }
 
 function getBaseURL() {
@@ -54,9 +54,9 @@ function getBaseURL() {
     console.error("[CONFIG] Error reading settings.js for port:", err.message);
   }
 
-  activePort = 4949;
-  console.info("[CONFIG] Using default port: 4949");
-  return 4949;
+  baseURL = "";
+  console.info("[CONFIG] No base URL configured, defaulting to root");
+  return baseURL;
 }
 
 module.exports = { getActivePort, getBaseURL };

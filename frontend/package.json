@@ -1,5 +1,6 @@
 {
   "name": "frontend",
+  "homepage": ".",
   "private": true,
   "overrides": {
     "minimatch": "^10.2.1",

@@ -2,7 +2,7 @@ var createError = require("http-errors");
 var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
-
+const fs = require("fs");
 var logger = require("./backend/logger");
 var webhookRouter = require("./webhook/index");
 var load = require("./backend/load");
@@ -28,8 +28,10 @@ if (base && !base.startsWith("/")) {
 }
 
 if (base) {
-  app.get("/", (req, res) => {
-    res.redirect(base + "/");
+  app.use((req, res, next) => {
+    if (req.path === "/") return res.redirect(302, base + "/");
+    if (req.path === base) return res.redirect(302, base + "/");
+    next();
   });
 }
 
@@ -49,22 +51,33 @@ app.use(base + "/backend/holiday", holiday);
 app.use(base + "/backend/clearcache", clearCache);
 app.use(base + "/webhook", webhookRouter);
 
-app.use(
-  base,
-  express.static(path.join(__dirname, "frontend/production"), {
-    redirect: false,
-  }),
-);
+if (base) {
+  app.use(base + "/", express.static(path.join(__dirname, "frontend/production"), { index: false }));
+} else {
+  app.use(express.static(path.join(__dirname, "frontend/production"), { index: false }));
+}
 
-app.get(base + "*", (req, res) => {
-  const indexPath = path.join(__dirname, "frontend/production", "index.html"); // correct join
-  res.sendFile(indexPath, (err) => {
+const spaHandler = (req, res) => {
+  const indexPath = path.join(__dirname, "frontend/production", "index.html");
+
+  fs.readFile(indexPath, "utf8", (err, data) => {
     if (err) {
-      console.error("[SPA] Failed to send index.html:", err);
-      res.status(500).send("Failed to load application");
+      console.error("[SPA] Failed to read index.html:", err);
+      return res.status(500).send("Failed to load application");
     }
+
+    const basePath = base ? base + "/" : "/";
+    const injected = data.replace("<head>", `<head><script>window.__BASE_PATH__="${basePath}";</script>`);
+
+    res.send(injected);
   });
-});
+};
+
+if (base) {
+  app.use(base + "/", spaHandler);
+} else {
+  app.use("/", spaHandler);
+}
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

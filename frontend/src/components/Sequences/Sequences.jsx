@@ -88,7 +88,7 @@ export default class Sequences extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
@@ -137,7 +137,7 @@ export default class Sequences extends Component {
             }
           });
 
-          xhr2.open("GET", "/webhook", true);
+          xhr2.open("GET", "webhook", true);
           xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
           xhr2.send();
         } else {
@@ -150,7 +150,7 @@ export default class Sequences extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 

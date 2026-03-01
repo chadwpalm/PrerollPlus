@@ -97,7 +97,7 @@ export default class Settings extends Component {
     this.props.connection(1);
 
     try {
-      const saveResponse = await fetch("/backend/save", {
+      const saveResponse = await fetch("backend/save", {
         method: "POST",
         headers: { "Content-Type": "application/json;charset=UTF-8" },
         body: JSON.stringify(this.props.settings),
@@ -107,13 +107,13 @@ export default class Settings extends Component {
 
       this.setState({ isSaved: true });
 
-      const monitorResp = await fetch("/backend/monitor");
+      const monitorResp = await fetch("backend/monitor");
       if (!monitorResp.ok) throw new Error(`Monitor failed: ${monitorResp.status}`);
 
-      const loggerResp = await fetch("/backend/logger");
+      const loggerResp = await fetch("backend/logger");
       if (!loggerResp.ok) throw new Error(`Logger failed: ${loggerResp.status}`);
 
-      const webhookResp = await fetch("/webhook");
+      const webhookResp = await fetch("webhook");
       if (!webhookResp.ok) throw new Error(`Webhook failed: ${webhookResp.status}`);
     } catch (err) {
       console.error(err);
@@ -175,7 +175,7 @@ export default class Settings extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/settings", true);
+    xhr.open("POST", "backend/settings", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(this.props.settings));
   };
@@ -266,7 +266,7 @@ export default class Settings extends Component {
         }
       });
 
-      xhr.open("POST", "/backend/save", true);
+      xhr.open("POST", "backend/save", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(settings));
 
@@ -291,7 +291,7 @@ export default class Settings extends Component {
       }
     });
 
-    xhr.open("GET", "/backend/clearcache", true);
+    xhr.open("GET", "backend/clearcache", true);
     xhr.send();
   };
 

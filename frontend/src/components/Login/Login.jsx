@@ -188,7 +188,7 @@ export default class Login extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", false);
+    xhr.open("POST", "backend/save", false);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
@@ -215,7 +215,7 @@ export default class Login extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/thumb", false);
+    xhr.open("POST", "backend/thumb", false);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(data));
   };
