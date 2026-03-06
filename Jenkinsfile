@@ -47,6 +47,9 @@ pipeline {
       }
       steps {
         script {
+          withCredentials([usernamePassword(credentialsId: '71aeb696-0670-4267-8db4-8ee74774e051', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+            }
           def JSONVersion = readJSON file: 'version.json'
           def PulledVersion = JSONVersion.version
           def BuildNumber = sh(
