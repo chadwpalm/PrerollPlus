@@ -1,35 +1,34 @@
 pipeline {
-
   agent any
 
   environment {
-      REPO="chadwpalm"
-      IMAGE_NAME="prerollplus"
-      BUILD_CRED=credentials('c8678c85-1f8d-4dc0-b9b0-e7fe12d6a24a')
+      REPO = 'chadwpalm'
+      IMAGE_NAME = 'prerollplus'
+      BUILD_CRED = credentials('c8678c85-1f8d-4dc0-b9b0-e7fe12d6a24a')
   }
 
   options {
-      timeout (time: 10, unit: 'MINUTES')
-      buildDiscarder (logRotator (numToKeepStr: '3'))
+      timeout(time: 10, unit: 'MINUTES')
+      buildDiscarder(logRotator(numToKeepStr: '3'))
   }
 
-  stages { 
+  stages {
     stage('Login') {
       steps {
-        withCredentials([usernamePassword(credentialsId: '71aeb696-0670-4267-8db4-8ee74774e051', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {              
-          sh ('echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin')
+        withCredentials([usernamePassword(credentialsId: '71aeb696-0670-4267-8db4-8ee74774e051', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+          sh('echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin')
         }
       }
     }
     stage('Build Dev') {
       when {
-        branch "develop"
+        branch 'develop'
       }
       steps {
         script {
-          def JSONVersion = readJSON file: "version.json"
+          def JSONVersion = readJSON file: 'version.json'
           def PulledVersion = JSONVersion.version
-          def BuildNumber = sh (
+          def BuildNumber = sh(
             script: 'curl https://increment.build/${BUILD_CRED}',
             returnStdout: true
           ).trim()
@@ -37,21 +36,20 @@ pipeline {
           sh "docker build --force-rm --pull --build-arg BUILD='${BuildNumber}' -t ${REPO}/${IMAGE_NAME}:develop-${APPVersion} ."
           sh "docker tag ${REPO}/${IMAGE_NAME}:develop-${APPVersion} ${REPO}/${IMAGE_NAME}:develop"
           sh "docker push ${REPO}/${IMAGE_NAME}:develop-${APPVersion}"
-          sh "docker push ${REPO}/${IMAGE_NAME}:develop"          
+          sh "docker push ${REPO}/${IMAGE_NAME}:develop"
           sh "docker rmi ${REPO}/${IMAGE_NAME}:develop-${APPVersion}"
         }
-        
       }
     }
     stage('Build Prod') {
       when {
-        branch "main"
+        branch 'main'
       }
       steps {
         script {
-          def JSONVersion = readJSON file: "version.json"
+          def JSONVersion = readJSON file: 'version.json'
           def PulledVersion = JSONVersion.version
-          def BuildNumber = sh (
+          def BuildNumber = sh(
             script: 'curl https://increment.build/${BUILD_CRED}/get',
             returnStdout: true
           ).trim()
@@ -68,51 +66,41 @@ pipeline {
       when {
         not {
           anyOf {
-              branch "main"
-              branch "develop"
+            branch 'main'
+            branch 'develop'
           }
         }
       }
-      parallel {
-        local: {
-          stages {
-            stage('AMD Build') {
-              agent { label "amd" }
-              steps {
-                script {
-                    def JSONVersion = readJSON file: "version.json"
-                    def PulledVersion = JSONVersion.version
-                    def BuildNumber = sh(
-                        script: 'curl https://increment.build/${BUILD_CRED}/get',
-                        returnStdout: true
-                    ).trim()
-                    def APPVersion = "${PulledVersion}.${BuildNumber}"
-                    sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion} ."
-                    sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}"
-                }
+      steps {
+        script {
+          parallel(
+            local: {
+              node('amd') {
+                def JSONVersion = readJSON file: 'version.json'
+                def PulledVersion = JSONVersion.version
+                def BuildNumber = sh(
+                    script: 'curl https://increment.build/${BUILD_CRED}/get',
+                    returnStdout: true
+                ).trim()
+                def APPVersion = "${PulledVersion}.${BuildNumber}"
+                sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion} ."
+                sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}"
+              }
+            },
+            arm: {
+              node('arm') {
+                def JSONVersion = readJSON file: 'version.json'
+                def PulledVersion = JSONVersion.version
+                def BuildNumber = sh(
+                    script: 'curl https://increment.build/${BUILD_CRED}/get',
+                    returnStdout: true
+                ).trim()
+                def APPVersion = "${PulledVersion}.${BuildNumber}"
+                sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}-arm ."
+                sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}-arm"
               }
             }
-          }
-        }
-        arm: {
-          stages {
-            stage('ARM Build') {
-              agent { label "arm" }
-              steps {
-                script {
-                    def JSONVersion = readJSON file: "version.json"
-                    def PulledVersion = JSONVersion.version
-                    def BuildNumber = sh(
-                        script: 'curl https://increment.build/${BUILD_CRED}/get',
-                        returnStdout: true
-                    ).trim()
-                    def APPVersion = "${PulledVersion}.${BuildNumber}"
-                    sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}-arm ."
-                    sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}-arm"
-                }
-              }
-            }
-          }
+          )
         }
       }
     }
