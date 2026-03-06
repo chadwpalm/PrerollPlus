@@ -42,7 +42,7 @@ export default class App extends Component {
     first: false,
     dismiss: false,
     isDarkMode: false,
-    announcement: false,
+    announcement: true,
     sockConnected: false,
     cannotConnect: false,
     reconnectAttempts: 0,

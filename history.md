@@ -1,25 +1,16 @@
 # Preroll Plus Version History
 
-## 1.4.1
-
-### Changes
-
-1. Documentation is now through a website ([prerollplus.org](https://prerollplus.org)) instead of GitHub wiki.
-
-### Fixes
-
-1. Updated "App Dir" in the "About" modal to show the proper directory the app is running in.
-
 ## 1.4.0
 
 ### Changes
 
-1. Security updates. Updated all node packages to current versions which removed all package vulnerabilities.
-2. Updated Node version to 20 LTS in Docker image.
-3. Updated Plex login code to remove outdated and unmaintained 3rd party package which depended on old and vulnerable packages.
-4. Updated Docker build process to generate smaller Docker images by stripping out the frontend build files and node modules.
-5. Greatly improved logging including more detailed debug code and the ability to set log size limits and maximum archived log files. (Reminder: Debug logging can be turned on in settings, Show Advanced)
-6. General code cleanup and housekeeping.
+1. Documentation is now through a website ([prerollplus.org](https://prerollplus.org)) instead of GitHub wiki.
+2. Security updates. Updated all node packages to current versions which removed all package vulnerabilities.
+3. Updated Node version to 20 LTS in Docker image.
+4. Updated Plex login code to remove outdated and unmaintained 3rd party package which depended on old and vulnerable packages.
+5. Updated Docker build process to generate smaller Docker images by stripping out the frontend build files and node modules.
+6. Greatly improved logging including more detailed debug code and the ability to set log size limits and maximum archived log files. (Reminder: Debug logging can be turned on in settings, Show Advanced)
+7. General code cleanup and housekeeping.
 
 ### New Features
 
@@ -32,6 +23,7 @@
 
 1. Fixed issue where holidays were using UTC time rather than local time zones.
 2. Improved filtering of system files (like Synology) to cover more operating systems.
+3. Updated "App Dir" in the "About" modal to show the proper directory the app is running in.
 
 ## 1.3.5
 
