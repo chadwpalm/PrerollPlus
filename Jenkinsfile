@@ -67,23 +67,52 @@ pipeline {
     stage('Build Features/Fixes') {
       when {
         not {
-           anyOf {
-            branch "main";
-            branch "develop"
+          anyOf {
+              branch "main"
+              branch "develop"
           }
         }
       }
-      steps {
-        script {
-          def JSONVersion = readJSON file: "version.json"
-          def PulledVersion = JSONVersion.version
-          def BuildNumber = sh (
-            script: 'curl https://increment.build/${BUILD_CRED}',
-            returnStdout: true
-          ).trim()
-          def APPVersion = "${PulledVersion}.${BuildNumber}"
-          sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion} ."
-          sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}"
+      parallel {
+        local: {
+          stages {
+            stage('AMD Build') {
+              agent { label "amd" }
+              steps {
+                script {
+                    def JSONVersion = readJSON file: "version.json"
+                    def PulledVersion = JSONVersion.version
+                    def BuildNumber = sh(
+                        script: 'curl https://increment.build/${BUILD_CRED}/get',
+                        returnStdout: true
+                    ).trim()
+                    def APPVersion = "${PulledVersion}.${BuildNumber}"
+                    sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion} ."
+                    sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}"
+                }
+              }
+            }
+          }
+        }
+        arm: {
+          stages {
+            stage('ARM Build') {
+              agent { label "arm" }
+              steps {
+                script {
+                    def JSONVersion = readJSON file: "version.json"
+                    def PulledVersion = JSONVersion.version
+                    def BuildNumber = sh(
+                        script: 'curl https://increment.build/${BUILD_CRED}/get',
+                        returnStdout: true
+                    ).trim()
+                    def APPVersion = "${PulledVersion}.${BuildNumber}"
+                    sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}-arm ."
+                    sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}-arm"
+                }
+              }
+            }
+          }
         }
       }
     }
