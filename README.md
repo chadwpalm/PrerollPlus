@@ -1,50 +1,31 @@
-# Preroll Plus
+<img src="frontend/public/Logo_White.png#gh-dark-mode-only" alt="Preroll Plus Logo">
+<img src="frontend/public/Logo_Black.png#gh-light-mode-only" alt="Preroll Plus Logo">
 
-Preroll Plus is a dynamic preroll updater and scheduler. This app bypasses the limitations Plex has for combining random and sequential prerolls (using the "," and ";" delimiters). It works by using Plex webhooks to update the preroll string in Plex whenever a movie is started, allowing file sets that require randomization to remain randomized while maintaining a broader sequence.
+---
+![GitHub Release](https://img.shields.io/github/v/release/chadwpalm/prerollplus?label=latest)
+![Docker Image Size](https://img.shields.io/docker/image-size/chadwpalm/prerollplus?link=https%3A%2F%2Fhub.docker.com%2Frepository%2Fdocker%2Fchadwpalm%2Fprerollplus%2Fgeneral)
+![Docker Pulls](https://img.shields.io/docker/pulls/chadwpalm/prerollplus)
+![GitHub Repo stars](https://img.shields.io/github/stars/chadwpalm/prerollplus)
 
-For example:
+Preroll Plus is a smart preroll scheduler for Plex that overcomes the platform’s limited ","/";" syntax for mixing random and sequential prerolls.
 
-Plex allows files delimited by commas to play in sequence:
+Using Plex webhooks it rewrites the preroll string each time a movie starts, letting you keep ordered sets while still randomizing their contents – and it can also rotate prerolls automatically on a daily/weekly schedule.
 
-    "preroll1,preroll2,preroll3,preroll4"
+Preroll Plus focuses on doing one thing and doing it efficiently with no extra bloat.
 
-This will play preroll1, followed by preroll2, followed by preroll3, etc. Four prerolls are played.
-
-Plex also allows files delimited by semi-colons to play randomly:
-
-    "preroll1;preroll2;preroll3;preroll4"
-
-In this instance Plex will randomly choose **one** of the four prerolls and play it only.
-
-What you **cannot** do with Plex is create a list of prerolls that combine commas and semi-colons.
-
-For example:
-
-    "preroll1;preroll2,preroll3;preroll4"
-
-The intention would be to randomly play either preroll1 or preroll2, and then randomly play preroll3 or preroll4 thus playing two prerolls total.
-
-#### Solution
-
-Preroll Plus replaces semi-colon lists with "buckets" and comma lists with "sequences".
-
-You then create sequences (with or without a schedule) that contain a sequence of buckets. A file in each bucket will play randomly and then move on to the next bucket in a sequence.
-
-Since you can create as many buckets as you'd like, this can generate an infinite amount of combinations as you desire.
-
-Scheduled sequences will automatically assert on the first day the sequence starts. Fall back to a default unscheduled sequence when no scheduled sequenced are in their timeframe.
+See our [Introduction](https://prerollplus.org/docs/Introduction) for more details on how Preroll Plus works.
 
 ## Getting Started
 
 ### Information
 
-- [Documentation](https://github.com/chadwpalm/PrerollPlus/wiki)
+- [Documentation](https://prerollplus.org)
 - [Donate](https://www.buymeacoffee.com/lumunarr)
 
 ### Features
 
 - Easy to use web-based graphical interface that is also mobile friendly.
-- Combine "buckets" and "sequences" to generate your desired preroll functionality.
+- Combine [**Buckets**](https://prerollplus.org/docs/Configuration/Buckets) and [**Sequences**](https://prerollplus.org/docs/Configuration/Sequences) to generate your desired preroll functionality.
 - Sequences can be scheduled to change throughout the year.
 - Run a schedule based on a holiday leveraging one of the largest holiday calendar APIs.
 - Prioritize schedules so that you can layer schedules adding more power to what sequence plays for that day.
@@ -59,6 +40,6 @@ Scheduled sequences will automatically assert on the first day the sequence star
 ### Licenses
 
 - [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)
-- Copyright 2025
+- Copyright 2026
 
 _Preroll Plus is not affiliated or endorsed by Plex Inc._

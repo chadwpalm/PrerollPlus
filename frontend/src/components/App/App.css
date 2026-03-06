@@ -82,4 +82,5 @@ body.dark-mode a {
 
 .modal.dark-mode .modal-content {
     background-color: #363636;
+    color: white !important;
 }

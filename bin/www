@@ -8,13 +8,17 @@ var app = require("../app");
 var debug = require("debug")("prerollplus:server");
 var http = require("http");
 const { initializeWebSocket } = require("../backend/websocket");
+const { getActivePort } = require("../backend/config");
 
 /**
- * Get port from environment and store in Express.
+ * Get port from settings and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || "4949");
+const port = getActivePort();
+
 app.set("port", port);
+
+console.info(`[STARTUP] Server listening on port ${port}`);
 
 /**
  * Create HTTP server.

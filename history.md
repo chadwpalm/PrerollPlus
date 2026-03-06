@@ -1,6 +1,31 @@
 # Preroll Plus Version History
 
-### 1.3.5
+## 1.4.0
+
+### Changes
+
+1. Documentation is now through a website ([prerollplus.org](https://prerollplus.org)) instead of GitHub wiki.
+2. Security updates. Updated all node packages to current versions which removed all package vulnerabilities.
+3. Updated Node version to 20 LTS in Docker image.
+4. Updated Plex login code to remove outdated and unmaintained 3rd party package which depended on old and vulnerable packages.
+5. Updated Docker build process to generate smaller Docker images by stripping out the frontend build files and node modules.
+6. Greatly improved logging including more detailed debug code and the ability to set log size limits and maximum archived log files. (Reminder: Debug logging can be turned on in settings, Show Advanced)
+7. General code cleanup and housekeeping.
+
+### New Features
+
+1. Schedules can now be based on days of the week. [[#32](https://github.com/chadwpalm/PrerollPlus/discussions/32)]
+2. Added ability to include subdirectories when using a directory as a file source for buckets. [[#33](https://github.com/chadwpalm/PrerollPlus/issues/33)]
+3. Added ability to change the port the app is running on from settings. The app also accepts an ENV variable on startup APP_PORT which overrides the port in the settings.
+4. Added ability to use a URL Base for use with reverse proxies. [[#34](https://github.com/chadwpalm/PrerollPlus/discussions/34)]
+
+### Fixes
+
+1. Fixed issue where holidays were using UTC time rather than local time zones.
+2. Improved filtering of system files (like Synology) to cover more operating systems.
+3. Updated "App Dir" in the "About" modal to show the proper directory the app is running in.
+
+## 1.3.5
 
 ### New Feature
 
@@ -11,7 +36,7 @@
 1. Fixed issue where Preroll Plus could not connect to the Plex server after a version update. [[#31](https://github.com/chadwpalm/PrerollPlus/issues/31)]
 2. Force a new Plex login in the UI to create a new Plex token if the token becomes invalid. Updated logs to present a warning and instructions for when this occurs.
 
-### 1.3.4
+## 1.3.4
 
 ### New Feature
 
@@ -22,7 +47,7 @@
 1. Moved the "Remove" button and the "Up" and "Down" arrow buttons from the bottom of the "Bucket Sequence" table to the top when creating/editing Sequences in order to match the location of the buttons to be similar to when creating/editing Buckets.
 2. Added a log output for when the cache directory has successfully been created.
 
-### 1.3.3
+## 1.3.3
 
 ### Hotfix
 
@@ -86,7 +111,7 @@
 ### Changes
 
 1. Changed menu behavior so if there are no buckets you cannot enter the Sequences page and user will be routed to Buckets to start creating one since Sequences are dependent on Buckets.
-2. Configuration file scheme has been updated to accommodate changes in Sequences such as priorities and information for Calendarific.
+2. Configuration file schema has been updated to accommodate changes in Sequences such as priorities and information for Calendarific.
    a. Existing configs will be backed up and migrated over to the new schema. Behavior should work as previously intended, but all priorities will be set to N/A until changed.
 
 ### Fixes

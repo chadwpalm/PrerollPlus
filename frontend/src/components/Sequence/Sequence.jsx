@@ -7,6 +7,18 @@ import Col from "react-bootstrap/Col";
 import Image from "react-bootstrap/Image";
 import "./Sequence.css";
 
+const DAYS = {
+  M: 1 << 0,
+  T: 1 << 1,
+  W: 1 << 2,
+  Th: 1 << 3,
+  F: 1 << 4,
+  Sa: 1 << 5,
+  Su: 1 << 6,
+};
+
+const DAY_LABELS = ["M", "T", "W", "Th", "F", "Sa", "Su"];
+
 export default class Sequence extends Component {
   constructor(props) {
     super(props);
@@ -27,6 +39,24 @@ export default class Sequence extends Component {
     this.props.delete(this.state.id);
   };
 
+  getDaysDisplayText() {
+    const { days } = this.props;
+
+    if (days === 127) {
+      return "Everyday";
+    }
+
+    if (days === 31) {
+      return "Weekdays";
+    }
+
+    if (days === 96) {
+      return "Weekends";
+    }
+
+    return DAY_LABELS.filter((label) => (days & DAYS[label]) !== 0).join(", ");
+  }
+
   render() {
     return (
       <Card
@@ -34,8 +64,8 @@ export default class Sequence extends Component {
           (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId
             ? "card-error"
             : this.props.id === this.props.currentSeq
-            ? "card-current"
-            : "card-default"
+              ? "card-current"
+              : "card-default"
         } ${this.props.isDarkMode ? "dark-mode" : ""}`}
         border={
           (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.currentSeq ? "none" : "dark"
@@ -67,6 +97,8 @@ export default class Sequence extends Component {
                   <>No Schedule</>
                 ) : this.props.schedule === "3" ? (
                   <>{this.props.holiday}</>
+                ) : this.props.schedule === "4" ? (
+                  this.getDaysDisplayText()
                 ) : (
                   <>
                     {new Intl.DateTimeFormat(undefined, {

@@ -4,16 +4,17 @@ var fs = require("fs");
 var path = require("path");
 var axios = require("axios").default;
 
+const LOG_TAG = "[HOLIDAY]";
+
 const cacheDir = path.join("/", "config", "cache");
 
-// Make sure the directory exists
 if (!fs.existsSync(cacheDir)) {
-  console.info("Cache directory doesn't exist....creating....");
+  console.info(`${LOG_TAG} Cache directory doesn't exist....creating....`);
   try {
     fs.mkdirSync(cacheDir, { recursive: true });
-    console.info(`Cache directory has been created at: ${cacheDir}`);
+    console.info(`${LOG_TAG} Cache directory has been created at: ${cacheDir}`);
   } catch {
-    console.error("Cache directory could not be created. Check file system permissions.");
+    console.error(`${LOG_TAG} Cache directory could not be created. Check file system permissions.`);
   }
 }
 
@@ -28,7 +29,7 @@ router.post("/", async function (req, res, next) {
   const typeName = HolidayType[parseInt(req.body.type, 10)];
 
   console.debug(
-    `Country: ${req.body.country}, Source: ${req.body.source === "1" ? "Legacy" : "Premier"}, Type: ${typeName}`
+    `Country: ${req.body.country}, Source: ${req.body.source === "1" ? "Legacy" : "Premier"}, Type: ${typeName}`,
   );
 
   const today = new Date();
@@ -36,11 +37,11 @@ router.post("/", async function (req, res, next) {
   const currentYear = today.getFullYear();
   const userLocale = req.headers["accept-language"]?.split(",")[0] || "en-US"; // So dates are formatted based on location
 
-  // Helper function to safely parse and format dates
+  console.debug(`Current Year: ${currentYear}, Locale: ${userLocale}`);
+
   function formatHolidayDate(dateString, locale) {
     let year, month, day;
 
-    // If it's just YYYY-MM-DD
     const simpleDateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (simpleDateMatch) {
       [, year, month, day] = simpleDateMatch;
@@ -51,7 +52,6 @@ router.post("/", async function (req, res, next) {
       });
     }
 
-    // If it's a full ISO string with time or timezone, extract YYYY-MM-DD only
     const isoDateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (isoDateMatch) {
       [, year, month, day] = isoDateMatch;
@@ -63,7 +63,7 @@ router.post("/", async function (req, res, next) {
     }
 
     console.warn(`Unrecognized date format: ${dateString}`);
-    return dateString; // fallback
+    return dateString;
   }
 
   const source = req.body.source;
@@ -75,9 +75,14 @@ router.post("/", async function (req, res, next) {
   }
 
   if (source === "2" && fs.existsSync(cacheFile)) {
-    console.log(`Reading Calendarific holidays from cache: ${cacheFile}`);
+    console.log(`${LOG_TAG} Reading Calendarific holidays from cache: ${cacheFile}`);
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
+    console.log(
+      `${LOG_TAG} Pulling ${req.body.country}${
+        source === "2" ? ` ${HolidayType[parseInt(req.body.type, 10)]}` : ""
+      } calendar from ${source === "1" ? "Nager" : "Calendarific"}`,
+    );
     const url =
       source === "1"
         ? `https://date.nager.at/api/v3/publicholidays/${currentYear}/${req.body.country}`
@@ -88,8 +93,8 @@ router.post("/", async function (req, res, next) {
         JSON.stringify({
           success: false,
           message: "Calendarific API key is not set.",
-          apiKeyMissing: true, // frontend can use this flag to show a notice
-        })
+          apiKeyMissing: true,
+        }),
       );
     }
 
@@ -97,8 +102,8 @@ router.post("/", async function (req, res, next) {
       const response = await axios.get(url, { timeout: 10000 });
       rawData = JSON.stringify(response.data);
 
-      // Only cache Calendarific data
       if (source === "2") {
+        console.log(`${LOG_TAG} Saving cache file: ${cacheFile}`);
         fs.writeFileSync(cacheFile, rawData, "utf-8");
       }
     } catch (error) {
@@ -187,6 +192,7 @@ router.post("/", async function (req, res, next) {
 
   let countries = [];
   if (source === "2") {
+    console.debug(`${LOG_TAG} Generating holidays object from Calendarific data`);
     try {
       const parsed = JSON.parse(rawData);
       parsed.response.holidays.forEach((country) => {
@@ -201,6 +207,7 @@ router.post("/", async function (req, res, next) {
       console.error("There was not valid data returned from the Holiday API");
     }
   } else if (source === "1") {
+    console.debug(`${LOG_TAG} Generating holidays object from Nager data`);
     try {
       const parsed = JSON.parse(rawData);
       parsed
@@ -231,6 +238,7 @@ router.post("/", async function (req, res, next) {
     });
   }
 
+  console.debug(`${LOG_TAG} Final holiday list: ${JSON.stringify(countries, null, 2)}`);
   res.send(JSON.stringify(dedupeHolidays(countries)));
 });
 

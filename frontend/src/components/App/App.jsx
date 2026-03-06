@@ -1,7 +1,7 @@
 import React from "react";
 import { Component } from "react";
 import Loading from "../../images/loading-gif.gif";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import Login from "../Login/Login";
 import Sequences from "../Sequences/Sequences";
 import Buckets from "../Buckets/Buckets";
@@ -12,7 +12,7 @@ import Row from "react-bootstrap/Row";
 import Nav from "react-bootstrap/Nav";
 import Navbar from "react-bootstrap/Navbar";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { LinkContainer } from "react-router-bootstrap";
+// Using `Nav.Link` as={Link} for client-side navigation
 import Logout from "bootstrap-icons/icons/box-arrow-right.svg";
 import Moon from "bootstrap-icons/icons/moon-stars.svg";
 import Sun from "bootstrap-icons/icons/sun.svg";
@@ -22,8 +22,9 @@ import Image from "react-bootstrap/Image";
 import Badge from "react-bootstrap/Badge";
 import { default as axios } from "axios";
 import "./App.css";
-// import FullCalendar from "@fullcalendar/react";
 import SequenceCalendar from "../Calendar/Calendar";
+
+const baseName = window.__BASE_PATH__;
 
 export default class App extends Component {
   state = {
@@ -41,7 +42,7 @@ export default class App extends Component {
     first: false,
     dismiss: false,
     isDarkMode: false,
-    announcement: false, //master key to show an announcement after version update
+    announcement: true,
     sockConnected: false,
     cannotConnect: false,
     reconnectAttempts: 0,
@@ -58,7 +59,6 @@ export default class App extends Component {
     xhr.addEventListener("readystatechange", async () => {
       if (xhr.readyState === 4) {
         if (xhr.status === 200) {
-          // request successful
           var response = xhr.responseText,
             json = JSON.parse(response);
 
@@ -119,7 +119,6 @@ export default class App extends Component {
             });
           }
         } else {
-          // error
           this.setState({
             isLoaded: true,
             error: xhr.responseText,
@@ -128,7 +127,7 @@ export default class App extends Component {
       }
     });
 
-    xhr.open("GET", "/backend/load", true);
+    xhr.open("GET", `${baseName}backend/load`, true);
     xhr.send();
   }
 
@@ -159,9 +158,9 @@ export default class App extends Component {
           }),
           () => {
             setTimeout(() => {
-              this.connectWebSocket(); // Reconnect
-            }, 3000); // Delay before reconnecting
-          }
+              this.connectWebSocket();
+            }, 3000);
+          },
         );
       } else {
         console.log("Max reconnect attempts reached.");
@@ -176,7 +175,7 @@ export default class App extends Component {
 
   refreshConfig() {
     axios
-      .get("/backend/load")
+      .get(`${baseName}backend/load`)
       .then((response) => {
         this.setState({
           config: response.data,
@@ -220,7 +219,6 @@ export default class App extends Component {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
           } else {
-            // error
             this.setState({
               error: xhr.responseText,
             });
@@ -228,7 +226,7 @@ export default class App extends Component {
         }
       });
 
-      xhr.open("POST", "/backend/save", true);
+      xhr.open("POST", `${baseName}backend/save`, true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(settings));
     }
@@ -268,7 +266,6 @@ export default class App extends Component {
         if (xhr.status === 200) {
           this.setState({ isLoggedIn: false });
         } else {
-          // error
           this.setState({
             error: xhr.responseText,
           });
@@ -276,7 +273,7 @@ export default class App extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", `${baseName}backend/save`, true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
   };
@@ -301,7 +298,6 @@ export default class App extends Component {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
           } else {
-            // error
             this.setState({
               error: xhr.responseText,
             });
@@ -309,7 +305,7 @@ export default class App extends Component {
         }
       });
 
-      xhr.open("POST", "/backend/save", true);
+      xhr.open("POST", `${baseName}backend/save`, true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(settings));
 
@@ -327,20 +323,17 @@ export default class App extends Component {
       );
     } else {
       if (!this.state.isLoaded) {
-        // is loading
         return (
           <div>
             <img src={Loading} alt="Loading" width="50" />
           </div>
         );
       } else if (this.state.error) {
-        // error
         return <div>Error occured: {this.state.error}</div>;
       } else {
         if (this.state.isLoggedIn) {
-          // success
           return (
-            <Router>
+            <Router basename={baseName}>
               <Container fluid>
                 <Row className={`navbar-row ${this.state.isDarkMode ? "dark-mode" : ""}`}>
                   <Navbar className={`navbar-content ${this.state.isDarkMode ? "dark-mode" : ""}`} expand="md">
@@ -356,47 +349,47 @@ export default class App extends Component {
                       <Nav className="me-auto">
                         {!this.state.isConnected ? (
                           <>
-                            <LinkContainer to="/">
-                              <Nav.Link disabled>Sequences</Nav.Link>
-                            </LinkContainer>
-                            <LinkContainer to="/calendar">
-                              <Nav.Link disabled>Calendar</Nav.Link>
-                            </LinkContainer>
-                            <LinkContainer to="/buckets">
-                              <Nav.Link disabled>Buckets</Nav.Link>
-                            </LinkContainer>
+                            <Nav.Link as={Link} to="/" disabled>
+                              Sequences
+                            </Nav.Link>
+                            <Nav.Link as={Link} to="/calendar" disabled>
+                              Calendar
+                            </Nav.Link>
+                            <Nav.Link as={Link} to="/buckets" disabled>
+                              Buckets
+                            </Nav.Link>
                           </>
                         ) : (
                           <>
                             {this.state.config.buckets.length === 0 ? (
                               <>
-                                <LinkContainer to="/">
-                                  <Nav.Link disabled>Sequences</Nav.Link>
-                                </LinkContainer>
-                                <LinkContainer to="/calendar">
-                                  <Nav.Link disabled>Calendar</Nav.Link>
-                                </LinkContainer>
+                                <Nav.Link as={Link} to="/" disabled>
+                                  Sequences
+                                </Nav.Link>
+                                <Nav.Link as={Link} to="/calendar" disabled>
+                                  Calendar
+                                </Nav.Link>
                               </>
                             ) : (
                               <>
-                                <LinkContainer to="/">
-                                  <Nav.Link>Sequences</Nav.Link>
-                                </LinkContainer>
-                                <LinkContainer to="/calendar">
-                                  <Nav.Link>Calendar</Nav.Link>
-                                </LinkContainer>
+                                <Nav.Link as={Link} to="/">
+                                  Sequences
+                                </Nav.Link>
+                                <Nav.Link as={Link} to="/calendar">
+                                  Calendar
+                                </Nav.Link>
                               </>
                             )}
 
-                            <LinkContainer to="/buckets">
-                              <Nav.Link>Buckets</Nav.Link>
-                            </LinkContainer>
+                            <Nav.Link as={Link} to="/buckets">
+                              Buckets
+                            </Nav.Link>
                           </>
                         )}
 
-                        <LinkContainer to="/settings">
-                          <Nav.Link>Settings</Nav.Link>
-                        </LinkContainer>
+                        <Nav.Link as={Link} to="/settings">
+                          Settings
+                        </Nav.Link>
                       </Nav>
 
                       <Nav className="ms-auto d-flex align-items-center">
@@ -429,7 +422,7 @@ export default class App extends Component {
                             {this.state.config.email}
                           </NavDropdown.Header>
                           <NavDropdown.Divider />
-                          <NavDropdown.Item href="https://github.com/chadwpalm/PrerollPlus/wiki" target="_blank">
+                          <NavDropdown.Item href="https://prerollplus.org" target="_blank">
                             Documentation
                           </NavDropdown.Item>
                           <NavDropdown.Item onClick={this.handleOpen}>About</NavDropdown.Item>
@@ -478,7 +471,7 @@ export default class App extends Component {
                     <br />
                     <b>Config Dir:</b>&nbsp; /config
                     <br />
-                    <b>App Dir:</b>&nbsp; /PrerollPlus
+                    <b>App Dir:</b>&nbsp; {this.state.config.appDir}
                     <br />
                     <b>Docker:</b>&nbsp;
                     <a
@@ -573,6 +566,7 @@ export default class App extends Component {
                           path="/calendar"
                           element={<SequenceCalendar isDarkMode={this.state.isDarkMode} settings={this.state.config} />}
                         />
+                        {/* catch-all only redirects to "/" */}
                         <Route path="*" element={<Navigate replace to="/" />} />
                       </>
                     )}
@@ -583,7 +577,7 @@ export default class App extends Component {
           );
         } else {
           return (
-            <Router>
+            <Router basename={baseName}>
               <Routes>
                 <Route path="*" element={<Navigate replace to="/login" />} />
                 <Route

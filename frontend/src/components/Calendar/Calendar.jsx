@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import { addMonths, startOfMonth, format, startOfYear } from "date-fns";
+import { addMonths, format, startOfYear } from "date-fns";
 import "./Calendar.css";
 
 const today = new Date();
@@ -17,7 +17,7 @@ export default function SequenceCalendar({ events, isDarkMode = false, settings 
     if (currentMonthRef.current === key) return;
     currentMonthRef.current = key;
 
-    fetch(`/webhook/calendar?year=${year}&month=${month}&_=${Date.now()}`)
+    fetch(`webhook/calendar?year=${year}&month=${month}&_=${Date.now()}`)
       .then((r) => r.json())
       .then((data) => {
         console.log("Fresh data loaded:", year, month, data);

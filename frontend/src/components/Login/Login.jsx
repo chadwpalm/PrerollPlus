@@ -3,9 +3,9 @@ import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Button from "react-bootstrap/Button";
 import LoginIcon from "bootstrap-icons/icons/box-arrow-in-left.svg";
-// import Logo from "../../images/Logo2.png";
 import Card from "react-bootstrap/Card";
-import { PlexOauth } from "plex-oauth";
+import Axios from "axios";
+import qs from "qs";
 
 export default class Login extends Component {
   constructor(props) {
@@ -16,6 +16,7 @@ export default class Login extends Component {
       gotToken: false,
       url: "",
       pin: null,
+      code: null,
       ip: "",
       port: "",
       ssl: false,
@@ -44,35 +45,80 @@ export default class Login extends Component {
       }
     }
 
-    let clientInformation = {
-      clientIdentifier: `${this.props.settings.uuid}`, // This is a unique identifier used to identify your app with Plex.
-      product: "Preroll Plus", // Name of your application
-      device: `${this.props.settings.platform}`, // The type of device your application is running on
-      version: `${version}`, // Version of your application
-      forwardUrl: "", // Url to forward back to after signing in.
-      platform: "Web", // Optional - Platform your application runs on - Defaults to 'Web'
+    this.externalWindow = null;
+    this.version = version;
+  }
+
+  requestHostedLoginURL = async () => {
+    const url = "https://plex.tv/api/v2/pins";
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Plex-Product": "Preroll Plus",
+      "X-Plex-Client-Identifier": this.props.settings.uuid,
+      "X-Plex-Device": this.props.settings.platform,
+      "X-Plex-Version": this.version,
+      "X-Plex-Platform": "Web",
     };
 
-    this.externalWindow = null;
-    this.plexOauth = new PlexOauth(clientInformation);
-  }
+    try {
+      const response = await Axios.post(url, { strong: true }, { headers });
+      return response.data;
+    } catch (error) {
+      console.error("Error", error.response?.data || error.message);
+      throw error;
+    }
+  };
+
+  checkForAuthToken = async (pin) => {
+    const url = `https://plex.tv/api/v2/pins/${pin}`;
+    const headers = {
+      Accept: "application/json",
+      "X-Plex-Client-Identifier": this.props.settings.uuid,
+      "X-Plex-Device": this.props.settings.platform,
+      "X-Plex-Version": this.version,
+      "X-Plex-Platform": "Web",
+    };
+
+    try {
+      const response = await Axios.get(url, { timeout: 5000, headers });
+      return response.data;
+    } catch (error) {
+      console.error("Error", error.response?.data || error.message);
+      throw error;
+    }
+  };
+
+  authAppUrl = (code) => {
+    return (
+      "https://app.plex.tv/auth#?" +
+      qs.stringify({
+        clientID: this.props.settings.uuid,
+        code: code,
+        forwardUrl: "",
+        context: {
+          device: {
+            product: "Preroll Plus",
+            device: this.props.settings.platform,
+          },
+        },
+      })
+    );
+  };
 
   componentDidMount() {
     if (!this.state.gotURL) {
-      this.plexOauth
-        .requestHostedLoginURL()
+      this.requestHostedLoginURL()
         .then((data) => {
-          let [hostedUILink, pinId] = data;
-
-          this.setState({ url: `${hostedUILink}`, pin: `${pinId}` });
+          let hostedUILink = this.authAppUrl(data.code);
+          let pinId = data.id;
+          this.setState({ url: `${hostedUILink}`, pin: `${pinId}`, code: `${data.code}` });
         })
         .catch((err) => {
           this.setState({ noInternet: true });
           throw err;
         });
-      this.setState({
-        gotURL: true,
-      });
+      this.setState({ gotURL: true });
     }
   }
 
@@ -82,10 +128,9 @@ export default class Login extends Component {
       if (!this.state.pin) {
         throw new Error("Unable to poll when pin is not initialized.");
       }
-      await this.plexOauth
-        .checkForAuthToken(this.state.pin)
-        .then((authToken) => {
-          token = authToken;
+      await this.checkForAuthToken(this.state.pin)
+        .then((data) => {
+          token = data.authToken;
         })
         .catch((err) => {
           throw err;
@@ -114,7 +159,7 @@ export default class Login extends Component {
     this.externalWindow = window.open(
       `${this.state.url}`,
       "",
-      `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=600, height=600, top=${y}, left=${x}`
+      `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=600, height=600, top=${y}, left=${x}`,
     );
 
     await this.executePoll();
@@ -143,7 +188,7 @@ export default class Login extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", false);
+    xhr.open("POST", "backend/save", false);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
@@ -170,7 +215,7 @@ export default class Login extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/thumb", false);
+    xhr.open("POST", "backend/thumb", false);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(data));
   };

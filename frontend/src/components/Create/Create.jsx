@@ -43,6 +43,7 @@ export default class Create extends Component {
         isDefault: info.id === this.props.settings.settings.defaultBucket,
         default: false,
         removeDefault: false,
+        includeSub: info.includeSub ?? false,
       };
     } else {
       this.state = {
@@ -66,6 +67,7 @@ export default class Create extends Component {
         isDefault: false,
         default: false,
         removeDefault: false,
+        includeSub: false,
       };
     }
 
@@ -110,12 +112,13 @@ export default class Create extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/directory", true);
+    xhr.open("POST", "backend/directory", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(
       JSON.stringify({
         dir: `${this.state.source === "2" ? this.state.currentDir : this.state.root}`,
-      })
+        isSub: false,
+      }),
     );
   }
 
@@ -136,7 +139,7 @@ export default class Create extends Component {
               } catch (err) {
                 console.error("Error calling fetchDirectoryList:", err);
               }
-            }
+            },
           );
         }
       } else {
@@ -151,7 +154,7 @@ export default class Create extends Component {
             } catch (err) {
               console.error("Error calling fetchDirectoryList:", err);
             }
-          }
+          },
         );
       }
     }
@@ -191,7 +194,7 @@ export default class Create extends Component {
           () => {
             // Callback to handle state changes and perform subsequent actions
             this.fetchDirectoryList();
-          }
+          },
         );
       } else {
         this.setState(
@@ -208,7 +211,7 @@ export default class Create extends Component {
           () => {
             // Callback to handle state changes and perform subsequent actions
             this.fetchDirectoryList();
-          }
+          },
         );
       }
     } else {
@@ -241,9 +244,9 @@ export default class Create extends Component {
         }
       }
     });
-    xhr.open("POST", "/backend/directory", true);
+    xhr.open("POST", "backend/directory", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify({ dir: `${this.state.currentDir}` }));
+    xhr.send(JSON.stringify({ dir: `${this.state.currentDir}`, isSub: false }));
   };
 
   handleAdd = (e) => {
@@ -314,6 +317,7 @@ export default class Create extends Component {
     temp.media = this.state.media;
     temp.source = this.state.source;
     temp.dir = this.state.currentDir;
+    temp.includeSub = this.state.includeSub;
 
     if (this.state.default) {
       settings.settings.defaultBucket = this.state.id;
@@ -337,12 +341,12 @@ export default class Create extends Component {
         if (xhr.status === 200) {
           this.setState({ isSaved: true });
 
-          const response = await fetch("/webhook", { method: "GET" });
+          const response = await fetch("webhook", { method: "GET" });
           if (!response.ok) {
             throw new Error(`Response status: ${response.status}`);
           }
 
-          const response2 = await fetch("/backend/monitor", { method: "GET" });
+          const response2 = await fetch("backend/monitor", { method: "GET" });
           if (!response2.ok) {
             throw new Error(`Response status: ${response.status}`);
           }
@@ -355,7 +359,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
@@ -373,13 +377,13 @@ export default class Create extends Component {
       () => {
         if (this.videoRef.current && this.state.tempList.length > 0) {
           // Set the initial video source
-          this.videoRef.current.src = `/backend/streamer${this.state.currentDir}/${
+          this.videoRef.current.src = `backend/streamer${this.state.currentDir}/${
             this.state.tempList[this.state.videoIndex]
           }`;
           this.videoRef.current.load();
           this.videoRef.current.play(); // Start playing the first video
         }
-      }
+      },
     );
   };
 
@@ -389,7 +393,7 @@ export default class Create extends Component {
 
       if (nextIndex < prevState.tempLength) {
         // Update the video index and set the next video source
-        this.videoRef.current.src = `/backend/streamer${this.state.currentDir}/${prevState.tempList[nextIndex]}`;
+        this.videoRef.current.src = `backend/streamer${this.state.currentDir}/${prevState.tempList[nextIndex]}`;
         this.videoRef.current.load();
         this.videoRef.current.play(); // Start playing the next video
       } else {
@@ -420,6 +424,10 @@ export default class Create extends Component {
 
   handleRemoveDefault = (e) => {
     this.setState({ removeDefault: e.target.checked, isSaved: false });
+  };
+
+  handleSub = (e) => {
+    this.setState({ includeSub: e.target.checked });
   };
 
   render() {
@@ -520,6 +528,21 @@ export default class Create extends Component {
           />
         </div>
         <div className="div-seperator" />
+        <div className="div-seperator" />
+        {this.state.source === "2" ? (
+          <Form.Check
+            key="includeSub"
+            inline
+            type="checkbox"
+            id="includeSub"
+            label="Include Subdirectories"
+            checked={this.state.includeSub}
+            onChange={this.handleSub}
+            size="sm"
+          />
+        ) : (
+          <></>
+        )}
         <Row xs={1} sm="auto">
           {this.state.source === "1" ? (
             <>
@@ -549,7 +572,7 @@ export default class Create extends Component {
                             this.state.media.reduce((acc, item) => {
                               acc[item.file] = (acc[item.file] || 0) + 1;
                               return acc;
-                            }, {})
+                            }, {}),
                           )
                             .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
                             .map(([file, count]) => {
@@ -605,7 +628,7 @@ export default class Create extends Component {
               </Col>
             </>
           ) : (
-            ""
+            <></>
           )}
           <Col>
             {this.state.source === "1" ? (
@@ -661,10 +684,30 @@ export default class Create extends Component {
                       </ListGroup.Item>
                     ) : null}
                     {this.state.directoryList ? (
-                      this.state.directoryList
-                        .filter((file) => !file.name.startsWith(".") && !file.name.startsWith("@")) // Filter out files starting with . or @
-                        .map((file) =>
-                          file.isDir ? (
+                      this.state.directoryList.map((file) =>
+                        file.isDir ? (
+                          <ListGroup.Item
+                            key={file.name}
+                            value={JSON.stringify(file)}
+                            action
+                            onClick={this.handleClick}
+                            className="listgroup-custom-b"
+                          >
+                            {file.name}/
+                          </ListGroup.Item>
+                        ) : this.state.source === "1" ? (
+                          this.state.selectedList.includes(file.name) ? (
+                            <ListGroup.Item
+                              key={file.name}
+                              value={JSON.stringify(file)}
+                              action
+                              active
+                              onClick={this.handleClick}
+                              className="listgroup-custom-active"
+                            >
+                              {file.name}
+                            </ListGroup.Item>
+                          ) : (
                             <ListGroup.Item
                               key={file.name}
                               value={JSON.stringify(file)}
@@ -672,35 +715,13 @@ export default class Create extends Component {
                               onClick={this.handleClick}
                               className="listgroup-custom-b"
                             >
-                              {file.name}/
+                              {file.name}
                             </ListGroup.Item>
-                          ) : this.state.source === "1" ? (
-                            this.state.selectedList.includes(file.name) ? (
-                              <ListGroup.Item
-                                key={file.name}
-                                value={JSON.stringify(file)}
-                                action
-                                active
-                                onClick={this.handleClick}
-                                className="listgroup-custom-active"
-                              >
-                                {file.name}
-                              </ListGroup.Item>
-                            ) : (
-                              <ListGroup.Item
-                                key={file.name}
-                                value={JSON.stringify(file)}
-                                action
-                                onClick={this.handleClick}
-                                className="listgroup-custom-b"
-                              >
-                                {file.name}
-                              </ListGroup.Item>
-                            )
-                          ) : (
-                            ""
                           )
-                        )
+                        ) : (
+                          ""
+                        ),
+                      )
                     ) : (
                       <ListGroup.Item>Directory does not exist</ListGroup.Item> // Display this if directoryList is null or empty
                     )}

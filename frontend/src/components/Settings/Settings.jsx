@@ -35,6 +35,10 @@ export default class Settings extends Component {
         isCacheSuccess: false,
         isCacheFailed: false,
         dayOfWeek: this.props.settings.settings.dayOfWeek ?? "0",
+        logSize: this.props.settings.settings.logSize ?? "1",
+        logFiles: this.props.settings.settings.logFiles ?? "5",
+        appPort: this.props.settings.settings.appPort ?? "4949",
+        baseURL: this.props.settings.settings.baseURL ?? "",
       };
     } else {
       this.state = {
@@ -56,6 +60,10 @@ export default class Settings extends Component {
         isCacheSuccess: false,
         isCacheFailed: false,
         dayOfWeek: "0",
+        logSize: "1",
+        logFiles: "5",
+        appPort: "4949",
+        baseURL: "",
       };
     }
   }
@@ -80,12 +88,16 @@ export default class Settings extends Component {
     this.props.settings.connected = "true";
     this.props.settings.settings.polling = this.state.polling;
     this.props.settings.settings.logLevel = this.state.logLevel;
+    this.props.settings.settings.logSize = this.state.logSize;
+    this.props.settings.settings.logFiles = this.state.logFiles;
     this.props.settings.settings.apiKey = this.state.apiKey;
     this.props.settings.settings.dayOfWeek = this.state.dayOfWeek;
+    this.props.settings.settings.appPort = this.state.appPort;
+    this.props.settings.settings.baseURL = this.state.baseURL;
     this.props.connection(1);
 
     try {
-      const saveResponse = await fetch("/backend/save", {
+      const saveResponse = await fetch("backend/save", {
         method: "POST",
         headers: { "Content-Type": "application/json;charset=UTF-8" },
         body: JSON.stringify(this.props.settings),
@@ -95,13 +107,13 @@ export default class Settings extends Component {
 
       this.setState({ isSaved: true });
 
-      const monitorResp = await fetch("/backend/monitor");
+      const monitorResp = await fetch("backend/monitor");
       if (!monitorResp.ok) throw new Error(`Monitor failed: ${monitorResp.status}`);
 
-      const loggerResp = await fetch("/backend/logger");
+      const loggerResp = await fetch("backend/logger");
       if (!loggerResp.ok) throw new Error(`Logger failed: ${loggerResp.status}`);
 
-      const webhookResp = await fetch("/webhook");
+      const webhookResp = await fetch("webhook");
       if (!webhookResp.ok) throw new Error(`Webhook failed: ${webhookResp.status}`);
     } catch (err) {
       console.error(err);
@@ -163,7 +175,7 @@ export default class Settings extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/settings", true);
+    xhr.open("POST", "backend/settings", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(this.props.settings));
   };
@@ -218,6 +230,14 @@ export default class Settings extends Component {
     this.setState({ logLevel: e.target.value.toString(), isSaved: false });
   };
 
+  handleLogSize = (e) => {
+    this.setState({ logSize: e.target.value.toString() });
+  };
+
+  handleLogFiles = (e) => {
+    this.setState({ logFiles: e.target.value.toString() });
+  };
+
   handleAPIKey = (e) => {
     this.setState({ apiKey: e.target.value.toString() });
   };
@@ -246,7 +266,7 @@ export default class Settings extends Component {
         }
       });
 
-      xhr.open("POST", "/backend/save", true);
+      xhr.open("POST", "backend/save", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(settings));
 
@@ -271,8 +291,16 @@ export default class Settings extends Component {
       }
     });
 
-    xhr.open("GET", "/backend/clearcache", true);
+    xhr.open("GET", "backend/clearcache", true);
     xhr.send();
+  };
+
+  handleAppPort = (e) => {
+    this.setState({ appPort: e.target.value.toString() });
+  };
+
+  handleBaseURL = (e) => {
+    this.setState({ baseURL: e.target.value.toString() });
   };
 
   render() {
@@ -485,21 +513,6 @@ export default class Settings extends Component {
                     checked={this.state.polling === "2"}
                   />
                 </div>
-                <div className="div-seperator" />
-                <Stack gap={1} direction="horizontal">
-                  Log Level:&nbsp;&nbsp;
-                  <Form.Select
-                    value={this.state.logLevel}
-                    id="logLevel"
-                    name="logLevel"
-                    onChange={this.handleLogLevel}
-                    size="sm"
-                    className="sched-style"
-                  >
-                    <option value="0">Info</option>
-                    <option value="1">Debug</option>
-                  </Form.Select>
-                </Stack>
               </>
             ) : (
               <></>
@@ -507,7 +520,6 @@ export default class Settings extends Component {
             <div className="div-seperator" />
             <div className="div-seperator" />
             <h5>Holidays</h5>
-            <div className="div-seperator" />
             <div className="div-seperator" />
             <Form.Label for="apiKey">Calendarific API Key &nbsp;&nbsp;</Form.Label>
             <OverlayTrigger
@@ -524,7 +536,7 @@ export default class Settings extends Component {
               <img src={Info} className="image-info" alt="Info" />
             </OverlayTrigger>
             &nbsp;&nbsp;&nbsp;&nbsp;Get account and API key at{" "}
-            <a href="https://calendarific.com" target="_blank">
+            <a href="https://calendarific.com" target="_blank" rel="noreferrer">
               calendarific.com
             </a>
             <Form.Control
@@ -595,6 +607,119 @@ export default class Settings extends Component {
                 checked={this.state.dayOfWeek === "6"}
               />
             </div>
+            <div className="div-seperator" />
+            {this.state.advanced ? (
+              <>
+                <div className="div-seperator" />
+                <h5>Logging</h5>
+                <div className="div-seperator" />
+                <Stack gap={1} direction="horizontal">
+                  Log Level:&nbsp;&nbsp;
+                  <Form.Select
+                    value={this.state.logLevel}
+                    id="logLevel"
+                    name="logLevel"
+                    onChange={this.handleLogLevel}
+                    size="sm"
+                    className="sched-style"
+                  >
+                    <option value="0">Info</option>
+                    <option value="1">Debug</option>
+                  </Form.Select>
+                </Stack>
+                <div className="div-seperator" />
+                <Stack gap={1} direction="horizontal">
+                  Log Size Limit:&nbsp;&nbsp;
+                  <Form.Control
+                    type="number"
+                    min={1}
+                    max={10}
+                    defaultValue={this.state.logSize}
+                    style={{ width: "80px" }}
+                    onChange={this.handleLogSize}
+                  />
+                  MB&nbsp;&nbsp;
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={<Tooltip>Maximum log file size in MB before archiving. Default is 1MB.</Tooltip>}
+                  >
+                    <img src={Info} className="image-info" alt="Info" />
+                  </OverlayTrigger>
+                </Stack>
+                <div className="div-seperator" />
+                <Stack gap={1} direction="horizontal">
+                  Max Files:&nbsp;&nbsp;
+                  <Form.Control
+                    type="number"
+                    min={1}
+                    max={20}
+                    defaultValue={this.state.logFiles}
+                    style={{ width: "80px" }}
+                    onChange={this.handleLogFiles}
+                  />
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={<Tooltip>Maximum number of log files to archive.</Tooltip>}
+                  >
+                    <img src={Info} className="image-info" alt="Info" />
+                  </OverlayTrigger>
+                </Stack>
+              </>
+            ) : (
+              <></>
+            )}
+            <div className="div-seperator" />
+            <div className="div-seperator" />
+            <h5>Host</h5>
+            <div className="div-seperator" />
+            <Form.Label for="appPort">Port Number &nbsp;&nbsp;</Form.Label>
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  The port number Preroll Plus runs on. If left blank the port will default to "4949".
+                  <br />
+                  <br />
+                  Note: If running in a Docker container this will be the port as seen <i>inside</i> the container. If
+                  APP_PORT is used as an ENV variable, it will override this port setting.
+                </Tooltip>
+              }
+            >
+              <img src={Info} className="image-info" alt="Info" />
+            </OverlayTrigger>
+            <Form.Control
+              value={this.state.appPort}
+              id="appPort"
+              name="appPort"
+              onChange={this.handleAppPort}
+              size="sm"
+            />
+            <div className="footnote">Requires restart to take effect</div>
+            <div className="div-seperator" />
+            <Form.Label for="baseURL">URL Base &nbsp;&nbsp;</Form.Label>
+            <OverlayTrigger
+              placement="right"
+              overlay={
+                <Tooltip>
+                  For reverse proxy support, default is empty.
+                  <br />
+                  <br />
+                  Note: If using a reverse proxy (example: mydomain.com/prerollplus) you would enter '/prerollplus' for
+                  URL Base.
+                </Tooltip>
+              }
+            >
+              <img src={Info} className="image-info" alt="Info" />
+            </OverlayTrigger>
+            <Form.Control
+              value={this.state.baseURL}
+              id="baseURL"
+              name="baseURL"
+              onChange={this.handleBaseURL}
+              size="sm"
+            />
+            <div className="footnote">Requires restart to take effect</div>
+            <div className="div-seperator" />
             <div className="div-seperator" />
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">

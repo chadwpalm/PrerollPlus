@@ -18,46 +18,33 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         <Modal.Title>Announcement</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <b>Major Update v1.3.0 - What are my Sequences?</b>
+        <b>Update v1.4.0</b>
         <br />
         <br />
-        One thought occurred to me recently when a Preroll Plus user submitted a request: they wanted to see exactly
-        which files were being sent to Plex for the current sequence. That thought was, “Why haven’t I thought of this
-        sooner?”
+        This update focuses a lot on much needed backend improvements, including updating the Node version to 20 LTS in
+        the Docker images after sitting on an old unsupported version for far too long. The 3rd party API which I was
+        using for Plex has been removed due to being unmaintained and replaced with native and up to date code.
         <br />
         <br />
-        It wasn’t so much about knowing the exact files being played, but about being able to see at a glance which
-        sequence was active. So I added two new elements to Preroll Plus that do just that!
+        Logging has been greatly improved with more detailed debug logging for troubleshooting issues. Also, several new
+        features have been added for more customizable features which I won't cover here, but can be reviewed in the{" "}
+        <a href="https://prerollplus.org/changelog" target="_blank" rel="noreferrer">
+          Changelog
+        </a>
         <br />
         <br />
-        The first is simple: a blue border now appears around the sequence that is being used for that day. Now, with
-        one quick look, you can instantly see which sequence is active at any given moment.
-        <br />
-        <br />
-        I decided to take it a step further and add a calendar page that shows which sequence will play on each day of
-        the month. Just open the Calendar page and you’ll see a calendar for the current month, with each day clearly
-        labeled with the sequence that will be used — based on your schedules and priorities. This lets you verify in
-        advance whether your schedules and priorities are working the way you intend, eliminating guesswork or having to
-        wait for the day to arrive. You can also step through the months for the current year and the upcoming year.
-        <br />
-        <br />
-        <b>Major Bug Fix</b>
-        <br />
-        <br />
-        It’s actually a good thing I went through the exercise of adding the calendar, because it revealed a bug in the
-        code that would have prevented the correct holiday dates for 2026 from working — the app would have kept using
-        2025’s dates instead. This is now fixed.
-        <br />
-        <br />
-        We’ve come a long way with Preroll Plus, and I’m excited for whatever features come next!
+        Most importantly, all documentation has now been moved from the GitHub wiki over to a new website called{" "}
+        <a href="https://prerollplus.org" target="_blank" rel="noreferrer">
+          prerollplus.org
+        </a>
         <br />
         <br />
         As always, if you have any issues please{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank">
+        <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank" rel="noreferrer">
           create an issue on GitHub
         </a>
         , or if you simply have a question or want to discuss any features you and use the{" "}
-        <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank">
+        <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank" rel="noreferrer">
           discussion board
         </a>
         .

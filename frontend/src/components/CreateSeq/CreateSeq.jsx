@@ -22,6 +22,20 @@ import Loading from "../../images/loading-gif.gif";
 import { countryNames, countryCodes, countryNamesCalrific, countryCodesCalrific } from "./countries";
 import "./CreateSeq.css";
 
+const MONTHS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+const DAYS = {
+  M: 1 << 0,
+  T: 1 << 1,
+  W: 1 << 2,
+  Th: 1 << 3,
+  F: 1 << 4,
+  Sa: 1 << 5,
+  Su: 1 << 6,
+};
+
+const DAY_LABELS = ["M", "T", "W", "Th", "F", "Sa", "Su"];
+
 export default class Create extends Component {
   constructor(props) {
     super(props);
@@ -46,6 +60,7 @@ export default class Create extends Component {
         holidayList: [],
         preHoliday: info.preHoliday ?? "0",
         postHoliday: info.postHoliday ?? "0",
+        days: info.days ?? 0,
         buckets: info.buckets.map((bucket) => ({ ...bucket, uid: uuid() })),
         priority: info.priority ?? "1",
         selectedBucket: {},
@@ -59,6 +74,7 @@ export default class Create extends Component {
         sortOrder: "1",
         apiMissing: false,
         isLoading: false,
+        isDays: true,
       };
     } else {
       this.state = {
@@ -79,6 +95,7 @@ export default class Create extends Component {
         holidayList: [],
         preHoliday: "0",
         postHoliday: "0",
+        days: 0,
         selectedBucket: {},
         selectedSequence: {},
         isError: false,
@@ -90,12 +107,11 @@ export default class Create extends Component {
         sortOrder: "1",
         apiMissing: false,
         isLoading: false,
+        isDays: true,
       };
     }
 
     this.handleFormSubmit = this.handleFormSubmit.bind(this);
-
-    this.monthList = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   }
 
   componentDidMount() {
@@ -109,24 +125,32 @@ export default class Create extends Component {
       var xhr = new XMLHttpRequest();
       xhr.addEventListener("readystatechange", () => {
         if (xhr.readyState === 4) {
+          let response;
+          let json;
+
           if (xhr.status === 200) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            response = xhr.responseText;
+            json = JSON.parse(response);
+
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
             this.setState({ holidayList: json });
           } else if (xhr.status === 400) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
-          }
-          {
+            response = xhr.responseText;
+            json = JSON.parse(response);
+
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
+          } else {
             this.setState({
               error: xhr.responseText,
             });
           }
         }
       });
-      xhr.open("POST", "/backend/holiday", true);
+      xhr.open("POST", "backend/holiday", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(countryInfo));
     }
@@ -165,10 +189,14 @@ export default class Create extends Component {
 
       xhr.addEventListener("readystatechange", () => {
         if (xhr.readyState === 4) {
+          let response;
+          let json;
           if (xhr.status === 200) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            response = xhr.responseText;
+            json = JSON.parse(response);
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
             this.setState({
               schedule: newSchedule,
               holidayList: this.sortHolidayList(json, sortOrder),
@@ -177,19 +205,19 @@ export default class Create extends Component {
               isLoading: false,
             });
           } else if (xhr.status === 400) {
-            var response = xhr.responseText,
-              json = JSON.parse(response);
-            if (json.apiKeyMissing) this.setState({ apiMissing: true });
+            response = xhr.responseText;
+            json = JSON.parse(response);
+            if (json.apiKeyMissing) {
+              this.setState({ apiMissing: true });
+            }
           }
-          {
-            this.setState({
-              error: xhr.responseText,
-            });
-          }
+          this.setState({
+            error: xhr.responseText,
+          });
         }
       });
 
-      xhr.open("POST", "/backend/holiday", true);
+      xhr.open("POST", "backend/holiday", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(countryInfo));
     } else {
@@ -219,10 +247,14 @@ export default class Create extends Component {
 
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
+        let response;
+        let json;
         if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
           this.setState({
             holidaySource: newSource,
             holidayList: this.sortHolidayList(json, sortOrder),
@@ -231,19 +263,19 @@ export default class Create extends Component {
             isLoading: false,
           });
         } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
         }
-        {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
+        this.setState({
+          error: xhr.responseText,
+        });
       }
     });
 
-    xhr.open("POST", "/backend/holiday", true);
+    xhr.open("POST", "backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(countryInfo));
   };
@@ -265,10 +297,14 @@ export default class Create extends Component {
 
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
+        let response;
+        let json;
         if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
           this.setState({
             type: newType,
             holidayList: this.sortHolidayList(json, sortOrder),
@@ -277,19 +313,19 @@ export default class Create extends Component {
             isLoading: false,
           });
         } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
         }
-        {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
+        this.setState({
+          error: xhr.responseText,
+        });
       }
     });
 
-    xhr.open("POST", "/backend/holiday", true);
+    xhr.open("POST", "backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(countryInfo));
   };
@@ -311,9 +347,11 @@ export default class Create extends Component {
 
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
+        let response;
+        let json;
         if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
+          response = xhr.responseText;
+          json = JSON.parse(response);
           this.setState({
             apiMissing: json.apiKeyMissing,
             country: newCountry,
@@ -323,9 +361,11 @@ export default class Create extends Component {
             isLoading: false,
           });
         } else if (xhr.status === 400) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-          if (json.apiKeyMissing) this.setState({ apiMissing: true });
+          response = xhr.responseText;
+          json = JSON.parse(response);
+          if (json.apiKeyMissing) {
+            this.setState({ apiMissing: true });
+          }
         } else {
           this.setState({
             error: xhr.responseText,
@@ -334,7 +374,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/holiday", true);
+    xhr.open("POST", "backend/holiday", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(countryInfo));
   };
@@ -461,6 +501,11 @@ export default class Create extends Component {
       return;
     }
 
+    if (this.state.schedule === "4" && this.state.days === 0) {
+      this.setState({ isDays: false });
+      return;
+    }
+
     if (this.state.schedule === "3" && this.state.holiday === "-1") {
       this.setState({ isIncompleteHoliday: true });
       return;
@@ -486,12 +531,13 @@ export default class Create extends Component {
       type: this.state.type,
       holidayDate: this.state.holidayDate,
       holidaySource: this.state.holidaySource,
+      days: this.state.days,
       priority: this.state.priority,
       buckets: this.state.buckets.map(({ uid, ...rest }) => rest),
     };
 
     const overlapFound = settings.sequences
-      .filter(({ id }) => id !== temp.id) // Exclude the current sequence by ID
+      .filter(({ id }) => id !== temp.id)
       .some(({ priority }) => priority === temp.priority);
 
     if (overlapFound) {
@@ -525,7 +571,7 @@ export default class Create extends Component {
             }
           });
 
-          xhr2.open("GET", "/webhook", true);
+          xhr2.open("GET", "webhook", true);
           xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
           xhr2.send();
         } else {
@@ -536,7 +582,7 @@ export default class Create extends Component {
       }
     });
 
-    xhr.open("POST", "/backend/save", true);
+    xhr.open("POST", "backend/save", true);
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
@@ -546,6 +592,17 @@ export default class Create extends Component {
   handleClose = () => this.setState({ show: false });
 
   handleCloseOverlap = () => this.setState({ showOverlapWarning: false });
+
+  isDaySelected = (dayKey) => {
+    return (this.state.days & DAYS[dayKey]) !== 0;
+  };
+
+  toggleDay = (dayKey) => {
+    const bit = DAYS[dayKey];
+    this.setState((prev) => ({
+      days: prev.days ^ bit,
+    }));
+  };
 
   render() {
     const countries = [];
@@ -557,26 +614,26 @@ export default class Create extends Component {
       startMonths.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
       endMonths.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
     }
-    for (let i = 1; i <= this.monthList[this.state.startMonth]; i++) {
+    for (let i = 1; i <= MONTHS[this.state.startMonth]; i++) {
       startDays.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
     }
-    for (let i = 1; i <= this.monthList[this.state.endMonth]; i++) {
+    for (let i = 1; i <= MONTHS[this.state.endMonth]; i++) {
       endDays.push(
         <option value={i.toString()}>
           {i.toLocaleString("en-US", { minimumIntegerDigits: 2, useGrouping: false })}
-        </option>
+        </option>,
       );
     }
     if (this.state.holidaySource === "1") {
@@ -612,7 +669,18 @@ export default class Create extends Component {
           <Form.Check
             inline
             type="radio"
-            label="Yes"
+            label="No"
+            value="2"
+            id="schedule"
+            name="schedule"
+            onChange={this.handleSchedule}
+            size="sm"
+            checked={this.state.schedule === "2"}
+          />
+          <Form.Check
+            inline
+            type="radio"
+            label="Custom"
             value="1"
             id="schedule"
             name="schedule"
@@ -623,13 +691,13 @@ export default class Create extends Component {
           <Form.Check
             inline
             type="radio"
-            label="No"
-            value="2"
+            label="Day of Week"
+            value="4"
             id="schedule"
             name="schedule"
             onChange={this.handleSchedule}
             size="sm"
-            checked={this.state.schedule === "2"}
+            checked={this.state.schedule === "4"}
           />
           <Form.Check
             inline
@@ -699,6 +767,28 @@ export default class Create extends Component {
               </Stack>
             </div>
             <div className="div-seperator" />
+          </>
+        ) : (
+          <></>
+        )}
+        {this.state.schedule === "4" ? (
+          <>
+            <Stack gap={2} direction="horizontal">
+              {DAY_LABELS.map((label, i) => {
+                return (
+                  <Form.Check
+                    key={label}
+                    inline
+                    type="checkbox"
+                    id={label}
+                    label={label}
+                    checked={this.isDaySelected(label)}
+                    onChange={() => this.toggleDay(label)}
+                    size="sm"
+                  />
+                );
+              })}
+            </Stack>
           </>
         ) : (
           <></>
@@ -1006,7 +1096,7 @@ export default class Create extends Component {
                           >
                             {bucket.name}
                           </ListGroup.Item>
-                        )
+                        ),
                       )}
                   </ListGroup>
                 </Card.Body>
@@ -1033,6 +1123,11 @@ export default class Create extends Component {
           <i style={{ color: "#f00" }}>
             &nbsp; There must be at least one item in the list and a sequence name must be filled.
           </i>
+        ) : (
+          <></>
+        )}
+        {!this.state.isDays ? (
+          <i style={{ color: "#f00" }}>&nbsp; There must be at least one day of the week checked.</i>
         ) : (
           <></>
         )}
