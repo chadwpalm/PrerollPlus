@@ -1,5 +1,5 @@
-<img src="https://prerollplus.org/img/Logo_White.png#gh-dark-mode-only" alt="Preroll Plus Logo">
-<img src="https://prerollplus.org/img/Logo_Black.png#gh-light-mode-only" alt="Preroll Plus Logo">
+<img src="frontend/public/Logo_White.png#gh-dark-mode-only" alt="Preroll Plus Logo">
+<img src="frontend/public/Logo_Black.png#gh-light-mode-only" alt="Preroll Plus Logo">
 
 ---
 ![GitHub Release](https://img.shields.io/github/v/release/chadwpalm/prerollplus?label=latest)
