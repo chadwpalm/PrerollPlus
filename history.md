@@ -1,5 +1,15 @@
 # Preroll Plus Version History
 
+## 1.4.1
+
+### Changes
+
+1. Documentation is now through a website ([prerollplus.org](https://prerollplus.org)) instead of GitHub wiki.
+
+### Fixes
+
+1. Updated "App Dir" in the "About" modal to show the proper directory the app is running in.
+
 ## 1.4.0
 
 ### Changes

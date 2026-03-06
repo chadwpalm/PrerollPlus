@@ -16,6 +16,7 @@ function getInternalURL(path) {
 
 var appVersion, branch, UID, GID, build;
 var platform = `${os.platform().charAt(0).toUpperCase()}${os.platform().slice(1).toLowerCase()} ${os.release}`;
+var appDir = process.cwd();
 
 try {
   var info = fs.readFileSync("version.json");
@@ -45,7 +46,7 @@ if (process.env.BUILD) {
 
 var fileData = `{"connected": "false","isLoggedIn": "false","platform":"${
   platform
-}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}", "sequences": [], "buckets": [],"message":true}`;
+}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}","appDir":"${appDir}", "sequences": [], "buckets": [],"message":true}`;
 
 try {
   fileData = fs.readFileSync("/config/settings.js");
@@ -58,6 +59,8 @@ try {
   if (!("isLoggedIn" in temp)) {
     temp.isLoggedIn = "token" in temp ? "true" : "false";
   }
+
+  temp.appDir = appDir;
 
   if (temp.api !== "v2") {
     console.info(`${LOG_TAG} Backing up old settings file to "settings_v1.bak"`);

@@ -422,7 +422,7 @@ export default class App extends Component {
                             {this.state.config.email}
                           </NavDropdown.Header>
                           <NavDropdown.Divider />
-                          <NavDropdown.Item href="https://github.com/chadwpalm/PrerollPlus/wiki" target="_blank">
+                          <NavDropdown.Item href="https://prerollplus.org" target="_blank">
                             Documentation
                           </NavDropdown.Item>
                           <NavDropdown.Item onClick={this.handleOpen}>About</NavDropdown.Item>
@@ -471,7 +471,7 @@ export default class App extends Component {
                     <br />
                     <b>Config Dir:</b>&nbsp; /config
                     <br />
-                    <b>App Dir:</b>&nbsp; /PrerollPlus
+                    <b>App Dir:</b>&nbsp; {this.state.config.appDir}
                     <br />
                     <b>Docker:</b>&nbsp;
                     <a
