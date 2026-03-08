@@ -1,5 +1,11 @@
 # Preroll Plus Version History
 
+## 1.4.1
+
+### Hotfix
+
+1. App was crashing when using Nager.Date (Legacy) calendar.
+
 ## 1.4.0
 
 ### Changes
