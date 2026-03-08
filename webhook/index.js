@@ -61,11 +61,11 @@ async function isHolidayDay(
     if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Cache hit for ${country}/${typeName}/${currentYear}`);
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
-    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Fetching ${url.split("api_key=")[0]}...`);
     const url =
       source === "1"
         ? `https://date.nager.at/api/v3/publicholidays/${currentYear}/${country}`
         : `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${country}&year=${currentYear}&type=${typeName}`;
+    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Fetching ${url.split("api_key=")[0]}...`);
     try {
       const response = await axios.get(url, { timeout: 2000 });
       rawData = JSON.stringify(response.data);
@@ -219,7 +219,7 @@ async function checkSchedule(forceDate = null, isCal = false) {
   const currentYear = today.getFullYear();
   const todayNumber = new Date(Date.UTC(currentYear, today.getMonth(), today.getDate())).getTime();
   const jsDay = today.getDay();
-  const bitForToday = 1 << (jsDay === 0 ? 6 : jsDay - 1); //adjusting for discrepency between indexes of today.getDay and PR+
+  const bitForToday = 1 << (jsDay === 0 ? 6 : jsDay - 1); //adjusting for discrepancy between indexes of today.getDay and PR+
 
   for (let idx = 0; idx < settings.sequences.length; idx++) {
     const element = settings.sequences[idx];
