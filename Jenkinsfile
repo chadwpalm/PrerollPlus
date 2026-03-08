@@ -24,6 +24,7 @@ pipeline {
       when {
         branch 'develop'
       }
+      agent { label 'amd'}
       steps {
         script {
           def JSONVersion = readJSON file: 'version.json'
@@ -99,6 +100,7 @@ pipeline {
           }
         }
       }
+      agent { label 'amd'}
       steps {
         script {
           def JSONVersion = readJSON file: "version.json"
