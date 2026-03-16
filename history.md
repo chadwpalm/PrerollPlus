@@ -1,5 +1,15 @@
 # Preroll Plus Version History
 
+## 1.4.2
+
+### New Features
+
+1. Added ability to set Base URL through ENV variable at app start. The new variable is APP_BASE_URL.
+
+### Fixes
+
+1. Made Base URL more robust accepting any combination of zero or more leading or trailing slashes and it will still work properly.
+
 ## 1.4.1
 
 ### Hotfix

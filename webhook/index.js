@@ -20,6 +20,7 @@ const [hours, minutes] = (process.env.SCHEDULE_TIME?.split(":") || ["0", "0"]).m
 
 function getInternalURL(path) {
   const base = (getBaseURL() || "").replace(/\/$/, "");
+  console.debug(`${LOG_TAG} Base URL: http://localhost:${getActivePort()}${base}${path}`);
   return `http://localhost:${getActivePort()}${base}${path}`;
 }
 
