@@ -15,9 +15,9 @@ function getInternalURL(path) {
   return `http://localhost:${getActivePort()}${base}${path}`;
 }
 
-let pendingAdds = new Map(); // Store added files with relevant information
-let pendingRemovals = new Map(); // Track removed files
-let renameDelay; // Delay for rename detection
+let pendingAdds = new Map();
+let pendingRemovals = new Map();
+let renameDelay;
 let pathToWatch = "";
 let isRemoved = true;
 let isAdded = true;
@@ -212,41 +212,47 @@ function handleRenameOrMove(oldPath, newPath) {
 
 function handleRemove(oldPath) {
   settings = JSON.parse(fs.readFileSync("/config/settings.js"));
-  console.info(`${LOG_TAG} Handling removal of ${oldPath} in buckets...`);
 
-  let settingsUpdated = false;
+  if (settings.settings.deletion !== "2") {
+    console.info(`${LOG_TAG} Handling removal of ${oldPath} in buckets...`);
 
-  settings.buckets.forEach((bucket) => {
-    const initialMediaLength = bucket.media.length;
+    let settingsUpdated = false;
 
-    bucket.media = bucket.media.filter(
-      (file) =>
-        !(
-          file.file === path.basename(oldPath) && file.dir === path.dirname(oldPath).replace(settings.settings.loc, "")
-        ),
-    );
+    settings.buckets.forEach((bucket) => {
+      const initialMediaLength = bucket.media.length;
 
-    if (bucket.media.length !== initialMediaLength) {
-      console.info(`${LOG_TAG} Removed all occurrences of ${oldPath} from bucket "${bucket.name}"`);
-      settingsUpdated = true;
+      bucket.media = bucket.media.filter(
+        (file) =>
+          !(
+            file.file === path.basename(oldPath) &&
+            file.dir === path.dirname(oldPath).replace(settings.settings.loc, "")
+          ),
+      );
+
+      if (bucket.media.length !== initialMediaLength) {
+        console.info(`${LOG_TAG} Removed all occurrences of ${oldPath} from bucket "${bucket.name}"`);
+        settingsUpdated = true;
+      }
+    });
+
+    if (settingsUpdated) {
+      try {
+        fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
+        console.info(`${LOG_TAG} Settings file saved`);
+        axios
+          .get(getInternalURL("/webhook"))
+          .then((response) => {})
+          .catch((error) => {});
+      } catch (err) {
+        console.error(`${LOG_TAG} Error saving settings file ${err}`);
+      }
+    } else {
+      console.info(`${LOG_TAG} No changes made to settings`);
     }
-  });
-
-  if (settingsUpdated) {
-    try {
-      fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-      console.info(`${LOG_TAG} Settings file saved`);
-      axios
-        .get(getInternalURL("/webhook"))
-        .then((response) => {})
-        .catch((error) => {});
-    } catch (err) {
-      console.error(`${LOG_TAG} Error saving settings file ${err}`);
-    }
+    broadcastUpdate();
   } else {
-    console.info(`${LOG_TAG} No changes made to settings`);
+    console.info(`${LOG_TAG} Deletion handling is disabled in settings, skipping removal of ${oldPath} from buckets`);
   }
-  broadcastUpdate();
 }
 
 initializeWatcher();

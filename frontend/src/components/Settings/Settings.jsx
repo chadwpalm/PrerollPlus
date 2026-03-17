@@ -39,6 +39,7 @@ export default class Settings extends Component {
         logFiles: this.props.settings.settings.logFiles ?? "5",
         appPort: this.props.settings.settings.appPort ?? "4949",
         baseURL: this.props.settings.settings.baseURL ?? "",
+        deletion: this.props.settings.settings.deletion ?? "1",
       };
     } else {
       this.state = {
@@ -64,6 +65,7 @@ export default class Settings extends Component {
         logFiles: "5",
         appPort: "4949",
         baseURL: "",
+        deletion: "1",
       };
     }
   }
@@ -94,6 +96,7 @@ export default class Settings extends Component {
     this.props.settings.settings.dayOfWeek = this.state.dayOfWeek;
     this.props.settings.settings.appPort = this.state.appPort;
     this.props.settings.settings.baseURL = this.state.baseURL;
+    this.props.settings.settings.deletion = this.state.deletion;
     this.props.connection(1);
 
     try {
@@ -301,6 +304,10 @@ export default class Settings extends Component {
 
   handleBaseURL = (e) => {
     this.setState({ baseURL: e.target.value.toString() });
+  };
+
+  handleDeletion = (e) => {
+    this.setState({ deletion: e.target.value.toString() });
   };
 
   render() {
@@ -511,6 +518,49 @@ export default class Settings extends Component {
                     onChange={this.handlePolling}
                     size="sm"
                     checked={this.state.polling === "2"}
+                  />
+                </div>
+                <div className="div-seperator" />
+                <Form.Label for="deletion">
+                  Prevent File Deletion From Buckets &nbsp;&nbsp;
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={
+                      <Tooltip>
+                        Setting this to "On" will prevent files from being deleted from buckets when they are deleted
+                        from the file system.
+                        <br />
+                        <br />
+                        Since the file system is continually being monitored for changes, this solves the issue of files
+                        in buckets wrongfully getting deleted when the SMB share disconnects or fails.
+                      </Tooltip>
+                    }
+                  >
+                    <img src={Info} className="image-info" alt="Info" />
+                  </OverlayTrigger>
+                </Form.Label>
+                <div>
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="Off"
+                    value="1"
+                    id="deletion"
+                    name="deletion"
+                    onChange={this.handleDeletion}
+                    size="sm"
+                    checked={this.state.deletion === "1"}
+                  />
+                  <Form.Check
+                    inline
+                    type="radio"
+                    label="On"
+                    value="2"
+                    id="deletion"
+                    name="deletion"
+                    onChange={this.handleDeletion}
+                    size="sm"
+                    checked={this.state.deletion === "2"}
                   />
                 </div>
               </>
