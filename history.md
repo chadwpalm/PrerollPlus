@@ -1,5 +1,16 @@
 # Preroll Plus Version History
 
+## 1.4.2
+
+### New Features
+
+1. Added ability to set Base URL through ENV variable at app start. The new variable is APP_BASE_URL. [[#34](https://github.com/chadwpalm/PrerollPlus/discussions/34)]
+2. Added an Advanced Setting to disable the deletion of files from buckets when they are deleted from the file system. The reason for this is since the file system is continually being monitored for changes, this solves the issue of files in buckets wrongfully getting deleted when the SMB share temporarily disconnects or fails. Be aware that this will leave ghost files in your buckets if you do legitimately delete a file. Plex will be unable to find the file and simply not play a preroll if this occurs. [[#35](https://github.com/chadwpalm/PrerollPlus/issues/35)]
+
+### Fixes
+
+1. Made Base URL more robust accepting any combination of zero or more leading or trailing slashes and it will still work properly.
+
 ## 1.4.1
 
 ### Hotfix

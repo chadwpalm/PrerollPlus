@@ -39,13 +39,22 @@ function getActivePort() {
 function getBaseURL() {
   if (baseURL !== null) return baseURL;
 
+  if (process.env.APP_BASE_URL) {
+    const url = process.env.APP_BASE_URL;
+    if (typeof url === "string" && url.length > 0) {
+      baseURL = "/" + url.replace(/^\/+|\/+$/g, "");
+      console.info(`[CONFIG] Using base URL from APP_BASE_URL env: ${baseURL}`);
+      return baseURL;
+    }
+  }
+
   try {
     const settingsPath = path.join("/", "config", "settings.js");
     if (fs.existsSync(settingsPath)) {
       const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
       const cfgURL = settings?.settings?.baseURL;
 
-      baseURL = (typeof cfgURL === "string" ? cfgURL : "").replace(/\/$/, "");
+      baseURL = typeof cfgURL === "string" && cfgURL.length > 0 ? "/" + cfgURL.replace(/^\/+|\/+$/g, "") : "";
 
       console.info(`[CONFIG] Base URL loaded: "${baseURL}"`);
       return baseURL;
