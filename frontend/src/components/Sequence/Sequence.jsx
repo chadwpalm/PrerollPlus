@@ -24,7 +24,6 @@ export default class Sequence extends Component {
     super(props);
     this.state = {
       id: "",
-      active: true,
     };
 
     this.state.id = this.props.id;
@@ -61,11 +60,14 @@ export default class Sequence extends Component {
     return (
       <Card
         className={`card-global ${
-          (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId
-            ? "card-error"
-            : this.props.id === this.props.currentSeq
-              ? "card-current"
-              : "card-default"
+          this.props.currentOvr === this.props.id &&
+          (this.props.endTimestamp === null || Date.now() < this.props.endTimestamp)
+            ? "card-override"
+            : (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.stateId
+              ? "card-error"
+              : this.props.id === this.props.currentSeq
+                ? "card-current"
+                : "card-default"
         } ${this.props.isDarkMode ? "dark-mode" : ""}`}
         border={
           (this.props.isEdit || this.props.isCreating) && this.props.id === this.props.currentSeq ? "none" : "dark"
@@ -86,7 +88,44 @@ export default class Sequence extends Component {
             </Col>
           </Row>
         </Card.Header>
-        <Card.Subtitle className="d-flex align-items-center justify-content-center sub-custom">
+        <Card.Subtitle
+          className="d-flex align-items-center justify-content-center sub-custom override-toggle"
+          style={{ cursor: "pointer" }}
+          onMouseEnter={(e) => {
+            if (this.props.currentOvr !== this.props.id) return;
+
+            document.querySelectorAll(".override-tooltip").forEach((t) => t.remove());
+
+            const rect = e.currentTarget.getBoundingClientRect();
+
+            const tooltip = document.createElement("div");
+            tooltip.className = "override-tooltip";
+
+            const endTime = this.props.endTimestamp;
+            let tooltipText = "";
+
+            if (endTime === null) {
+              tooltipText = "Override active indefinitely";
+            } else {
+              const date = new Date(endTime);
+              tooltipText = `Override ends:<br>${date.toLocaleString()}`;
+            }
+
+            tooltip.innerHTML = tooltipText;
+
+            Object.assign(tooltip.style, {
+              top: rect.bottom + 8 + "px",
+              left: rect.left + rect.width / 2 + "px",
+              transform: "translateX(-50%)",
+            });
+
+            document.body.appendChild(tooltip);
+          }}
+          onMouseLeave={() => {
+            document.querySelectorAll(".override-tooltip").forEach((t) => t.remove());
+          }}
+          onClick={() => this.props.override(this.props.id)}
+        >
           {this.props.sequence}
         </Card.Subtitle>
         <Card.Footer className={`border-top-0 footer-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
