@@ -1,0 +1,25 @@
+.settings-section {
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.settings-section:hover {
+  transform: translateY(-2px);
+}
+
+.dark-mode .settings-section {
+  background-color: #222222;
+  border: 1px solid #444;
+}
+
+.settings-section .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+}
+
+.dark-mode .settings-section .card-header {
+  background-color: #2e2e2e;
+  border-bottom: 1px solid #555;
+}

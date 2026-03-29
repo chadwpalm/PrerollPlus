@@ -226,7 +226,7 @@ export default class Sequences extends Component {
 
   handleSortOrder = (order) => {
     const settings = { ...this.props.settings };
-    let sequences = [...settings.sequences]; // Always work on a copy
+    let sequences = [...settings.sequences];
 
     if (order === "1") {
       sequences.sort((a, b) => a.priority - b.priority);
@@ -238,7 +238,6 @@ export default class Sequences extends Component {
 
     settings.sequences = sequences;
 
-    // Save to backend
     const xhr = new XMLHttpRequest();
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
@@ -255,7 +254,6 @@ export default class Sequences extends Component {
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
-    // Instant UI update
     this.props.updateSettings(settings);
     this.handleSaveCreate();
   };
@@ -532,7 +530,7 @@ export default class Sequences extends Component {
           </Modal.Header>
           <Modal.Body>
             <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
-              <div>
+              <div className="mb-3">
                 <Form.Check
                   inline
                   type="radio"
@@ -556,8 +554,7 @@ export default class Sequences extends Component {
                   checked={this.state.overrideLength === "2"}
                 />
               </div>
-              <div className="div-seperator" />
-              <Stack gap={3} direction="horizontal">
+              <Stack gap={3} direction="horizontal" className="mb-3">
                 Days
                 <Form.Control
                   type="number"
@@ -589,10 +586,7 @@ export default class Sequences extends Component {
                   disabled={this.state.overrideLength === "1"}
                 />
               </Stack>
-              <div className="div-seperator" />
-              <div className="div-seperator" />
               Ends: {this.state.endTimestamp ? new Date(this.state.endTimestamp).toLocaleString() : "N/A"}
-              <div className="div-seperator" />
               <div className="d-flex justify-content-between align-items-center mt-4">
                 <div className="d-flex gap-2">
                   <Button variant={this.props.isDarkMode ? "secondary" : "primary"} onClick={this.handleOverride}>
