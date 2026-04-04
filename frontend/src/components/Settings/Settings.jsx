@@ -6,9 +6,11 @@ import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 import Info from "bootstrap-icons/icons/info-circle.svg";
 import Repeat from "bootstrap-icons/icons/arrow-repeat.svg";
+import Copy from "bootstrap-icons/icons/copy.svg";
 import Button from "react-bootstrap/Button";
 import Stack from "react-bootstrap/Stack";
 import Image from "react-bootstrap/Image";
+import { v4 as uuid } from "uuid";
 import SettingsSection from "../SettingsSection/SettingsSection";
 import "./Settings.css";
 
@@ -41,6 +43,8 @@ export default class Settings extends Component {
         appPort: this.props.settings.settings.appPort ?? "4949",
         baseURL: this.props.settings.settings.baseURL ?? "",
         deletion: this.props.settings.settings.deletion ?? "1",
+        mainApiKey: this.props.settings.mainApiKey ?? "",
+        copySuccess: false,
       };
     } else {
       this.state = {
@@ -67,6 +71,8 @@ export default class Settings extends Component {
         appPort: "4949",
         baseURL: "",
         deletion: "1",
+        mainApiKey: "",
+        copySuccess: false,
       };
     }
   }
@@ -246,6 +252,10 @@ export default class Settings extends Component {
     this.setState({ apiKey: e.target.value.toString() });
   };
 
+  handleMainApiKey = (e) => {
+    this.setState({ mainApiKey: e.target.value.toString() });
+  };
+
   handleDayOfWeek = (e) => {
     this.setState({ dayOfWeek: e.target.value.toString() });
   };
@@ -309,6 +319,42 @@ export default class Settings extends Component {
 
   handleDeletion = (e) => {
     this.setState({ deletion: e.target.value.toString() });
+  };
+
+  handleGenerateApiKey = () => {
+    const newApiKey = uuid().replace(/-/g, "");
+
+    this.setState((prevState) => {
+      const settings = { ...this.props.settings };
+
+      if (!settings.settings) {
+        settings.settings = {};
+      }
+
+      settings.mainApiKey = newApiKey;
+
+      const xhr = new XMLHttpRequest();
+      xhr.addEventListener("readystatechange", () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            this.setState({
+              mainApiKey: newApiKey,
+              isSaved: true,
+            });
+          } else {
+            this.setState({
+              error: xhr.responseText || "Failed to save API key",
+            });
+          }
+        }
+      });
+
+      xhr.open("POST", "backend/save", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.send(JSON.stringify(settings));
+
+      return { mainApiKey: newApiKey };
+    });
   };
 
   render() {
@@ -674,6 +720,89 @@ export default class Settings extends Component {
                 />
               </div>
             </SettingsSection>
+            <SettingsSection title="Host" isDarkMode={this.props.isDarkMode}>
+              <h6>
+                Port Number &nbsp;&nbsp;
+                <OverlayTrigger
+                  placement="right"
+                  overlay={
+                    <Tooltip>
+                      The port number Preroll Plus runs on. If left blank the port will default to "4949".
+                      <br />
+                      <br />
+                      Note: If running in a Docker container this will be the port as seen <i>inside</i> the container.
+                      If APP_PORT is used as an ENV variable, it will override this port setting.
+                    </Tooltip>
+                  }
+                >
+                  <img src={Info} className="image-info" alt="Info" />
+                </OverlayTrigger>
+              </h6>
+              <Form.Control
+                value={this.state.appPort}
+                id="appPort"
+                name="appPort"
+                onChange={this.handleAppPort}
+                size="sm"
+              />
+              <div className="footnote mb-3">Requires restart to take effect</div>
+              <Form.Label for="baseURL">URL Base &nbsp;&nbsp;</Form.Label>
+              <OverlayTrigger
+                placement="right"
+                overlay={
+                  <Tooltip>
+                    For reverse proxy support, default is empty.
+                    <br />
+                    <br />
+                    Note: If using a reverse proxy (example: mydomain.com/prerollplus) you would enter '/prerollplus'
+                    for URL Base.
+                  </Tooltip>
+                }
+              >
+                <img src={Info} className="image-info" alt="Info" />
+              </OverlayTrigger>
+              <Form.Control
+                value={this.state.baseURL}
+                id="baseURL"
+                name="baseURL"
+                onChange={this.handleBaseURL}
+                size="sm"
+              />
+              <div className="footnote">Requires restart to take effect</div>
+            </SettingsSection>
+            <SettingsSection title="Security" isDarkMode={this.props.isDarkMode}>
+              <Stack direction="horizontal" gap={2}>
+                <h6>API Key</h6>
+                {this.state.copySuccess && <span className="text-success mb-1">Copied!</span>}
+              </Stack>
+              <Stack direction="horizontal" gap={2} className="mb-3">
+                <Form.Control value={this.state.mainApiKey} readOnly id="mainApyKey" name="mainApyKey" size="sm" />
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={() => {
+                    if (!this.state.mainApiKey) return;
+                    navigator.clipboard.writeText(this.state.mainApiKey).then(() => {
+                      this.setState({ copySuccess: true });
+                      setTimeout(() => this.setState({ copySuccess: false }), 2000);
+                    });
+                  }}
+                  className="repeat-button d-flex align-items-center justify-content-center"
+                  style={{ width: "32px", height: "31px" }}
+                >
+                  <Image src={Copy} className="repeat-icon" />
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={this.handleGenerateApiKey}
+                  className="repeat-button d-flex align-items-center justify-content-center"
+                  style={{ width: "32px", height: "31px" }}
+                >
+                  <Image src={Repeat} className="repeat-icon" />
+                </Button>
+              </Stack>
+            </SettingsSection>
             {this.state.advanced ? (
               <SettingsSection title="Logging" isDarkMode={this.props.isDarkMode}>
                 <h6>Log Level</h6>
@@ -730,56 +859,6 @@ export default class Settings extends Component {
             ) : (
               <></>
             )}
-            <SettingsSection title="Host" isDarkMode={this.props.isDarkMode}>
-              <h6>
-                Port Number &nbsp;&nbsp;
-                <OverlayTrigger
-                  placement="right"
-                  overlay={
-                    <Tooltip>
-                      The port number Preroll Plus runs on. If left blank the port will default to "4949".
-                      <br />
-                      <br />
-                      Note: If running in a Docker container this will be the port as seen <i>inside</i> the container.
-                      If APP_PORT is used as an ENV variable, it will override this port setting.
-                    </Tooltip>
-                  }
-                >
-                  <img src={Info} className="image-info" alt="Info" />
-                </OverlayTrigger>
-              </h6>
-              <Form.Control
-                value={this.state.appPort}
-                id="appPort"
-                name="appPort"
-                onChange={this.handleAppPort}
-                size="sm"
-              />
-              <div className="footnote mb-3">Requires restart to take effect</div>
-              <Form.Label for="baseURL">URL Base &nbsp;&nbsp;</Form.Label>
-              <OverlayTrigger
-                placement="right"
-                overlay={
-                  <Tooltip>
-                    For reverse proxy support, default is empty.
-                    <br />
-                    <br />
-                    Note: If using a reverse proxy (example: mydomain.com/prerollplus) you would enter '/prerollplus'
-                    for URL Base.
-                  </Tooltip>
-                }
-              >
-                <img src={Info} className="image-info" alt="Info" />
-              </OverlayTrigger>
-              <Form.Control
-                value={this.state.baseURL}
-                id="baseURL"
-                name="baseURL"
-                onChange={this.handleBaseURL}
-                size="sm"
-              />
-              <div className="footnote">Requires restart to take effect</div>
-            </SettingsSection>
             {/* Cancel/Save */}
             <Button type="submit" variant="secondary">
               Save

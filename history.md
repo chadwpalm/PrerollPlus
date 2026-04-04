@@ -1,5 +1,11 @@
 # Preroll Plus Version History
 
+## 1.5.0
+
+### New Features
+
+1. Added the ability to override sequences either indefinitely or for a specific amount of time.
+
 ## 1.4.2
 
 ### New Features

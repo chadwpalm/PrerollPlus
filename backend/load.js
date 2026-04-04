@@ -18,6 +18,7 @@ function getInternalURL(path) {
 var appVersion, branch, UID, GID, build;
 var platform = `${os.platform().charAt(0).toUpperCase()}${os.platform().slice(1).toLowerCase()} ${os.release}`;
 var appDir = process.cwd();
+const mainApiKey = uuid().replace(/-/g, "");
 
 try {
   var info = fs.readFileSync("version.json");
@@ -47,11 +48,15 @@ if (process.env.BUILD) {
 
 var fileData = `{"connected": "false","isLoggedIn": "false","platform":"${
   platform
-}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}","appDir":"${appDir}", "sequences": [], "buckets": [],"message":true}`;
+}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}","appDir":"${appDir}","mainApiKey":"${mainApiKey}","sequences": [], "buckets": [],"message":true}`;
 
 try {
   fileData = fs.readFileSync("/config/settings.js");
   var temp = JSON.parse(fileData);
+
+  if (!("mainApiKey" in temp)) {
+    temp.mainApiKey = mainApiKey;
+  }
 
   if (build !== "Native") {
     temp.settings.loc = "/prerolls";

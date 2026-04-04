@@ -447,8 +447,8 @@ export default class Sequences extends Component {
                 currentSeq={this.props.settings.currentSeq}
                 days={sequence.days}
                 override={this.handleOpenOverride}
-                currentOvr={this.props.settings.currentOverride.id}
-                endTimestamp={this.props.settings.currentOverride.endTimestamp}
+                currentOvr={this.props.settings.currentOverride?.id ?? null}
+                endTimestamp={this.props.settings.currentOverride?.endTimestamp ?? null}
               />
               <br />
             </Col>
