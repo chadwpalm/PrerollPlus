@@ -28,6 +28,7 @@ export default class Sequences extends Component {
       showOverride: false,
       tempID: "",
       tempIDOverride: "",
+      tempNameOverride: "",
       overrideLength: "1",
       days: 0,
       hours: 0,
@@ -80,10 +81,11 @@ export default class Sequences extends Component {
 
     const currentOverride = this.props.settings.currentOverride || { id: null, endTimestamp: null };
 
-    const isCurrentlyOverridden = currentOverride.id === e;
+    const isCurrentlyOverridden = currentOverride.id === e[0];
 
     this.setState({
-      tempIDOverride: e,
+      tempIDOverride: e[0],
+      tempNameOverride: e[1],
       showOverride: true,
       fullscreen: "md-down",
       overrideLength: "2",
@@ -530,6 +532,9 @@ export default class Sequences extends Component {
           </Modal.Header>
           <Modal.Body>
             <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
+              <div className="mb-3">
+                <Form.Label>Sequence: &nbsp;{this.state.tempNameOverride}</Form.Label>
+              </div>
               <div className="mb-3">
                 <Form.Check
                   inline

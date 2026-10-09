@@ -54,7 +54,7 @@ try {
   fileData = fs.readFileSync("/config/settings.js");
   var temp = JSON.parse(fileData);
 
-  if (!("mainApiKey" in temp)) {
+  if (!temp.mainApiKey) {
     temp.mainApiKey = mainApiKey;
   }
 

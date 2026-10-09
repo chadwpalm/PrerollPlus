@@ -124,7 +124,7 @@ export default class Sequence extends Component {
           onMouseLeave={() => {
             document.querySelectorAll(".override-tooltip").forEach((t) => t.remove());
           }}
-          onClick={() => this.props.override(this.props.id)}
+          onClick={() => this.props.override([this.props.id, this.props.sequence])}
         >
           {this.props.sequence}
         </Card.Subtitle>

@@ -5,6 +5,7 @@ var cookieParser = require("cookie-parser");
 const fs = require("fs");
 var logger = require("./backend/logger");
 var webhookRouter = require("./webhook/index");
+var feedRouter = require("./feed/index");
 var load = require("./backend/load");
 var save = require("./backend/save");
 var thumb = require("./backend/thumb");
@@ -50,6 +51,7 @@ app.use(base + "/backend/monitor", monitor);
 app.use(base + "/backend/holiday", holiday);
 app.use(base + "/backend/clearcache", clearCache);
 app.use(base + "/webhook", webhookRouter);
+app.use(base + "/feed", feedRouter);
 
 if (base) {
   app.use(base + "/", express.static(path.join(__dirname, "frontend/production"), { index: false }));

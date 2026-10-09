@@ -105,12 +105,14 @@ async function isHolidayDay(
 
   const currentYear = today.getFullYear();
 
-  let rawData, cacheFile;
-  if (source === "2") {
-    cacheFile = path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`);
-  }
-  if (source === "2" && fs.existsSync(cacheFile)) {
-    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Cache hit for ${country}/${typeName}/${currentYear}`);
+  let rawData;
+  const cacheFile =
+    source === "2"
+      ? path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`)
+      : path.join(cacheDir, `${country}-nager-${currentYear}.json`);
+
+  if (fs.existsSync(cacheFile)) {
+    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Cache hit for ${path.basename(cacheFile)}`);
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
     const url =
@@ -121,9 +123,7 @@ async function isHolidayDay(
     try {
       const response = await axios.get(url, { timeout: 2000 });
       rawData = JSON.stringify(response.data);
-      if (source === "2") {
-        fs.writeFileSync(cacheFile, rawData, "utf-8");
-      }
+      fs.writeFileSync(cacheFile, rawData, "utf-8");
     } catch (error) {
       if (error.response) {
         const status = error.response.status;
@@ -614,32 +614,23 @@ router.get("/", async function (req, res, next) {
   res.sendStatus(200);
 });
 
-router.get("/calendar", async (req, res) => {
-  const { year, month } = req.query;
-  console.debug(`${LOG_TAG} Calendar request: year=${year}, month=${month}`);
-
-  if (!year || !month) {
-    return res.status(400).json({ error: "year and month required" });
-  }
-
-  const y = parseInt(year, 10);
-  const m = parseInt(month, 10) - 1;
-
+// Returns the sequence scheduled for each day between startStr and endStr (inclusive, "YYYY-MM-DD").
+// Shared by the Calendar page (/webhook/calendar) and the iCal feed (/feed).
+async function getCalendarEvents(startStr, endStr) {
   const events = [];
+
+  if (!settings) {
+    console.warn(`${LOG_TAG} Calendar requested before settings were loaded`);
+    return events;
+  }
 
   const bucketMap = {};
   settings.buckets.forEach((bucket) => {
     bucketMap[bucket.id] = bucket.name;
   });
 
-  let currentDate = new Date(Date.UTC(y, m, 1));
-  const endDate = new Date(Date.UTC(y, m + 1, 0));
-
-  console.log(
-    `${LOG_TAG} Fetching calendar: ${year}-${month} (${currentDate.toISOString().split("T")[0]} to ${
-      endDate.toISOString().split("T")[0]
-    })`,
-  );
+  let currentDate = new Date(startStr + "T00:00:00Z");
+  const endDate = new Date(endStr + "T00:00:00Z");
 
   while (currentDate <= endDate) {
     const dateStr = currentDate.toISOString().split("T")[0];
@@ -653,6 +644,7 @@ router.get("/calendar", async (req, res) => {
         .filter(Boolean);
 
       events.push({
+        id: seq.id,
         title: seq.name,
         date: dateStr,
         buckets: bucketNames,
@@ -663,6 +655,27 @@ router.get("/calendar", async (req, res) => {
       Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1),
     );
   }
+
+  return events;
+}
+
+router.get("/calendar", async (req, res) => {
+  const { year, month } = req.query;
+  console.debug(`${LOG_TAG} Calendar request: year=${year}, month=${month}`);
+
+  if (!year || !month) {
+    return res.status(400).json({ error: "year and month required" });
+  }
+
+  const y = parseInt(year, 10);
+  const m = parseInt(month, 10) - 1;
+
+  const startStr = new Date(Date.UTC(y, m, 1)).toISOString().split("T")[0];
+  const endStr = new Date(Date.UTC(y, m + 1, 0)).toISOString().split("T")[0];
+
+  console.log(`${LOG_TAG} Fetching calendar: ${year}-${month} (${startStr} to ${endStr})`);
+
+  const events = await getCalendarEvents(startStr, endStr);
 
   console.info(`${LOG_TAG} Calendar generated: ${events.length} events for ${year}-${month}`);
 
@@ -682,3 +695,4 @@ setTimeout(() => {
 }, delay);
 
 module.exports = router;
+module.exports.getCalendarEvents = getCalendarEvents;

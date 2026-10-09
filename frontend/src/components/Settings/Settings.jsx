@@ -337,6 +337,7 @@ export default class Settings extends Component {
       xhr.addEventListener("readystatechange", () => {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
+            this.props.settings.mainApiKey = newApiKey;
             this.setState({
               mainApiKey: newApiKey,
               isSaved: true,
