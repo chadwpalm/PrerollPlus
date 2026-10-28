@@ -657,8 +657,8 @@ export default class Settings extends Component {
               <Form.Control
                 placeholder="Enter API Key if using Calendarific"
                 value={this.state.apiKey}
-                id="apyKey"
-                name="apyKey"
+                id="apiKey"
+                name="apiKey"
                 onChange={this.handleAPIKey}
                 size="sm"
                 className="mb-3"
@@ -667,7 +667,7 @@ export default class Settings extends Component {
                 {this.state.advanced ? (
                   <>
                     <Button variant={this.props.isDarkMode ? "outline-light" : "light"} onClick={this.handleCache}>
-                      Clear Calendarific Cache
+                      Clear Calendar Cache
                     </Button>
                     {this.state.isCacheSuccess ? (
                       <i style={{ color: "#00a700" }}>&nbsp; Cache cleared successfully. </i>
@@ -777,7 +777,7 @@ export default class Settings extends Component {
                 {this.state.copySuccess && <span className="text-success mb-1">Copied!</span>}
               </Stack>
               <Stack direction="horizontal" gap={2} className="mb-3">
-                <Form.Control value={this.state.mainApiKey} readOnly id="mainApyKey" name="mainApyKey" size="sm" />
+                <Form.Control value={this.state.mainApiKey} readOnly id="mainApiKey" name="mainApiKey" size="sm" />
                 <Button
                   variant="outline-light"
                   size="sm"
