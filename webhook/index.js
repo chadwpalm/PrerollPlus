@@ -26,6 +26,57 @@ function getInternalURL(path) {
 
 // General Functions
 
+function getOverrideSequenceIndex(forceDate = null) {
+  const ovr = settings.currentOverride;
+  if (!ovr || !ovr.id) {
+    return -1;
+  }
+
+  if (ovr.endTimestamp === null) {
+    if (forceDate) {
+      const dayToCheck = new Date(forceDate + "T00:00:00");
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      if (dayToCheck < todayStart) {
+        return -1;
+      }
+    }
+    if (!forceDate) {
+      console.info(`${LOG_TAG} [OVERRIDE] Using indefinite override for sequence ID: ${ovr.id}`);
+    }
+    return settings.sequences.findIndex((seq) => seq.id === ovr.id);
+  }
+
+  if (forceDate) {
+    const dayToCheck = new Date(forceDate + "T00:00:00");
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    if (dayToCheck < todayStart) {
+      return -1;
+    }
+
+    const endOfDay = new Date(forceDate + "T23:59:59.999");
+    const checkTime = endOfDay.getTime();
+
+    if (checkTime < ovr.endTimestamp) {
+      return settings.sequences.findIndex((seq) => seq.id === ovr.id);
+    } else {
+      return -1;
+    }
+  } else {
+    const now = Date.now();
+    if (now < ovr.endTimestamp) {
+      console.info(`${LOG_TAG} [OVERRIDE] Using timed override for sequence ID: ${ovr.id}`);
+      return settings.sequences.findIndex((seq) => seq.id === ovr.id);
+    } else {
+      console.info(`${LOG_TAG} [OVERRIDE] Timed override expired`);
+      return -1;
+    }
+  }
+}
+
 async function isHolidayDay(
   country,
   holiday,
@@ -54,12 +105,14 @@ async function isHolidayDay(
 
   const currentYear = today.getFullYear();
 
-  let rawData, cacheFile;
-  if (source === "2") {
-    cacheFile = path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`);
-  }
-  if (source === "2" && fs.existsSync(cacheFile)) {
-    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Cache hit for ${country}/${typeName}/${currentYear}`);
+  let rawData;
+  const cacheFile =
+    source === "2"
+      ? path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`)
+      : path.join(cacheDir, `${country}-nager-${currentYear}.json`);
+
+  if (fs.existsSync(cacheFile)) {
+    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Cache hit for ${path.basename(cacheFile)}`);
     rawData = fs.readFileSync(cacheFile, "utf-8");
   } else {
     const url =
@@ -70,9 +123,7 @@ async function isHolidayDay(
     try {
       const response = await axios.get(url, { timeout: 2000 });
       rawData = JSON.stringify(response.data);
-      if (source === "2") {
-        fs.writeFileSync(cacheFile, rawData, "utf-8");
-      }
+      fs.writeFileSync(cacheFile, rawData, "utf-8");
     } catch (error) {
       if (error.response) {
         const status = error.response.status;
@@ -212,6 +263,22 @@ async function saveId(id) {
 async function checkSchedule(forceDate = null, isCal = false) {
   if (!isCal)
     console.debug(`${LOG_TAG} Starting schedule check ${forceDate ? `(forced: ${forceDate})` : "(current day)"}`);
+
+  const overrideIndex = getOverrideSequenceIndex(forceDate);
+
+  if (overrideIndex !== -1) {
+    if (!isCal) {
+      const seqName = settings.sequences[overrideIndex]?.name || "unnamed";
+      console.info(`${LOG_TAG} Override active - forcing sequence: ${seqName}`);
+    }
+    if (!forceDate && !isCal) {
+      await saveId(settings.sequences[overrideIndex].id);
+    }
+    return overrideIndex;
+  }
+
+  if (!isCal) console.debug(`${LOG_TAG} No active override - proceeding with normal schedule check`);
+
   let bestIndex = -1;
   let bestPriority = Infinity;
 
@@ -437,11 +504,66 @@ function getDelayUntilTargetTime(hour = 0, minute = 0) {
   return targetTime - now;
 }
 
+let overrideExpirationTimer = null;
+
+function clearOverrideExpirationTimer() {
+  if (overrideExpirationTimer) {
+    clearTimeout(overrideExpirationTimer);
+    overrideExpirationTimer = null;
+  }
+}
+
+function scheduleOverrideExpiration() {
+  clearOverrideExpirationTimer();
+
+  if (!settings || !settings.currentOverride) {
+    console.debug(`${LOG_TAG} [OVERRIDE] Timer: settings not loaded yet, skipping for now`);
+    return;
+  }
+
+  const ovr = settings.currentOverride;
+
+  if (!ovr || !ovr.id || ovr.endTimestamp === null) {
+    return;
+  }
+
+  const now = Date.now();
+  const delayMs = ovr.endTimestamp - now;
+
+  if (delayMs <= 0) {
+    console.info(`${LOG_TAG} [OVERRIDE] Timer: Override already expired on startup - clearing`);
+    settings.currentOverride = { id: null, endTimestamp: null };
+    fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
+    doTask();
+    return;
+  }
+
+  console.info(
+    `${LOG_TAG} [OVERRIDE] Timer scheduled to expire in ${Math.round(delayMs / 60000)} minutes ` +
+      `(${new Date(ovr.endTimestamp).toLocaleString()})`,
+  );
+
+  overrideExpirationTimer = setTimeout(() => {
+    console.info(`${LOG_TAG} [OVERRIDE] Timer fired - override has now expired`);
+
+    settings.currentOverride = { id: null, endTimestamp: null };
+    fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
+
+    doTask();
+    overrideExpirationTimer = null;
+  }, delayMs);
+}
+
+global.scheduleOverrideExpiration = scheduleOverrideExpiration;
+
 function myAsyncTask() {
   try {
     settings = JSON.parse(fs.readFileSync(filePath));
 
     console.log(`${LOG_TAG} Daily task started...`);
+
+    scheduleOverrideExpiration();
+
     doTask()
       .then(() => {
         console.debug(`${LOG_TAG} Daily task completed successfully`);
@@ -466,6 +588,8 @@ router.post("/", upload.single("thumb"), async function (req, res, next) {
 
   settings = JSON.parse(fs.readFileSync(filePath));
 
+  scheduleOverrideExpiration();
+
   try {
     if (payload.event === "media.play" && payload.Metadata.type === "movie") {
       console.info(`${LOG_TAG} Movie playback detected - triggering preroll update`);
@@ -475,44 +599,38 @@ router.post("/", upload.single("thumb"), async function (req, res, next) {
     res.sendStatus(200);
   } catch (e) {
     console.error(`${LOG_TAG} Webhook processing error: ${e.message}`);
-    res.sendStatus(200); // still ack to Plex
+    res.sendStatus(200);
   }
 });
 
 router.get("/", async function (req, res, next) {
   settings = JSON.parse(fs.readFileSync(filePath));
+
+  scheduleOverrideExpiration();
+
   console.debug(`${LOG_TAG} Manual preroll update triggered`);
   await doTask();
 
   res.sendStatus(200);
 });
 
-router.get("/calendar", async (req, res) => {
-  const { year, month } = req.query;
-  console.debug(`${LOG_TAG} Calendar request: year=${year}, month=${month}`);
-
-  if (!year || !month) {
-    return res.status(400).json({ error: "year and month required" });
-  }
-
-  const y = parseInt(year, 10);
-  const m = parseInt(month, 10) - 1;
-
+// Returns the sequence scheduled for each day between startStr and endStr (inclusive, "YYYY-MM-DD").
+// Shared by the Calendar page (/webhook/calendar) and the iCal feed (/feed).
+async function getCalendarEvents(startStr, endStr) {
   const events = [];
+
+  if (!settings) {
+    console.warn(`${LOG_TAG} Calendar requested before settings were loaded`);
+    return events;
+  }
 
   const bucketMap = {};
   settings.buckets.forEach((bucket) => {
     bucketMap[bucket.id] = bucket.name;
   });
 
-  let currentDate = new Date(Date.UTC(y, m, 1));
-  const endDate = new Date(Date.UTC(y, m + 1, 0));
-
-  console.log(
-    `${LOG_TAG} Fetching calendar: ${year}-${month} (${currentDate.toISOString().split("T")[0]} to ${
-      endDate.toISOString().split("T")[0]
-    })`,
-  );
+  let currentDate = new Date(startStr + "T00:00:00Z");
+  const endDate = new Date(endStr + "T00:00:00Z");
 
   while (currentDate <= endDate) {
     const dateStr = currentDate.toISOString().split("T")[0];
@@ -526,6 +644,7 @@ router.get("/calendar", async (req, res) => {
         .filter(Boolean);
 
       events.push({
+        id: seq.id,
         title: seq.name,
         date: dateStr,
         buckets: bucketNames,
@@ -537,6 +656,27 @@ router.get("/calendar", async (req, res) => {
     );
   }
 
+  return events;
+}
+
+router.get("/calendar", async (req, res) => {
+  const { year, month } = req.query;
+  console.debug(`${LOG_TAG} Calendar request: year=${year}, month=${month}`);
+
+  if (!year || !month) {
+    return res.status(400).json({ error: "year and month required" });
+  }
+
+  const y = parseInt(year, 10);
+  const m = parseInt(month, 10) - 1;
+
+  const startStr = new Date(Date.UTC(y, m, 1)).toISOString().split("T")[0];
+  const endStr = new Date(Date.UTC(y, m + 1, 0)).toISOString().split("T")[0];
+
+  console.log(`${LOG_TAG} Fetching calendar: ${year}-${month} (${startStr} to ${endStr})`);
+
+  const events = await getCalendarEvents(startStr, endStr);
+
   console.info(`${LOG_TAG} Calendar generated: ${events.length} events for ${year}-${month}`);
 
   res.json(events);
@@ -547,7 +687,7 @@ const delay = getDelayUntilTargetTime(hours, minutes);
 console.info(
   `${LOG_TAG} Scheduler initialized - daily update at ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} (delay: ${Math.round(delay / 60000)} minutes)`,
 );
-// Set the task to run every day
+
 setTimeout(() => {
   myAsyncTask();
 
@@ -555,3 +695,4 @@ setTimeout(() => {
 }, delay);
 
 module.exports = router;
+module.exports.getCalendarEvents = getCalendarEvents;

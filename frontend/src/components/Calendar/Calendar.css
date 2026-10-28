@@ -19,3 +19,101 @@
 .fc .fc-col-header-cell-cushion {
   padding: 8px 4px !important;
 }
+
+/* Calendar Header */
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px 16px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555555;
+}
+
+.dark .calendar-header {
+  color: #aaaaaa;
+}
+
+/* iCal Link Button */
+.ical-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 0px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+}
+
+
+/* Icon - inline SVG uses fill="currentColor", so color drives it */
+.ical-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+  color: #000000;
+  transition: color 0.15s ease;
+}
+
+.dark .ical-icon {
+  color: #ffffff;
+}
+
+.ical-button:hover .ical-icon,
+.ical-button:focus-visible .ical-icon {
+  color: #e93663;
+}
+
+/* iCal Link Text */
+.ical-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555555;
+  text-decoration: none;
+}
+
+.dark .ical-text {
+  color: #aaaaaa;
+}
+
+/* Right side instruction text */
+.hover-instruction {
+  text-align: right;
+  padding-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555555;
+}
+
+.dark .hover-instruction {
+  color: #aaaaaa;
+}
+
+/* iCal Modal copy/subscribe buttons */
+.ical-action-button {
+  width: 32px;
+  height: 31px;
+  flex-shrink: 0;
+}
+
+.ical-action-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.form-content.dark-mode .ical-action-icon {
+  filter: invert(100%);
+}
+
+/* Center the bare checkbox with its label and help text.
+   Form.Check without a label renders a plain wrapper div (no .form-check class). */
+.ical-check {
+  display: flex;
+  align-items: center;
+}
+
+.ical-check .form-check-input {
+  margin-top: 0;
+}

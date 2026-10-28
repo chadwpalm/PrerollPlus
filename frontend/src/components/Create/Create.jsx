@@ -458,7 +458,7 @@ export default class Create extends Component {
           </>
         ) : (
           <>
-            <Form.Label for="removeDefault">
+            <h6>
               Set as default?&nbsp;&nbsp;
               <OverlayTrigger
                 placement="right"
@@ -471,39 +471,52 @@ export default class Create extends Component {
               >
                 <img src={Info} className="image-info" alt="Info" />
               </OverlayTrigger>
-            </Form.Label>
-            <Form.Check checked={this.state.default} id="default" name="default" onChange={this.handleDefault} />
+            </h6>
+            <Form.Check
+              checked={this.state.default}
+              id="default"
+              name="default"
+              onChange={this.handleDefault}
+              className="mb-3"
+            />
           </>
         )}
-        <div className="div-seperator" />
-        <Form.Label for="name">Name of bucket &nbsp;&nbsp;</Form.Label>
-        <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
-        <div className="div-seperator" />
-        <Form.Label for="source">Source of files &nbsp;&nbsp;</Form.Label>
-        <OverlayTrigger
-          placement="right"
-          overlay={
-            <Tooltip>
-              This setting selects whether you wish to manually add files to the bucket or just use a specific
-              directory.
-              <br />
-              <br />
-              Manual: You select which files are added to your bucket from this page. This allows you to mix and match
-              files from different directories.
-              <br />
-              <br />
-              Directory: Select a directory to bind to the bucket and Preroll Plus will randomly select files from that
-              directory when creating the Preroll entry.
-              <br />
-              <br />
-              Note: Using Directory as an option will not allow you to add weights to each file. To accompish weights
-              you will need to create duplicates of the file in the file system.
-            </Tooltip>
-          }
-        >
-          <img src={Info} className="image-info" alt="Info" />
-        </OverlayTrigger>
-        <div>
+        <h6>Name of bucket</h6>
+        <Form.Control
+          value={this.state.name}
+          id="name"
+          name="name"
+          onChange={this.handleName}
+          size="sm"
+          className="mb-3"
+        />
+        <h6>
+          Source of files &nbsp;&nbsp;
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip>
+                This setting selects whether you wish to manually add files to the bucket or just use a specific
+                directory.
+                <br />
+                <br />
+                Manual: You select which files are added to your bucket from this page. This allows you to mix and match
+                files from different directories.
+                <br />
+                <br />
+                Directory: Select a directory to bind to the bucket and Preroll Plus will randomly select files from
+                that directory when creating the Preroll entry.
+                <br />
+                <br />
+                Note: Using Directory as an option will not allow you to add weights to each file. To accompish weights
+                you will need to create duplicates of the file in the file system.
+              </Tooltip>
+            }
+          >
+            <img src={Info} className="image-info" alt="Info" />
+          </OverlayTrigger>
+        </h6>
+        <div className="mb-3">
           <Form.Check
             inline
             type="radio"
@@ -527,8 +540,6 @@ export default class Create extends Component {
             checked={this.state.source === "2"}
           />
         </div>
-        <div className="div-seperator" />
-        <div className="div-seperator" />
         {this.state.source === "2" ? (
           <Form.Check
             key="includeSub"
@@ -539,11 +550,12 @@ export default class Create extends Component {
             checked={this.state.includeSub}
             onChange={this.handleSub}
             size="sm"
+            className="mb-3"
           />
         ) : (
           <></>
         )}
-        <Row xs={1} sm="auto">
+        <Row xs={1} sm="auto" className="mb-3">
           {this.state.source === "1" ? (
             <>
               <Col>
@@ -551,10 +563,10 @@ export default class Create extends Component {
                   onClick={this.handleRemove}
                   type="submit"
                   variant={this.props.isDarkMode ? "outline-light" : "light"}
+                  className="mb-3"
                 >
                   Remove
                 </Button>
-                <div className="div-seperator" />
                 {/* File Listing */}
                 <div className="div-font">
                   <Card className="card-custom">
@@ -618,13 +630,11 @@ export default class Create extends Component {
                     </Card.Body>
                   </Card>
                 </div>
-                <div className="div-seperator" />
               </Col>
               <Col xs="auto" className="d-flex align-items-center justify-content-center">
                 <Button onClick={this.handleAdd} variant={this.props.isDarkMode ? "outline-light" : "light"}>
                   <Image src={LeftArrow} alt="UpArrow" className="arrow-icon" />
                 </Button>
-                <div className="div-seperator" />
               </Col>
             </>
           ) : (
@@ -632,7 +642,7 @@ export default class Create extends Component {
           )}
           <Col>
             {this.state.source === "1" ? (
-              <>
+              <div className="mb-3">
                 <Button onClick={this.handleSelectAll} variant={this.props.isDarkMode ? "outline-light" : "light"}>
                   Select All
                 </Button>
@@ -644,14 +654,11 @@ export default class Create extends Component {
                 <Button onClick={this.handleStreamer} variant={this.props.isDarkMode ? "outline-light" : "light"}>
                   Preview
                 </Button>
-              </>
+              </div>
             ) : (
               ""
             )}
-
-            <div className="div-seperator" />
             {/* Directory Listing */}
-
             <div className="div-font">
               {" "}
               {this.props.sockConnected ? (
@@ -729,7 +736,6 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div className="div-seperator" />
           </Col>
           {this.state.player ? (
             <Col>
@@ -756,29 +762,30 @@ export default class Create extends Component {
             <></>
           )}
         </Row>
-        <Button onClick={this.props.cancel} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-          Cancel
-        </Button>
-        &nbsp;&nbsp;
-        {this.props.isEdit ? (
-          <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
-            Update
+        <div className="mb-3">
+          <Button onClick={this.props.cancel} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+            Cancel
           </Button>
-        ) : (
-          <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
-            Save
-          </Button>
-        )}
-        &nbsp;&nbsp;
-        {this.state.isIncomplete ? (
-          <i style={{ color: "#f00" }}>
-            &nbsp; There must be at least one item in the list and/or a bucket name must be filled.{" "}
-          </i>
-        ) : (
-          <></>
-        )}
-        {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
-        <div className="div-seperator" />
+          &nbsp;&nbsp;
+          {this.props.isEdit ? (
+            <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
+              Update
+            </Button>
+          ) : (
+            <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
+              Save
+            </Button>
+          )}
+          &nbsp;&nbsp;
+          {this.state.isIncomplete ? (
+            <i style={{ color: "#f00" }}>
+              &nbsp; There must be at least one item in the list and/or a bucket name must be filled.{" "}
+            </i>
+          ) : (
+            <></>
+          )}
+          {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
+        </div>
       </Form>
     );
   }

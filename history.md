@@ -1,5 +1,19 @@
 # Preroll Plus Version History
 
+## 1.5.0
+
+### New Features
+
+1. Added the ability to override sequences, either indefinitely or for a set amount of time.
+2. Added an iCal feed of your sequence schedule that can be subscribed to from calendar apps like Google Calendar. The feed URL can be found on the Calendar page and is secured with an API key, which can be viewed and regenerated in Settings.
+3. Added caching of Nager.Date (Legacy) holiday calendars to reduce calls to the Nager servers.
+
+### Changes
+
+1. Security updates. Updated Node to version 22 LTS in the Docker image to address CVE-2026-111497 (Node2Shell), a remote code execution flaw in Node's Brotli decoder that is not being patched in Node 20. [[#38](https://github.com/chadwpalm/PrerollPlus/pull/38)]
+2. Security updates. Updated all backend and frontend packages to resolve known vulnerabilities, including upgrading React Router to version 7. The remaining reported vulnerabilities are limited to build-time tooling and do not affect the running app.
+3. Settings UI improvements.
+
 ## 1.4.2
 
 ### New Features

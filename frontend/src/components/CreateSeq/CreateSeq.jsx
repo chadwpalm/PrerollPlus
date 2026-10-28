@@ -648,13 +648,21 @@ export default class Create extends Component {
 
     return (
       <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
-        <Form.Label for="name">Name of sequence &nbsp;&nbsp;</Form.Label>
-        <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
-        <div className="div-seperator" />
-        <Form.Label for="priority">Sequence Priority &nbsp;&nbsp;</Form.Label>
-        <OverlayTrigger placement="right" overlay={<Tooltip>Lower numbers have a higher priority.</Tooltip>}>
-          <img src={Info} className="image-info" alt="info" />
-        </OverlayTrigger>
+        <h6>Name of Sequence</h6>
+        <Form.Control
+          value={this.state.name}
+          id="name"
+          name="name"
+          onChange={this.handleName}
+          size="sm"
+          className="mb-3"
+        />
+        <h6>
+          Sequence Priority &nbsp;&nbsp;
+          <OverlayTrigger placement="right" overlay={<Tooltip>Lower numbers have a higher priority.</Tooltip>}>
+            <img src={Info} className="image-info" alt="info" />
+          </OverlayTrigger>
+        </h6>
         <Form.Control
           type="number"
           min={1}
@@ -662,10 +670,10 @@ export default class Create extends Component {
           defaultValue={this.state.priority}
           style={{ width: "80px" }}
           onChange={this.handlePriority}
+          className="mb-3"
         />
-        <div className="div-seperator" />
-        <Form.Label for="schedule">Schedule</Form.Label>
-        <div>
+        <h6>Schedule</h6>
+        <div className="mb-3">
           <Form.Check
             inline
             type="radio"
@@ -718,13 +726,12 @@ export default class Create extends Component {
         ) : (
           <></>
         )}
-        <div className="div-seperator" />
         {this.state.schedule === "1" ? (
           <>
-            <Form.Label>Start Date:</Form.Label>
-            <div>
+            <h6>Start Date</h6>
+            <div className="mb-3">
               <Stack gap={2} direction="horizontal">
-                Month:
+                <b>Month:</b>
                 <Form.Select
                   value={this.state.startMonth}
                   id="startMonth"
@@ -734,7 +741,7 @@ export default class Create extends Component {
                 >
                   {startMonths}
                 </Form.Select>
-                &nbsp;&nbsp;Day:
+                &nbsp;&nbsp;<b>Day:</b>
                 <Form.Select
                   value={this.state.startDay}
                   id="startDay"
@@ -746,11 +753,10 @@ export default class Create extends Component {
                 </Form.Select>
               </Stack>
             </div>
-            <div className="div-seperator" />
-            <Form.Label>End Date:</Form.Label>
-            <div>
+            <h6>End Date</h6>
+            <div className="mb-3">
               <Stack gap={2} direction="horizontal">
-                Month:
+                <b>Month:</b>
                 <Form.Select
                   value={this.state.endMonth}
                   id="endMonth"
@@ -760,20 +766,19 @@ export default class Create extends Component {
                 >
                   {endMonths}
                 </Form.Select>
-                &nbsp;&nbsp;Day:
+                &nbsp;&nbsp;<b>Day:</b>
                 <Form.Select value={this.state.endDay} id="endDay" name="endDay" onChange={this.handleDate} size="sm">
                   {endDays}
                 </Form.Select>
               </Stack>
             </div>
-            <div className="div-seperator" />
           </>
         ) : (
           <></>
         )}
         {this.state.schedule === "4" ? (
           <>
-            <Stack gap={2} direction="horizontal">
+            <Stack gap={2} direction="horizontal" className="mb-3">
               {DAY_LABELS.map((label, i) => {
                 return (
                   <Form.Check
@@ -795,33 +800,35 @@ export default class Create extends Component {
         )}
         {this.state.schedule === "3" ? (
           <>
-            <Form.Label for="source">Source</Form.Label>&nbsp;&nbsp;
-            <OverlayTrigger
-              placement="right"
-              overlay={
-                <Tooltip>
-                  Legacy (Nager.Date):
-                  <br />
-                  <br />
-                  This option pulls the calendar information from the same source that has been used since v1.1.0. This
-                  comes from an API that does not require a login or API key. The drawback is that the dates are limited
-                  to federal/public holidays and fewer supported countries.
-                  <br />
-                  <br />
-                  Premier (Calendarific):
-                  <br />
-                  <br />
-                  This option pulls the calendar information from Calendarific. This site requires a login and API key,
-                  however, there is a free account which allows up to 500 API calls a day which should be plenty for the
-                  use of this app. Once you sign up you'll need to enter your API key (field only appears when Premier
-                  is selected). The advantage to this calendar is that it covers a wider variety of holidays (like
-                  Mother's Day and Easter).
-                </Tooltip>
-              }
-            >
-              <img src={Info} className="image-info" alt="info" />
-            </OverlayTrigger>
-            <div>
+            <h6>
+              Source &nbsp;&nbsp;
+              <OverlayTrigger
+                placement="right"
+                overlay={
+                  <Tooltip>
+                    Legacy (Nager.Date):
+                    <br />
+                    <br />
+                    This option pulls the calendar information from the same source that has been used since v1.1.0.
+                    This comes from an API that does not require a login or API key. The drawback is that the dates are
+                    limited to federal/public holidays and fewer supported countries.
+                    <br />
+                    <br />
+                    Premier (Calendarific):
+                    <br />
+                    <br />
+                    This option pulls the calendar information from Calendarific. This site requires a login and API
+                    key, however, there is a free account which allows up to 500 API calls a day which should be plenty
+                    for the use of this app. Once you sign up you'll need to enter your API key (field only appears when
+                    Premier is selected). The advantage to this calendar is that it covers a wider variety of holidays
+                    (like Mother's Day and Easter).
+                  </Tooltip>
+                }
+              >
+                <img src={Info} className="image-info" alt="info" />
+              </OverlayTrigger>
+            </h6>
+            <div className="mb-3">
               <Form.Check
                 inline
                 type="radio"
@@ -851,9 +858,8 @@ export default class Create extends Component {
                 <></>
               )}
             </div>
-            <div className="div-seperator" />
-            <Stack gap={1} direction="horizontal">
-              Country:&nbsp;&nbsp;
+            <Stack gap={1} direction="horizontal" className="mb-3">
+              <b>Country:</b> &nbsp;&nbsp;
               <Form.Select
                 value={this.state.country}
                 id="country"
@@ -865,11 +871,10 @@ export default class Create extends Component {
                 {countries}
               </Form.Select>
             </Stack>
-            <div className="div-seperator" />
             {this.state.holidaySource === "2" ? (
               <>
-                <Form.Label for="type">Type</Form.Label>
-                <div>
+                <div className="mb-3">
+                  <b>Type:</b> &nbsp;&nbsp;
                   <Form.Check
                     inline
                     type="radio"
@@ -915,13 +920,12 @@ export default class Create extends Component {
                     checked={this.state.type === "4"}
                   />
                 </div>
-                <div className="div-seperator" />
               </>
             ) : (
               <></>
             )}
-            <Stack gap={2} direction="horizontal">
-              Holiday:&nbsp;&nbsp;
+            <Stack gap={2} direction="horizontal" className="mb-3">
+              <b>Holiday:</b> &nbsp;&nbsp;
               <Form.Select
                 value={`${this.state.holiday}||${this.state.states}`}
                 id="holiday"
@@ -959,9 +963,8 @@ export default class Create extends Component {
                 <Image src={SortDate} alt="Sort Date" className="arrow-icon" />
               </Button>
             </Stack>
-            <div className="div-seperator" />
-            <Stack gap={2} direction="horizontal">
-              <Form.Label for="priority">Days Before: &nbsp;&nbsp;</Form.Label>
+            <Stack gap={2} direction="horizontal" className="mb-3">
+              <b>Days Before:</b> &nbsp;&nbsp;
               <Form.Control
                 type="number"
                 min={0}
@@ -970,8 +973,7 @@ export default class Create extends Component {
                 style={{ width: "80px" }}
                 onChange={this.handlePreHoliday}
               />
-              <div className="div-seperator" />
-              <Form.Label for="priority">Days After: &nbsp;&nbsp;</Form.Label>
+              <b>Days After:</b> &nbsp;&nbsp;
               <Form.Control
                 type="number"
                 min={0}
@@ -987,25 +989,22 @@ export default class Create extends Component {
                 <img src={Info} className="image-info" alt="info" />
               </OverlayTrigger>
             </Stack>
-            <div className="div-seperator" />
           </>
         ) : (
           <></>
         )}
-        <div className="div-seperator" />
-        <Button onClick={this.handleRemove} type="submit" variant={this.props.isDarkMode ? "outline-light" : "light"}>
-          Remove
-        </Button>
-        &nbsp;&nbsp;
-        <Button onClick={this.handleMoveUp} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-          <Image src={UpArrow} alt="UpArrow" className="arrow-icon" />
-        </Button>
-        &nbsp;&nbsp;
-        <Button onClick={this.handleMoveDown} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-          <Image src={DownArrow} alt="DownArrow" className="arrow-icon" />
-        </Button>
-        <div className="div-seperator" />
-        <Row xs={1} sm="auto">
+        <Stack gap={2} direction="horizontal" className="mb-3">
+          <Button onClick={this.handleRemove} type="submit" variant={this.props.isDarkMode ? "outline-light" : "light"}>
+            Remove
+          </Button>
+          <Button onClick={this.handleMoveUp} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+            <Image src={UpArrow} alt="UpArrow" className="arrow-icon" />
+          </Button>
+          <Button onClick={this.handleMoveDown} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+            <Image src={DownArrow} alt="DownArrow" className="arrow-icon" />
+          </Button>
+        </Stack>
+        <Row xs={1} sm="auto" className="mb-3">
           <Col xs="auto">
             {/* File Listing */}
             <div className="div-font">
@@ -1054,13 +1053,11 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div className="div-seperator" />
           </Col>
           <Col xs="auto" className="d-flex align-items-center justify-content-center">
             <Button onClick={this.handleAdd} variant={this.props.isDarkMode ? "outline-light" : "light"}>
               <Image src={LeftArrow} alt="UpArrow" className="arrow-icon" />
             </Button>
-            <div className="div-seperator" />
           </Col>
           <Col xs="auto">
             {/* Bucket Listing */}
@@ -1102,38 +1099,36 @@ export default class Create extends Component {
                 </Card.Body>
               </Card>
             </div>
-            <div className="div-seperator" />
           </Col>
         </Row>
-        <Button onClick={this.props.cancel} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-          Cancel
-        </Button>
-        &nbsp;&nbsp;
-        {this.props.isEdit ? (
-          <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
-            Update
+        <Stack gap={2} direction="horizontal" className="mb-3">
+          <Button onClick={this.props.cancel} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+            Cancel
           </Button>
-        ) : (
-          <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
-            Save
-          </Button>
-        )}
-        &nbsp;&nbsp;
-        {this.state.isIncomplete ? (
-          <i style={{ color: "#f00" }}>
-            &nbsp; There must be at least one item in the list and a sequence name must be filled.
-          </i>
-        ) : (
-          <></>
-        )}
-        {!this.state.isDays ? (
-          <i style={{ color: "#f00" }}>&nbsp; There must be at least one day of the week checked.</i>
-        ) : (
-          <></>
-        )}
-        {this.state.isIncompleteHoliday ? <i style={{ color: "#f00" }}>&nbsp; You must select a holiday.</i> : <></>}
-        {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
-        <div className="div-seperator" />
+          {this.props.isEdit ? (
+            <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
+              Update
+            </Button>
+          ) : (
+            <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
+              Save
+            </Button>
+          )}
+          {this.state.isIncomplete ? (
+            <i style={{ color: "#f00" }}>
+              &nbsp; There must be at least one item in the list and a sequence name must be filled.
+            </i>
+          ) : (
+            <></>
+          )}
+          {!this.state.isDays ? (
+            <i style={{ color: "#f00" }}>&nbsp; There must be at least one day of the week checked.</i>
+          ) : (
+            <></>
+          )}
+          {this.state.isIncompleteHoliday ? <i style={{ color: "#f00" }}>&nbsp; You must select a holiday.</i> : <></>}
+          {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
+        </Stack>
         <Modal
           show={this.state.show}
           onHide={this.handleClose}

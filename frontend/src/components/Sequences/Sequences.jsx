@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import Sequence from "../Sequence/Sequence";
 import AddIcon from "../../images/add-icon.png";
 import CreateSeq from "../CreateSeq/CreateSeq";
+import Form from "react-bootstrap/Form";
+import Stack from "react-bootstrap/Stack";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
@@ -23,7 +25,18 @@ export default class Sequences extends Component {
       id: "-1",
       isEdit: false,
       show: false,
+      showOverride: false,
       tempID: "",
+      tempIDOverride: "",
+      tempNameOverride: "",
+      overrideLength: "1",
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      endTimestamp: 0,
+      isIncomplete: false,
+      isStale: false,
+      editingExistingOverride: false,
     };
   }
 
@@ -57,13 +70,165 @@ export default class Sequences extends Component {
 
   handleClose = () => this.setState({ show: false });
 
+  handleCloseOverride = () => this.setState({ showOverride: false });
+
   handleOpen = (e) => {
     this.setState({ tempID: e, show: true, fullscreen: "md-down" });
   };
 
+  handleOpenOverride = (e) => {
+    const initialEnd = this.calculateEndTimestamp({ days: 0, hours: 0, minutes: 0 });
+
+    const currentOverride = this.props.settings.currentOverride || { id: null, endTimestamp: null };
+
+    const isCurrentlyOverridden = currentOverride.id === e[0];
+
+    this.setState({
+      tempIDOverride: e[0],
+      tempNameOverride: e[1],
+      showOverride: true,
+      fullscreen: "md-down",
+      overrideLength: "2",
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      endTimestamp: initialEnd,
+      editingExistingOverride: isCurrentlyOverridden,
+    });
+  };
+
+  handleClearOverride = (e) => {
+    const settings = { ...this.props.settings };
+
+    settings.currentOverride = {
+      id: null,
+      endTimestamp: null,
+    };
+
+    const xhr = new XMLHttpRequest();
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          this.setState({ showOverride: false });
+          var xhr2 = new XMLHttpRequest();
+          xhr2.addEventListener("readystatechange", () => {
+            if (xhr2.readyState === 4) {
+              if (xhr2.status === 200) {
+                this.refreshSettings();
+              } else {
+                this.setState({
+                  error: xhr2.responseText,
+                });
+              }
+            }
+          });
+
+          xhr2.open("GET", "webhook", true);
+          xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+          xhr2.send();
+        } else {
+          // error
+          this.setState({
+            showOverride: false,
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+
+    xhr.open("POST", "backend/save", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(settings));
+
+    this.props.updateSettings(settings);
+  };
+
+  handleLength = (e) => {
+    this.setState({
+      overrideLength: e.target.value,
+      endTimestamp:
+        e.target.value === "1"
+          ? null
+          : this.calculateEndTimestamp(this.state.days, this.state.hours, this.state.minutes),
+      isIncomplete: false,
+      isStale: false,
+    });
+  };
+
+  handleDays = (e) => {
+    const newDays = e.target.value;
+
+    this.setState((prevState) => {
+      const newEndTimestamp = this.calculateEndTimestamp({
+        days: newDays,
+        hours: prevState.hours,
+        minutes: prevState.minutes,
+      });
+
+      return {
+        days: newDays,
+        endTimestamp: newEndTimestamp,
+        isIncomplete: false,
+        isStale: false,
+      };
+    });
+  };
+
+  handleHours = (e) => {
+    const newHours = e.target.value;
+
+    this.setState((prevState) => {
+      const newEndTimestamp = this.calculateEndTimestamp({
+        days: prevState.days,
+        hours: newHours,
+        minutes: prevState.minutes,
+      });
+
+      return {
+        hours: newHours,
+        endTimestamp: newEndTimestamp,
+        isIncomplete: false,
+        isStale: false,
+      };
+    });
+  };
+
+  handleMinutes = (e) => {
+    const newMinutes = e.target.value;
+
+    this.setState((prevState) => {
+      const newEndTimestamp = this.calculateEndTimestamp({
+        days: prevState.days,
+        hours: prevState.hours,
+        minutes: newMinutes,
+      });
+
+      return {
+        minutes: newMinutes,
+        endTimestamp: newEndTimestamp,
+        isIncomplete: false,
+        isStale: false,
+      };
+    });
+  };
+
+  calculateEndTimestamp = ({ days = 0, hours = 0, minutes = 0 }) => {
+    const end = new Date();
+
+    const d = parseInt(days, 10) || 0;
+    const h = parseInt(hours, 10) || 0;
+    const m = parseInt(minutes, 10) || 0;
+
+    if (d) end.setDate(end.getDate() + d);
+    if (h) end.setHours(end.getHours() + h);
+    if (m) end.setMinutes(end.getMinutes() + m);
+
+    return end.getTime();
+  };
+
   handleSortOrder = (order) => {
     const settings = { ...this.props.settings };
-    let sequences = [...settings.sequences]; // Always work on a copy
+    let sequences = [...settings.sequences];
 
     if (order === "1") {
       sequences.sort((a, b) => a.priority - b.priority);
@@ -75,7 +240,6 @@ export default class Sequences extends Component {
 
     settings.sequences = sequences;
 
-    // Save to backend
     const xhr = new XMLHttpRequest();
     xhr.addEventListener("readystatechange", () => {
       if (xhr.readyState === 4) {
@@ -92,7 +256,6 @@ export default class Sequences extends Component {
     xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xhr.send(JSON.stringify(settings));
 
-    // Instant UI update
     this.props.updateSettings(settings);
     this.handleSaveCreate();
   };
@@ -144,6 +307,81 @@ export default class Sequences extends Component {
           // error
           this.setState({
             show: false,
+            error: xhr.responseText,
+          });
+        }
+      }
+    });
+
+    xhr.open("POST", "backend/save", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify(settings));
+
+    this.props.updateSettings(settings);
+    this.handleSaveCreate();
+  };
+
+  handleOverride = (e) => {
+    e.preventDefault();
+
+    if (
+      parseInt(this.state.days, 10) === 0 &&
+      parseInt(this.state.hours, 10) === 0 &&
+      parseInt(this.state.minutes, 10) === 0 &&
+      this.state.overrideLength === "2"
+    ) {
+      this.setState({ isIncomplete: true });
+      return;
+    }
+
+    var currentTime = Date.now();
+    if (this.state.endTimestamp && currentTime >= this.state.endTimestamp) {
+      this.setState({ isStale: true });
+      return;
+    }
+
+    var settings = { ...this.props.settings };
+    const index = settings.sequences.findIndex(({ id }) => id === this.state.tempIDOverride);
+    if (index === -1) {
+      this.setState({
+        showOverride: false,
+        error: "Sequence not found",
+      });
+      return;
+    }
+
+    settings.currentOverride = {
+      id: this.state.tempIDOverride,
+      endTimestamp: this.state.endTimestamp,
+    };
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          this.setState({ showOverride: false });
+
+          var xhr2 = new XMLHttpRequest();
+          xhr2.addEventListener("readystatechange", () => {
+            if (xhr2.readyState === 4) {
+              if (xhr2.status === 200) {
+                this.refreshSettings();
+              } else {
+                this.setState({
+                  error: xhr2.responseText,
+                });
+              }
+            }
+          });
+
+          xhr2.open("GET", "webhook", true);
+          xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+          xhr2.send();
+        } else {
+          // error
+          this.setState({
+            showOverride: false,
             error: xhr.responseText,
           });
         }
@@ -210,6 +448,9 @@ export default class Sequences extends Component {
                 priority={sequence.priority}
                 currentSeq={this.props.settings.currentSeq}
                 days={sequence.days}
+                override={this.handleOpenOverride}
+                currentOvr={this.props.settings.currentOverride?.id ?? null}
+                endTimestamp={this.props.settings.currentOverride?.endTimestamp ?? null}
               />
               <br />
             </Col>
@@ -252,7 +493,8 @@ export default class Sequences extends Component {
           ) : (
             <>
               <p className="mb-3" style={{ fontSize: "12px" }}>
-                Blue Border: Current Sequence  Red Border: Currently Editing Sequence
+                Blue Border: Current Sequence  Red Border: Currently Editing Sequence  Orange Border: Currently
+                Overridden Sequence
               </p>
               <h6 className="mb-0">Click the plus to add a new Sequence.</h6>
             </>
@@ -260,7 +502,7 @@ export default class Sequences extends Component {
         </Row>
         <Modal
           show={this.state.show}
-          fullscreen={this.state.fullscreen}
+          fullscreen={false}
           onHide={this.handleClose}
           size="sm"
           backdrop="static"
@@ -275,6 +517,100 @@ export default class Sequences extends Component {
             <Button variant={this.props.isDarkMode ? "outline-light" : ""} onClick={this.handleClose}>
               Cancel
             </Button>
+          </Modal.Body>
+        </Modal>
+        <Modal
+          show={this.state.showOverride}
+          fullscreen={false}
+          onHide={this.handleOverride}
+          size="lg"
+          backdrop="static"
+          className={this.props.isDarkMode ? "dark-mode" : ""}
+        >
+          <Modal.Header>
+            <Modal.Title>Override</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
+              <div className="mb-3">
+                <Form.Label>Sequence: &nbsp;{this.state.tempNameOverride}</Form.Label>
+              </div>
+              <div className="mb-3">
+                <Form.Check
+                  inline
+                  type="radio"
+                  label="Indefinitely"
+                  value="1"
+                  id="Length"
+                  name="Length"
+                  onChange={this.handleLength}
+                  size="sm"
+                  checked={this.state.overrideLength === "1"}
+                />
+                <Form.Check
+                  inline
+                  type="radio"
+                  label="Duration"
+                  value="2"
+                  id="Length"
+                  name="Length"
+                  onChange={this.handleLength}
+                  size="sm"
+                  checked={this.state.overrideLength === "2"}
+                />
+              </div>
+              <Stack gap={3} direction="horizontal" className="mb-3">
+                Days
+                <Form.Control
+                  type="number"
+                  min={0}
+                  max={365}
+                  defaultValue={this.state.days}
+                  style={{ width: "80px" }}
+                  onChange={this.handleDays}
+                  disabled={this.state.overrideLength === "1"}
+                />
+                Hours
+                <Form.Control
+                  type="number"
+                  min={0}
+                  max={23}
+                  defaultValue={this.state.hours}
+                  style={{ width: "70px" }}
+                  onChange={this.handleHours}
+                  disabled={this.state.overrideLength === "1"}
+                />
+                Minutes
+                <Form.Control
+                  type="number"
+                  min={0}
+                  max={59}
+                  defaultValue={this.state.minutes}
+                  style={{ width: "70px" }}
+                  onChange={this.handleMinutes}
+                  disabled={this.state.overrideLength === "1"}
+                />
+              </Stack>
+              Ends: {this.state.endTimestamp ? new Date(this.state.endTimestamp).toLocaleString() : "N/A"}
+              <div className="d-flex justify-content-between align-items-center mt-4">
+                <div className="d-flex gap-2">
+                  <Button variant={this.props.isDarkMode ? "secondary" : "primary"} onClick={this.handleOverride}>
+                    Save
+                  </Button>
+                  <Button
+                    variant={this.props.isDarkMode ? "outline-light" : "secondary"}
+                    onClick={this.handleCloseOverride}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {this.state.editingExistingOverride && (
+                  <Button variant={"danger"} onClick={this.handleClearOverride}>
+                    Delete
+                  </Button>
+                )}
+              </div>
+            </Form>
           </Modal.Body>
         </Modal>
       </>
