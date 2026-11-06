@@ -3,18 +3,24 @@ const path = require("path");
 const fs = require("fs");
 const mime = require("mime-types");
 const router = express.Router();
+const { resolveInMediaRoot } = require("./mediaPath");
 
-const LOG_TAG = "[STREAMER]";
+const log = require("./logger").tagged("STREAMER");
 
-router.get("/*", (req, res) => {
-  const filename = req.params[0];
-  const filepath = path.join("/", filename);
+router.get("/*splat", (req, res) => {
+  // Express 5 named wildcard: the path segments after /backend/streamer/
+  const requested = path.join("/", req.params.splat.join("/"));
 
-  console.debug(`${LOG_TAG} Serving request: ${req.method} ${req.originalUrl} from ${req.ip || "unknown"}`);
+  // Only files inside the preroll media folder can be streamed
+  const filepath = resolveInMediaRoot(requested);
+  if (!filepath) {
+    log.warn(`Blocked a request for ${requested} from ${req.ip}: outside the preroll media folder`);
+    return res.status(403).send("Forbidden");
+  }
 
   // Check if file exists
   if (!fs.existsSync(filepath)) {
-    console.warn(`${LOG_TAG} File not found: ${filepath}`);
+    log.warn(`Preview file not found: ${filepath}`);
     return res.status(404).send("File not found");
   }
 
@@ -23,8 +29,12 @@ router.get("/*", (req, res) => {
   try {
     stat = fs.statSync(filepath);
   } catch (err) {
-    console.error(`${LOG_TAG} Stat failed for ${filepath}: ${err.message}`);
+    log.error(`Could not read ${filepath}:`, err);
     return res.status(500).send("Internal server error");
+  }
+
+  if (!stat.isFile()) {
+    return res.status(404).send("File not found");
   }
 
   const fileSize = stat.size;
@@ -32,17 +42,13 @@ router.get("/*", (req, res) => {
 
   const contentType = mime.lookup(filepath) || "application/octet-stream";
 
-  console.debug(`${LOG_TAG} Serving ${filepath} (${fileSize} bytes, type: ${contentType})`);
-
   if (range) {
-    console.debug(`${LOG_TAG} Range request detected: ${range}`);
-
     const parts = range.replace(/bytes=/, "").split("-");
     const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
     if (isNaN(start) || start < 0 || start >= fileSize) {
-      console.warn(`${LOG_TAG} Invalid range start: ${start} for file size ${fileSize}`);
+      log.debug(`Range ${range} not satisfiable for ${filepath} (${fileSize} bytes)`);
       res.status(416).send("Requested range not satisfiable");
       return;
     }
@@ -50,7 +56,7 @@ router.get("/*", (req, res) => {
     if (end >= fileSize) end = fileSize - 1;
     const chunkSize = end - start + 1;
 
-    console.debug(`${LOG_TAG} Range: ${start}-${end}/${fileSize} (${chunkSize} bytes)`);
+    log.debug(`Streaming ${filepath} bytes ${start}-${end}/${fileSize}`);
 
     const file = fs.createReadStream(filepath, { start, end });
 
@@ -65,7 +71,7 @@ router.get("/*", (req, res) => {
     file.pipe(res);
 
     file.on("error", (err) => {
-      console.error(`${LOG_TAG} Stream error during range serve: ${err.message}`);
+      log.error(`Streaming ${filepath} failed:`, err);
     });
   } else {
     const head = {
@@ -73,19 +79,16 @@ router.get("/*", (req, res) => {
       "Content-Type": contentType,
     };
 
+    log.debug(`Streaming ${filepath} (${fileSize} bytes)`);
     res.writeHead(200, head);
 
     const stream = fs.createReadStream(filepath);
     stream.pipe(res);
 
     stream.on("error", (err) => {
-      console.error(`${LOG_TAG} Stream error during full serve: ${err.message}`);
+      log.error(`Streaming ${filepath} failed:`, err);
     });
   }
-
-  res.on("finish", () => {
-    console.debug(`${LOG_TAG} Response finished for ${filepath}`);
-  });
 });
 
 module.exports = router;

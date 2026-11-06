@@ -1,6 +1,5 @@
 const WebSocket = require("ws");
-
-const LOG_TAG = "[WEBSOCKET]";
+const log = require("./logger").tagged("WEBSOCKET");
 
 let wss;
 let clientCounter = 0;
@@ -8,32 +7,28 @@ let clientCounter = 0;
 function initializeWebSocket(server) {
   wss = new WebSocket.Server({ server });
 
-  console.info(`${LOG_TAG} WebSocket server initialized on server`);
-
   wss.on("connection", (ws, req) => {
     clientCounter++;
     const clientId = clientCounter;
     const clientIp = req?.socket?.remoteAddress || "unknown";
 
-    console.info(`${LOG_TAG} Client connected - ID:${clientId} IP:${clientIp} (total clients: ${wss.clients.size})`);
+    log.debug(`Browser ${clientId} connected from ${clientIp} (${wss.clients.size} open)`);
 
     ws.on("message", (message) => {
-      console.debug(`${LOG_TAG} Received message from client ID:${clientId} (${clientIp}): ${message}`);
+      log.debug(`Message from browser ${clientId}: ${message}`);
     });
 
     ws.on("close", (code, reason) => {
-      console.info(
-        `${LOG_TAG} Client disconnected - ID:${clientId} IP:${clientIp} (code:${code}, reason:${reason || "none"}) (remaining clients: ${wss.clients.size})`,
-      );
+      log.debug(`Browser ${clientId} disconnected (code ${code}, ${wss.clients.size} open)`);
     });
 
     ws.on("error", (error) => {
-      console.error(`${LOG_TAG} WebSocket error for client ID:${clientId} (${clientIp}): ${error.message}`);
+      log.warn(`Connection error with browser ${clientId} (${clientIp}):`, error.message);
     });
   });
 
   wss.on("error", (error) => {
-    console.error(`${LOG_TAG} WebSocket server error: ${error.message}`);
+    log.error("WebSocket server error:", error);
   });
 
   return wss;
@@ -41,29 +36,24 @@ function initializeWebSocket(server) {
 
 function broadcastUpdate() {
   if (!wss || !wss.clients) {
-    console.warn(`${LOG_TAG} No WebSocket server or clients available - update broadcast skipped`);
+    log.debug("No WebSocket server yet, skipped update notice");
     return;
   }
 
   const clientCount = wss.clients.size;
   if (clientCount === 0) {
-    console.debug(`${LOG_TAG} Broadcast update: no clients connected`);
     return;
   }
-
-  console.info(`${LOG_TAG} Broadcasting update to ${clientCount} client(s)`);
 
   let sentCount = 0;
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send("update-config");
       sentCount++;
-    } else {
-      console.debug(`${LOG_TAG} Skipped closed client during broadcast`);
     }
   });
 
-  console.debug(`${LOG_TAG} Update broadcast complete - sent to ${sentCount}/${clientCount} clients`);
+  log.debug(`Told ${sentCount} open browser(s) to reload settings`);
 }
 
 module.exports = { initializeWebSocket, broadcastUpdate };

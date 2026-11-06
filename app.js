@@ -1,9 +1,11 @@
 var createError = require("http-errors");
 var express = require("express");
 var path = require("path");
-var cookieParser = require("cookie-parser");
-const fs = require("fs");
-var logger = require("./backend/logger");
+var fs = require("fs");
+const logger = require("./backend/logger");
+const { getBaseURL } = require("./backend/config");
+const httpLog = logger.tagged("HTTP");
+
 var webhookRouter = require("./webhook/index");
 var feedRouter = require("./feed/index");
 var load = require("./backend/load");
@@ -15,88 +17,84 @@ var streamer = require("./backend/streamer");
 var monitor = require("./backend/monitor");
 var holiday = require("./backend/holiday");
 var clearCache = require("./backend/clearcache");
-const { getBaseURL } = require("./backend/config");
+var host = require("./backend/host");
 
 var app = express();
 
-const baseURL = (getBaseURL() || "").replace(/\/$/, "");
+// URL base for reverse proxies, e.g. "/prerollplus" ("" = root). Everything is mounted under it.
+const base = getBaseURL();
+const basePath = base + "/";
+const frontendDir = path.join(__dirname, "frontend/production");
 
-console.log(`[APP] Preroll Plus Base URL: "${baseURL}" (empty = running at root)`);
+// Debug: one line per API/webhook/feed request (static files and video streaming are skipped)
+app.use((req, res, next) => {
+  if (!/\/(backend|webhook|feed)(\/|$)/.test(req.path) || req.path.includes("/backend/streamer/")) return next();
+  const start = process.hrtime.bigint();
+  const path = req.path; // routers rewrite req.path while handling, so capture it now
+  res.on("finish", () => {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    httpLog.debug(`${req.method} ${path} ${res.statusCode} ${ms.toFixed(0)}ms`);
+  });
+  next();
+});
 
-let base = baseURL;
-if (base && !base.startsWith("/")) {
-  base = "/" + base;
-}
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 if (base) {
+  // "/" and "/prerollplus" -> "/prerollplus/"
   app.use((req, res, next) => {
-    if (req.path === "/") return res.redirect(302, base + "/");
-    if (req.path === base) return res.redirect(302, base + "/");
+    if (req.path === "/" || req.path === base) return res.redirect(302, basePath);
     next();
   });
 }
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+var routes = express.Router();
 
-app.use(base + "/backend/logger", logger);
-app.use(base + "/backend/load", load);
-app.use(base + "/backend/save", save);
-app.use(base + "/backend/thumb", thumb);
-app.use(base + "/backend/settings", settings);
-app.use(base + "/backend/directory", directory);
-app.use(base + "/backend/streamer", streamer);
-app.use(base + "/backend/monitor", monitor);
-app.use(base + "/backend/holiday", holiday);
-app.use(base + "/backend/clearcache", clearCache);
-app.use(base + "/webhook", webhookRouter);
-app.use(base + "/feed", feedRouter);
+routes.use(express.static(frontendDir, { index: false }));
 
-if (base) {
-  app.use(base + "/", express.static(path.join(__dirname, "frontend/production"), { index: false }));
-} else {
-  app.use(express.static(path.join(__dirname, "frontend/production"), { index: false }));
-}
+routes.use("/backend/load", load);
+routes.use("/backend/save", save);
+routes.use("/backend/thumb", thumb);
+routes.use("/backend/settings", settings);
+routes.use("/backend/directory", directory);
+routes.use("/backend/streamer", streamer);
+routes.use("/backend/monitor", monitor);
+routes.use("/backend/holiday", holiday);
+routes.use("/backend/clearcache", clearCache);
+routes.use("/backend/host", host);
+routes.use("/webhook", webhookRouter);
+routes.use("/feed", feedRouter);
 
-const spaHandler = (req, res) => {
-  const indexPath = path.join(__dirname, "frontend/production", "index.html");
-
-  fs.readFile(indexPath, "utf8", (err, data) => {
-    if (err) {
-      console.error("[SPA] Failed to read index.html:", err);
-      return res.status(500).send("Failed to load application");
-    }
-
-    const basePath = base ? base + "/" : "/";
-    const injected = data.replace("<head>", `<head><script>window.__BASE_PATH__="${basePath}";</script>`);
-
-    res.send(injected);
+// Single-page app: any other GET returns index.html so client-side routes work.
+// <base href> makes the relative asset and API URLs in the frontend resolve under the URL base,
+// and window.__BASE_PATH__ tells React Router its basename.
+routes.get("/{*splat}", (req, res, next) => {
+  fs.readFile(path.join(frontendDir, "index.html"), "utf8", (err, html) => {
+    if (err) return next(err);
+    const inject = `<base href="${basePath}" /><script>window.__BASE_PATH__=${JSON.stringify(basePath)};</script>`;
+    res
+      .set("Cache-Control", "no-cache")
+      .type("html")
+      .send(html.replace("<head>", `<head>${inject}`));
   });
-};
+});
 
-if (base) {
-  app.use(base + "/", spaHandler);
-} else {
-  app.use("/", spaHandler);
-}
+app.use(base || "/", routes);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));
 });
 
-// error handler
+// error handler (no view engine is configured, so reply with JSON or plain text)
 app.use(function (err, req, res, next) {
-  console.error(err);
-  const status = err.status || 500;
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) httpLog.error(`${req.method} ${req.originalUrl.split("?")[0]} failed:`, err);
+  const message = err.expose ? err.message : status >= 500 ? "Internal Server Error" : err.message;
   res.status(status);
-
-  if (req.accepts("json")) {
-    res.json({ error: err.message || "Internal Server Error" });
-  } else {
-    res.type("text/plain").send("Internal Server Error");
-  }
+  if (req.accepts("json")) res.json({ error: message });
+  else res.type("text/plain").send(message);
 });
 
 module.exports = app;

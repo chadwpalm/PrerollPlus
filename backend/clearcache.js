@@ -2,28 +2,19 @@ var express = require("express");
 var router = express.Router();
 var fs = require("fs");
 var path = require("path");
+const { CACHE_DIR } = require("./paths");
+const log = require("./logger").tagged("HOLIDAY");
 
-const cacheDir = path.join("/", "config", "cache");
-const LOG_TAG = "[CLEARCACHE]";
+const cacheDir = CACHE_DIR;
 
 function clearCache() {
-  console.log(`${LOG_TAG} Clear cache requested`);
-
   if (!fs.existsSync(cacheDir)) {
-    console.warn(`${LOG_TAG} Cache directory does not exist: ${cacheDir}`);
+    log.warn(`Holiday cache folder does not exist: ${cacheDir}`);
     return { success: false, code: 404, message: "Cache directory does not exist" };
   }
 
   try {
     const files = fs.readdirSync(cacheDir);
-
-    console.info(`${LOG_TAG} Found ${files.length} file(s) in cache directory`);
-    console.debug(`${LOG_TAG} Files found: ${files} `);
-
-    if (files.length === 0) {
-      console.info(`${LOG_TAG} Cache directory is already empty`);
-      return { success: true, code: 200, message: "Cache directory was already empty" };
-    }
 
     let deletedCount = 0;
     let failedCount = 0;
@@ -32,31 +23,32 @@ function clearCache() {
       const filePath = path.join(cacheDir, file);
       try {
         fs.unlinkSync(filePath);
-        console.info(`${LOG_TAG} Deleted: ${filePath}`);
+        log.debug(`Deleted cache file ${file}`);
         deletedCount++;
       } catch (err) {
-        console.error(`${LOG_TAG} Failed to delete ${filePath}:`, err.message);
-        if (err.code) console.error(`${LOG_TAG} Error code: ${err.code}`);
+        log.error(`Could not delete cache file ${filePath}:`, err);
         failedCount++;
       }
     });
 
-    console.info(`${LOG_TAG} Cache clear complete: ${deletedCount} deleted, ${failedCount} failed`);
+    log.info(
+      `Holiday cache cleared: ${deletedCount} file(s) deleted${failedCount ? `, ${failedCount} could not be deleted` : ""}`,
+    );
 
-    return { success: true, code: 200, message: "Cache directory cleared" };
+    return {
+      success: true,
+      code: 200,
+      message: files.length ? "Cache directory cleared" : "Cache directory was already empty",
+    };
   } catch (err) {
-    console.error(`${LOG_TAG} Fatal error reading/deleting cache directory: ${err.message}`);
-    if (err.code) console.error(`${LOG_TAG} Error code: ${err.code}`);
-    if (err.stack) console.debug(`${LOG_TAG} Stack: ${err.stack}`);
+    log.error("Could not clear the holiday cache:", err);
     return { success: false, code: 500, message: err.message };
   }
 }
 
 router.get("/", function (req, res, next) {
-  console.debug(`${LOG_TAG} GET /clear-cache triggered from ${req.ip || "unknown IP"}`);
   const result = clearCache();
   res.status(result.code).json(result);
-  console.debug(`${LOG_TAG} Response sent: success=${result.success}, code=${result.code}`);
 });
 
 module.exports = router;

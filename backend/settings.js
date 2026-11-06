@@ -3,19 +3,17 @@ var router = express.Router();
 var axios = require("axios").default;
 const https = require("https");
 var parser = require("xml-js");
-
-const LOG_TAG = "[SETTINGS]";
+const log = require("../backend/logger").tagged("PLEX");
 
 router.post("/", async function (req, res, next) {
   var serverList = [];
   var finalList = [];
-  var unauth = false;
 
   const token = req.body.token;
   const plexApiUrl = "https://plex.tv/api/servers";
 
   try {
-    console.info(`${LOG_TAG} Retrieving Plex Servers`);
+    log.debug("Looking up Plex servers on the account");
     const response = await axios.get(plexApiUrl, { timeout: 10000, params: { "X-Plex-Token": token } });
     const servers = parser.xml2js(response.data, { compact: true, spaces: 4 }).MediaContainer.Server;
 
@@ -27,22 +25,16 @@ router.post("/", async function (req, res, next) {
       serverList.push(servers);
     }
 
-    console.log(`${LOG_TAG} Found ${serverList.length} Plex server${serverList.length > 1 ? "s" : ""}`);
+    log.info(`Found ${serverList.length} Plex server${serverList.length === 1 ? "" : "s"} on the account`);
 
-    for (let i = 0; i < serverList.length; i++) {
-      console.debug(`${LOG_TAG} Server ${i + 1} info:`);
-      console.debug(`${LOG_TAG} Name: ${serverList[i]._attributes.name}`);
-      console.debug(`${LOG_TAG} Owned: ${serverList[i]._attributes.owned ? "Yes" : "No"}`);
-      console.debug(`${LOG_TAG} External Address: ${serverList[i]._attributes.address}`);
-      console.debug(`${LOG_TAG} External Port: ${serverList[i]._attributes.port}`);
-      console.debug(`${LOG_TAG} Local Address: ${serverList[i]._attributes.localAddresses}`);
-      console.debug(`${LOG_TAG} Local Port: 32400`);
+    for (const server of serverList) {
+      const a = server._attributes;
+      log.debug(
+        `  "${a.name}" (${a.owned === "1" ? "owned" : "shared"}): remote ${a.address}:${a.port}, local ${a.localAddresses}:32400`,
+      );
     }
   } catch (error) {
-    if (error.response && error.response.status === 401) {
-      unauth = true;
-    }
-    console.error(`${LOG_TAG} Issue with connection to online Plex account while requesting servers: ${error.message}`);
+    log.error("Could not get the server list from plex.tv:", error);
   }
 
   for (const element of serverList) {
@@ -51,7 +43,7 @@ router.post("/", async function (req, res, next) {
 
       for (const localIP of localAddresses) {
         const localUrl = `http://${localIP.trim()}:32400/:/prefs`;
-        console.debug(`${LOG_TAG} Retrieving Cert from URL: ${localUrl}`);
+        log.debug(`Checking ${localUrl}`);
 
         try {
           const response = await axios.get(localUrl, { timeout: 3000, params: { "X-Plex-Token": token } });
@@ -68,8 +60,7 @@ router.post("/", async function (req, res, next) {
             https: false,
           });
         } catch (error) {
-          console.info(`${LOG_TAG} Could not make insecure connection to Plex Server at ${localIP}`);
-          console.info(`${LOG_TAG} Attempting secure connection`);
+          log.debug(`No plain HTTP connection to ${localIP} (${error.code || error.message}), trying HTTPS`);
           // Check with secure connection
           const localUrl = `https://${localIP.trim()}:32400/:/prefs`;
           try {
@@ -95,7 +86,7 @@ router.post("/", async function (req, res, next) {
               https: true,
             });
           } catch (error) {
-            console.error(`${LOG_TAG} Issue with secure connection to Plex Server at ${localIP}: ${error.message}`);
+            log.warn(`Could not connect to Plex server "${element._attributes.name}" at ${localIP}:`, error);
           }
 
           finalList.push({
@@ -111,7 +102,7 @@ router.post("/", async function (req, res, next) {
       }
     }
   }
-  console.debug(`${LOG_TAG} Final List: ${JSON.stringify(finalList)}`);
+  log.debug(`Server choices: ${finalList.length}`);
   res.send(JSON.stringify(finalList));
 });
 

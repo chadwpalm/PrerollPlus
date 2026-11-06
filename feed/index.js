@@ -1,15 +1,10 @@
 var express = require("express");
 var router = express.Router();
-var fs = require("fs");
 var crypto = require("crypto");
 const ical = require("ical-generator").default;
 const { getCalendarEvents } = require("../webhook/index");
-
-// Global Variables
-
-const LOG_TAG = "[FEED]";
-
-const filePath = "/config/settings.js";
+const store = require("../backend/settingsStore");
+const log = require("../backend/logger").tagged("FEED");
 
 const DEFAULT_PAST_DAYS = 30;
 const MAX_PAST_DAYS = 30;
@@ -21,9 +16,9 @@ const MAX_FUTURE_DAYS = 365;
 function isValidApiKey(provided) {
   let mainApiKey;
   try {
-    mainApiKey = JSON.parse(fs.readFileSync(filePath)).mainApiKey;
+    mainApiKey = store.read().mainApiKey;
   } catch (err) {
-    console.error(`${LOG_TAG} Failed to read settings: ${err.message}`);
+    log.error("Could not read settings:", err);
     return false;
   }
 
@@ -73,7 +68,7 @@ function mergeDays(days) {
 
 router.get("/calendar/PrerollPlus.ics", async (req, res) => {
   if (!isValidApiKey(req.query.apikey)) {
-    console.warn(`${LOG_TAG} Calendar feed request rejected: invalid or missing API key`);
+    log.warn(`Calendar feed request from ${req.ip} rejected: invalid or missing API key`);
     return res.status(401).type("text/plain").send("Unauthorized");
   }
 
@@ -83,8 +78,6 @@ router.get("/calendar/PrerollPlus.ics", async (req, res) => {
 
   const startStr = localDateStr(-pastDays);
   const endStr = localDateStr(futureDays);
-
-  console.debug(`${LOG_TAG} Calendar feed request: ${startStr} to ${endStr} (buckets: ${includeBuckets})`);
 
   try {
     const events = mergeDays(await getCalendarEvents(startStr, endStr));
@@ -107,11 +100,11 @@ router.get("/calendar/PrerollPlus.ics", async (req, res) => {
       });
     });
 
-    console.info(`${LOG_TAG} Calendar feed generated: ${events.length} events (${startStr} to ${endStr})`);
+    log.debug(`Calendar feed sent: ${events.length} events, ${startStr} to ${endStr}`);
 
     res.type("text/calendar; charset=utf-8").send(calendar.toString());
   } catch (err) {
-    console.error(`${LOG_TAG} Failed to generate calendar feed: ${err.message}`);
+    log.error("Could not create the calendar feed:", err);
     res.status(500).type("text/plain").send("Failed to generate calendar feed");
   }
 });

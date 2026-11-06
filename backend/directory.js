@@ -1,63 +1,64 @@
 var express = require("express");
 var router = express.Router();
 var fs = require("fs");
+const { resolveInMediaRoot } = require("./mediaPath");
+const log = require("./logger").tagged("DIRECTORY");
 
-const LOG_TAG = "[DIRECTORY]";
+// System and hidden files (macOS, Windows, Synology) that never belong in a bucket
+function isHidden(entry) {
+  const name = entry.name;
+  return (
+    name.startsWith(".") ||
+    name.startsWith("@") ||
+    name === "Thumbs.db" ||
+    name === "desktop.ini" ||
+    entry.parentPath?.includes("@eaDir")
+  );
+}
+
+/**
+ * Folders first, then files, each sorted by name: [{ name, isDir, path }] (path = the containing folder).
+ * Returns null if the folder can't be read. Throws an error with code "OUTSIDE_MEDIA_FOLDER" for folders
+ * outside the preroll media folder.
+ */
+function listDirectory(requested, includeSub = false) {
+  // Only folders inside the preroll media folder can be listed
+  const dir = resolveInMediaRoot(requested);
+  if (!dir) {
+    const err = new Error(`${requested} is outside the preroll media folder`);
+    err.code = "OUTSIDE_MEDIA_FOLDER";
+    throw err;
+  }
+
+  try {
+    const entries = fs
+      .readdirSync(dir, { withFileTypes: true, recursive: !!includeSub })
+      .filter((entry) => !isHidden(entry))
+      .sort((a, b) => {
+        const aIsDir = a.isDirectory();
+        const bIsDir = b.isDirectory();
+        if (aIsDir !== bIsDir) return aIsDir ? -1 : 1;
+        return String(a.name).toLowerCase().localeCompare(String(b.name).toLowerCase());
+      })
+      .map((entry) => ({ name: entry.name, isDir: entry.isDirectory(), path: entry.parentPath }));
+
+    log.debug(`Listed ${dir}${includeSub ? " and subfolders" : ""}: ${entries.length} entries`);
+    return entries;
+  } catch (err) {
+    log.warn(`Could not list folder ${dir}: ${err.message.split("\n")[0]}`);
+    return null;
+  }
+}
 
 router.post("/", function (req, res, next) {
   try {
-    console.info(`${LOG_TAG} Entering Directory: ${req.body.dir}`);
-    const dirData = fs.readdirSync(req.body.dir, { withFileTypes: true, recursive: !!req.body.isSub });
-
-    console.info(`${LOG_TAG} Directory read`);
-
-    const filteredData = dirData.filter((entry) => {
-      const name = entry.name;
-      if (
-        name.startsWith(".") ||
-        name.startsWith("@") ||
-        name === "Thumbs.db" ||
-        name === "desktop.ini" ||
-        entry.parentPath?.includes("@eaDir")
-      ) {
-        return false;
-      }
-      return true;
-    });
-
-    dirData.sort((a, b) => {
-      const aIsDir = a.isDirectory();
-      const bIsDir = b.isDirectory();
-
-      if (aIsDir && !bIsDir) {
-        return -1;
-      } else if (!aIsDir && bIsDir) {
-        return 1;
-      } else {
-        const aStr = String(a.name).toLowerCase();
-        const bStr = String(b.name).toLowerCase();
-        return aStr.localeCompare(bStr);
-      }
-    });
-
-    const dirRet = [];
-    filteredData.forEach((file) => {
-      dirRet.push({
-        name: file.name,
-        isDir: file.isDirectory(),
-        path: file.parentPath,
-      });
-    });
-
-    console.debug(
-      `${LOG_TAG} Filtered & sorted directory contents${!!req.body.isSub ? " (including subdirectories)" : ""}:\n${JSON.stringify(dirRet, null, 2)}`,
-    );
-
-    res.send(JSON.stringify(dirRet));
+    res.json(listDirectory(req.body?.dir, req.body?.isSub));
   } catch (err) {
-    console.error(`${LOG_TAG} Directory not found ${err.message.split("\n")[0]}`);
-    res.status(200).send(JSON.stringify(null));
+    if (err.code !== "OUTSIDE_MEDIA_FOLDER") return next(err);
+    log.warn(`Blocked listing ${req.body?.dir} from ${req.ip}: outside the preroll media folder`);
+    res.status(403).json({ error: "Folder is outside the preroll media folder" });
   }
 });
 
 module.exports = router;
+module.exports.listDirectory = listDirectory;

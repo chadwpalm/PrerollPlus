@@ -3,16 +3,15 @@ var router = express.Router();
 var fs = require("fs");
 var path = require("path");
 var chokidar = require("chokidar");
-var axios = require("axios");
 const { broadcastUpdate } = require("./websocket");
-const { getActivePort, getBaseURL } = require("../backend/config");
+const store = require("./settingsStore");
+const log = require("./logger").tagged("MONITOR");
 
-const LOG_TAG = "[MONITOR]";
-
-function getInternalURL(path) {
-  const base = (getBaseURL() || "").replace(/\/$/, "");
-  console.debug(`${LOG_TAG} Base URL: http://localhost:${getActivePort()}${base}${path}`);
-  return `http://localhost:${getActivePort()}${base}${path}`;
+// Rebuild today's preroll list after bucket contents changed (loaded here to avoid a circular require)
+function refreshPrerolls() {
+  require("../webhook/index")
+    .updatePrerolls()
+    .catch((error) => log.error("Preroll refresh after file change failed:", error));
 }
 
 let pendingAdds = new Map();
@@ -24,49 +23,48 @@ let isAdded = true;
 let watcher = null;
 let isInit = true;
 let initTime = 2000;
+let settings;
 
 function initializeWatcher() {
   if (watcher) {
-    console.info(`${LOG_TAG} Closing existing watcher before reinitializing...`);
+    log.debug("Restarting file watcher");
     watcher.close();
     watcher = null;
     isInit = true;
   }
 
   try {
-    settings = JSON.parse(fs.readFileSync("/config/settings.js"));
+    settings = store.read();
 
     if (settings.settings) {
       pathToWatch = settings.settings.loc;
       renameDelay = settings.settings.polling === "1" ? 500 : 1000;
     }
   } catch (err) {
-    console.error(`${LOG_TAG} Cannot grab dir location ${err}`);
+    log.error("Cannot read the preroll folder location from settings:", err);
     return;
   }
 
   if (fs.existsSync(pathToWatch)) {
     watcher = chokidar.watch(pathToWatch, {
-      ignored: /(^|[\/\\])\../,
+      ignored: /(^|[/\\])\../,
       persistent: true,
       usePolling: settings.settings.polling === "2",
       interval: 100,
     });
 
-    console.debug(
-      `${LOG_TAG} Watcher started - path: ${pathToWatch}, polling: ${settings.settings.polling === "2" ? "yes" : "no"}, interval: 100ms`,
-    );
+    log.info(`Watching ${pathToWatch} for file changes${settings.settings.polling === "2" ? " (polling)" : ""}`);
 
     watcher.on("addDir", (filePath) => {
       if (!isInit) {
-        console.debug(`${LOG_TAG} Directory ${filePath} has been added`);
+        log.debug(`Folder added: ${filePath}`);
         broadcastUpdate();
       }
     });
 
     watcher.on("unlinkDir", (filePath) => {
       if (!isInit) {
-        console.debug(`${LOG_TAG} Directory ${filePath} has been removed`);
+        log.debug(`Folder removed: ${filePath}`);
         broadcastUpdate();
       }
     });
@@ -83,7 +81,7 @@ function initializeWatcher() {
 
       for (const [removedPath, removedFile] of pendingRemovals) {
         if (removedFile.dirName === dirName && removedFile.baseName !== baseName) {
-          console.info(`${LOG_TAG} File ${removedPath} was renamed to ${filePath}`);
+          log.info(`File renamed: ${removedPath} -> ${filePath}`);
 
           handleRenameOrMove(removedPath, filePath);
 
@@ -92,7 +90,7 @@ function initializeWatcher() {
           return;
         }
         if (removedFile.baseName === baseName && removedFile.dirName !== dirName) {
-          console.info(`${LOG_TAG} File ${removedPath} was moved to ${filePath}`);
+          log.info(`File moved: ${removedPath} -> ${filePath}`);
 
           handleRenameOrMove(removedPath, filePath);
 
@@ -103,12 +101,12 @@ function initializeWatcher() {
       }
 
       if (!isInit) {
-        console.debug(`${LOG_TAG} Queued potential add: ${filePath} (pendingAdds size: ${pendingAdds.size})`);
+        log.debug(`Queued possible add: ${filePath} (${pendingAdds.size} pending)`);
       }
 
       setTimeout(() => {
         if (!isInit && isAdded) {
-          console.debug(`${LOG_TAG} File ${filePath} has been added`);
+          log.info(`File added: ${filePath}`);
           broadcastUpdate();
         }
         if (pendingAdds.has(filePath)) {
@@ -127,11 +125,11 @@ function initializeWatcher() {
       const dirName = path.dirname(filePath);
 
       pendingRemovals.set(filePath, { baseName, dirName });
-      console.debug(`${LOG_TAG} Queued potential removal: ${filePath} (pendingRemovals size: ${pendingRemovals.size})`);
+      log.debug(`Queued possible removal: ${filePath} (${pendingRemovals.size} pending)`);
 
       for (const [addedPath, addedFile] of pendingAdds) {
         if (addedFile.dirName === dirName && addedFile.baseName !== baseName) {
-          console.info(`${LOG_TAG} File ${filePath} was renamed to ${addedPath}`);
+          log.info(`File renamed: ${filePath} -> ${addedPath}`);
 
           handleRenameOrMove(filePath, addedPath);
 
@@ -141,7 +139,7 @@ function initializeWatcher() {
         }
 
         if (addedFile.baseName === baseName && addedFile.dirName !== dirName) {
-          console.info(`${LOG_TAG} File ${filePath} was moved to ${addedPath}`);
+          log.info(`File moved: ${filePath} -> ${addedPath}`);
           handleRenameOrMove(filePath, addedPath);
 
           pendingRemovals.delete(filePath);
@@ -152,10 +150,10 @@ function initializeWatcher() {
 
       setTimeout(() => {
         if (isRemoved) {
-          console.debug(`${LOG_TAG} File ${filePath} has been removed`);
+          log.info(`File removed: ${filePath}`);
           handleRemove(filePath);
         } else {
-          console.debug(`${LOG_TAG} Removal was part of rename/move - ignored standalone remove`);
+          log.debug(`Removal of ${filePath} was part of a rename/move`);
         }
         pendingRemovals.delete(filePath);
         isRemoved = true;
@@ -163,21 +161,20 @@ function initializeWatcher() {
     });
 
     // Handle errors
-    watcher.on("error", (error) => console.error(`Watcher error: ${error}`));
+    watcher.on("error", (error) => log.error("File watcher error:", error));
   } else {
-    console.warn(`${LOG_TAG} Watcher not started. Directory ${pathToWatch} not found`);
+    log.warn(`Not watching for file changes: folder ${pathToWatch || "(not set)"} not found`);
     return;
   }
 
   setTimeout(() => {
     isInit = false;
-    console.debug(`${LOG_TAG} Ready to start monitoring directories`);
+    log.debug("File watcher ready");
   }, initTime);
 }
 
 function handleRenameOrMove(oldPath, newPath) {
-  settings = JSON.parse(fs.readFileSync("/config/settings.js"));
-  console.info(`${LOG_TAG} Handling rename from ${oldPath} to ${newPath} in buckets`);
+  settings = store.read();
   let settingsUpdated = false;
   settings.buckets.forEach((bucket) => {
     bucket.media.forEach((file) => {
@@ -187,35 +184,26 @@ function handleRenameOrMove(oldPath, newPath) {
       ) {
         file.file = path.basename(newPath);
         file.dir = path.dirname(newPath).replace(settings.settings.loc, "");
-        console.info(
-          `${LOG_TAG} Updated settings for renamed file: ${oldPath} to ${newPath} in bucket "${bucket.name}"`,
-        );
+        log.info(`Bucket "${bucket.name}": updated ${path.basename(oldPath)} to ${path.basename(newPath)}`);
         settingsUpdated = true;
       }
     });
   });
   if (settingsUpdated) {
     try {
-      fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-      console.info(`${LOG_TAG} Settings file saved`);
-
-      axios
-        .get(getInternalURL("/webhook"))
-        .then((response) => {})
-        .catch((error) => {});
+      store.write(settings);
+      refreshPrerolls();
     } catch (err) {
-      console.error(`${LOG_TAG} Error saving settings file ${err}`);
+      log.error("Could not save bucket changes:", err);
     }
   }
   broadcastUpdate();
 }
 
 function handleRemove(oldPath) {
-  settings = JSON.parse(fs.readFileSync("/config/settings.js"));
+  settings = store.read();
 
   if (settings.settings.deletion !== "2") {
-    console.info(`${LOG_TAG} Handling removal of ${oldPath} in buckets...`);
-
     let settingsUpdated = false;
 
     settings.buckets.forEach((bucket) => {
@@ -230,28 +218,24 @@ function handleRemove(oldPath) {
       );
 
       if (bucket.media.length !== initialMediaLength) {
-        console.info(`${LOG_TAG} Removed all occurrences of ${oldPath} from bucket "${bucket.name}"`);
+        log.info(`Bucket "${bucket.name}": removed ${path.basename(oldPath)}`);
         settingsUpdated = true;
       }
     });
 
     if (settingsUpdated) {
       try {
-        fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-        console.info(`${LOG_TAG} Settings file saved`);
-        axios
-          .get(getInternalURL("/webhook"))
-          .then((response) => {})
-          .catch((error) => {});
+        store.write(settings);
+        refreshPrerolls();
       } catch (err) {
-        console.error(`${LOG_TAG} Error saving settings file ${err}`);
+        log.error("Could not save bucket changes:", err);
       }
     } else {
-      console.info(`${LOG_TAG} No changes made to settings`);
+      log.debug(`${oldPath} was not in any bucket`);
     }
     broadcastUpdate();
   } else {
-    console.info(`${LOG_TAG} Deletion handling is disabled in settings, skipping removal of ${oldPath} from buckets`);
+    log.info(`Kept ${path.basename(oldPath)} in buckets ("Prevent File Deletion From Buckets" is on)`);
   }
 }
 

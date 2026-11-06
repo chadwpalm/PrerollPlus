@@ -1,28 +1,27 @@
 var express = require("express");
 var router = express.Router();
 var multer = require("multer");
-var fs = require("fs");
-var path = require("path");
 var axios = require("axios").default;
-const { getActivePort, getBaseURL } = require("../backend/config");
+const store = require("../backend/settingsStore");
+const { getHolidayData } = require("../backend/holidays");
+const { listDirectory } = require("../backend/directory");
+const log = require("../backend/logger").tagged("WEBHOOK");
+const schedLog = require("../backend/logger").tagged("SCHEDULE");
 
-// Global Variables
+// Plex attaches a thumbnail image to some webhooks. It isn't used, so it is dropped instead of saved to disk.
+var upload = multer({ fileFilter: (req, file, cb) => cb(null, false) });
 
-const LOG_TAG = "[WEBHOOK]";
-
-var upload = multer({ dest: "/tmp/" });
-
-const filePath = "/config/settings.js";
-
+// Settings used while working out the schedule. Re-read from disk at the start of every update, webhook
+// and calendar request. Changes are written through the settings store (never by saving this whole copy),
+// so edits saved in the meantime are never overwritten.
 var settings;
 
-const [hours, minutes] = (process.env.SCHEDULE_TIME?.split(":") || ["0", "0"]).map((part) => parseInt(part, 10) || 0);
-
-function getInternalURL(path) {
-  const base = (getBaseURL() || "").replace(/\/$/, "");
-  console.debug(`${LOG_TAG} Base URL: http://localhost:${getActivePort()}${base}${path}`);
-  return `http://localhost:${getActivePort()}${base}${path}`;
+function loadSettings() {
+  settings = store.read();
+  return settings;
 }
+
+const [hours, minutes] = (process.env.SCHEDULE_TIME?.split(":") || ["0", "0"]).map((part) => parseInt(part, 10) || 0);
 
 // General Functions
 
@@ -43,7 +42,7 @@ function getOverrideSequenceIndex(forceDate = null) {
       }
     }
     if (!forceDate) {
-      console.info(`${LOG_TAG} [OVERRIDE] Using indefinite override for sequence ID: ${ovr.id}`);
+      schedLog.debug(`Override active indefinitely (sequence ID ${ovr.id})`);
     }
     return settings.sequences.findIndex((seq) => seq.id === ovr.id);
   }
@@ -68,10 +67,10 @@ function getOverrideSequenceIndex(forceDate = null) {
   } else {
     const now = Date.now();
     if (now < ovr.endTimestamp) {
-      console.info(`${LOG_TAG} [OVERRIDE] Using timed override for sequence ID: ${ovr.id}`);
+      schedLog.debug(`Override active until ${new Date(ovr.endTimestamp).toLocaleString()} (sequence ID ${ovr.id})`);
       return settings.sequences.findIndex((seq) => seq.id === ovr.id);
     } else {
-      console.info(`${LOG_TAG} [OVERRIDE] Timed override expired`);
+      schedLog.debug("Timed override has expired");
       return -1;
     }
   }
@@ -89,132 +88,34 @@ async function isHolidayDay(
   post = "0",
   isCal = false,
 ) {
-  const cacheDir = path.join("/", "config", "cache");
-  const HolidayType = {
-    1: "national",
-    2: "local",
-    3: "religious",
-    4: "observance",
-  };
-  const typeName = HolidayType[parseInt(type, 10)];
-
   const today = checkDate
     ? new Date(Number(checkDate.split("-")[0]), Number(checkDate.split("-")[1]) - 1, Number(checkDate.split("-")[2]))
     : new Date();
   today.setHours(0, 0, 0, 0);
 
-  const currentYear = today.getFullYear();
-
-  let rawData;
-  const cacheFile =
-    source === "2"
-      ? path.join(cacheDir, `${country}-calendarific-${typeName}-${currentYear}.json`)
-      : path.join(cacheDir, `${country}-nager-${currentYear}.json`);
-
-  if (fs.existsSync(cacheFile)) {
-    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Cache hit for ${path.basename(cacheFile)}`);
-    rawData = fs.readFileSync(cacheFile, "utf-8");
-  } else {
-    const url =
-      source === "1"
-        ? `https://date.nager.at/api/v3/publicholidays/${currentYear}/${country}`
-        : `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=${country}&year=${currentYear}&type=${typeName}`;
-    if (!isCal) console.debug(`${LOG_TAG} [HOLIDAY] Fetching ${url.split("api_key=")[0]}...`);
-    try {
-      const response = await axios.get(url, { timeout: 2000 });
-      rawData = JSON.stringify(response.data);
-      fs.writeFileSync(cacheFile, rawData, "utf-8");
-    } catch (error) {
-      if (error.response) {
-        const status = error.response.status;
-        const data = error.response.data;
-        let message = `Error while trying to connect to the ${typeName} Holiday API. `;
-        if (source === "2") {
-          switch (status) {
-            case 401:
-              message += "Unauthorized: Missing or incorrect API token.";
-              break;
-            case 422:
-              if (data && data.meta && data.meta.error_code) {
-                switch (data.meta.error_code) {
-                  case 600:
-                    message += "API is offline for maintenance.";
-                    break;
-                  case 601:
-                    message += "Unauthorized: Missing or incorrect API token.";
-                    break;
-                  case 602:
-                    message += "Invalid query parameters.";
-                    break;
-                  case 603:
-                    message += "Subscription level required.";
-                    break;
-                  default:
-                    message += `Unprocessable Entity: ${data.meta.error_detail || "Unknown error"}`;
-                }
-              } else {
-                message += "Unprocessable Entity: Request was malformed.";
-              }
-              break;
-            case 500:
-              message += "Internal server error at Calendarific.";
-              break;
-            case 503:
-              message += "Service unavailable (planned outage).";
-              break;
-            case 429:
-              message += "Too many requests: API rate limit reached.";
-              break;
-            default:
-              message += `Unexpected HTTP status: ${status}`;
-          }
-        } else if (source === "1") {
-          switch (status) {
-            case 400:
-              message += "Bad request: invalid parameters.";
-              break;
-            case 401:
-              message += "Unauthorized: Invalid API key or missing auth.";
-              break;
-            case 404:
-              message += "Not found: Invalid endpoint or country code.";
-              break;
-            case 429:
-              message += "Too many requests: API rate limit reached.";
-              break;
-            case 500:
-              message += "Internal server error at Nager.Date.";
-              break;
-            default:
-              message += `Unexpected HTTP status: ${status}`;
-          }
-        } else {
-          message += "Unknown source specified.";
-        }
-        console.error(message);
-      } else if (error.request) {
-        console.error(`No response received from API (source=${source}).`);
-      } else {
-        console.error(`Error setting up request (source=${source}): ${error.message}`);
-      }
-      return false;
-    }
-  }
+  const parsed = await getHolidayData({
+    country,
+    source,
+    type,
+    year: today.getFullYear(),
+    apiKey,
+    timeout: 2000,
+    quiet: isCal,
+  });
+  if (!parsed) return false;
 
   let data;
   if (source === "2") {
-    const parsed = JSON.parse(rawData);
-    data = parsed.response.holidays.find((item) => item.name === holiday && item.locations === states);
+    data = parsed.response?.holidays?.find((item) => item.name === holiday && item.locations === states);
   } else if (source === "1") {
-    const parsed = JSON.parse(rawData);
-    data = parsed.find((item) => {
+    data = parsed.find?.((item) => {
       const stateString = item.counties === null ? "All" : item.counties.join(", ");
       return item.name === holiday && stateString === states;
     });
   }
 
   if (!data) {
-    console.warn(`${LOG_TAG} [HOLIDAY] No match for "${holiday}" in ${country}/${typeName}`);
+    schedLog.warn(`Holiday "${holiday}" not found in the ${country} holiday list`);
     return false;
   }
 
@@ -246,38 +147,35 @@ async function isHolidayDay(
   }
 
   if (!isCal)
-    console.debug(
-      `${LOG_TAG} [HOLIDAY] Window check: today ${today.toISOString().split("T")[0]} vs ${windowStart.toISOString().split("T")[0]} – ${windowEnd.toISOString().split("T")[0]}`,
+    schedLog.debug(
+      `  Holiday window ${windowStart.toISOString().split("T")[0]} to ${windowEnd.toISOString().split("T")[0]}, today ${today.toISOString().split("T")[0]}`,
     );
   return today >= windowStart && today <= windowEnd;
 }
 
-async function saveId(id) {
-  var settingsCopy = { ...settings };
-
-  settingsCopy.currentSeq = id;
-
-  fs.writeFileSync("/config/settings.js", JSON.stringify(settingsCopy));
+// Remember today's sequence (shown with a blue border on the Sequences page)
+function saveId(id) {
+  settings.currentSeq = id;
+  store.update((s) => {
+    s.currentSeq = id;
+  });
 }
 
 async function checkSchedule(forceDate = null, isCal = false) {
-  if (!isCal)
-    console.debug(`${LOG_TAG} Starting schedule check ${forceDate ? `(forced: ${forceDate})` : "(current day)"}`);
+  if (!isCal) schedLog.debug(`Checking schedule for ${forceDate || "today"}`);
 
   const overrideIndex = getOverrideSequenceIndex(forceDate);
 
   if (overrideIndex !== -1) {
     if (!isCal) {
       const seqName = settings.sequences[overrideIndex]?.name || "unnamed";
-      console.info(`${LOG_TAG} Override active - forcing sequence: ${seqName}`);
+      schedLog.info(`Override active, using sequence "${seqName}"`);
     }
     if (!forceDate && !isCal) {
-      await saveId(settings.sequences[overrideIndex].id);
+      saveId(settings.sequences[overrideIndex].id);
     }
     return overrideIndex;
   }
-
-  if (!isCal) console.debug(`${LOG_TAG} No active override - proceeding with normal schedule check`);
 
   let bestIndex = -1;
   let bestPriority = Infinity;
@@ -295,13 +193,10 @@ async function checkSchedule(forceDate = null, isCal = false) {
 
     let isMatch = false;
 
-    if (!isCal)
-      console.debug(
-        `${LOG_TAG} Evaluating sequence #${idx}: "${element.name || "unnamed"}" (priority ${priority}, type ${element.schedule})`,
-      );
+    if (!isCal) schedLog.debug(`"${element.name || "unnamed"}" (priority ${priority}):`);
 
     if (element.schedule === "3") {
-      if (!isCal) console.debug(`${LOG_TAG} → Checking holiday: ${element.holiday} (${element.country})`);
+      if (!isCal) schedLog.debug(`  Holiday ${element.holiday} (${element.country})`);
       const isHoliday = await isHolidayDay(
         element.country,
         element.holiday,
@@ -316,21 +211,19 @@ async function checkSchedule(forceDate = null, isCal = false) {
       );
       if (isHoliday) {
         isMatch = true;
-        if (!isCal) console.info(`${LOG_TAG} → Holiday match: ${element.holiday}`);
+        if (!isCal) schedLog.debug("  Matches (holiday)");
       }
     } else if (element.schedule === "4") {
       const daysMask = parseInt(element.days, 10) || 0;
       if (!isCal)
-        console.debug(
-          `${LOG_TAG} → Checking days mask: ${daysMask.toString(2).padStart(7, "0")} vs today bit ${bitForToday.toString(2)}`,
-        );
+        schedLog.debug(`  Days of week ${daysMask.toString(2).padStart(7, "0")}, today ${bitForToday.toString(2)}`);
       if ((daysMask & bitForToday) !== 0) {
         isMatch = true;
-        if (!isCal) console.info(`${LOG_TAG} → Days match for sequence "${element.name || "unnamed"}"`);
+        if (!isCal) schedLog.debug("  Matches (day of week)");
       }
     } else if (element.schedule === "2") {
       isMatch = true;
-      if (!isCal) console.info(`${LOG_TAG} → Fallback sequence matched`);
+      if (!isCal) schedLog.debug("  Matches (no schedule, always eligible)");
     } else {
       const startNumber = new Date(Date.UTC(currentYear, element.startMonth - 1, element.startDay)).getTime();
       const endNumber = new Date(Date.UTC(currentYear, element.endMonth - 1, element.endDay)).getTime();
@@ -342,69 +235,53 @@ async function checkSchedule(forceDate = null, isCal = false) {
       ) {
         isMatch = true;
         if (!isCal)
-          console.info(
-            `${LOG_TAG} → Date range match: ${element.startMonth}/${element.startDay} - ${element.endMonth}/${element.endDay}`,
+          schedLog.debug(
+            `  Matches (dates ${element.startMonth}/${element.startDay} - ${element.endMonth}/${element.endDay})`,
           );
       }
     }
 
     if (isMatch) {
-      if (!isCal) console.debug(`${LOG_TAG} → Match found - priority ${priority} (current best: ${bestPriority})`);
       if (priority < bestPriority) {
         bestPriority = priority;
         bestIndex = idx;
       } else if (priority === Infinity && bestPriority === Infinity && bestIndex === -1) {
         bestIndex = idx;
-        if (!isCal) console.info(`${LOG_TAG} → New best match: "${element.name || "unnamed"}" (priority ${priority})`);
       }
     }
   }
-  if (!isCal)
-    console.info(
-      `${LOG_TAG} Schedule check complete - selected index ${bestIndex} (${bestIndex !== -1 ? settings.sequences[bestIndex].name || "unnamed" : "none"})`,
+  if (!isCal && !forceDate)
+    schedLog.info(
+      bestIndex !== -1
+        ? `Today's sequence is "${settings.sequences[bestIndex].name || "unnamed"}"`
+        : "No sequence is scheduled for today",
     );
-  if (!forceDate) await saveId(bestIndex !== -1 ? settings.sequences[bestIndex].id : "");
+  if (!forceDate) saveId(bestIndex !== -1 ? settings.sequences[bestIndex].id : "");
   return bestIndex;
 }
 
 async function createList(index) {
-  console.debug(`${LOG_TAG} Building preroll list for sequence index ${index}`);
-
-  let plexString = "";
+  const picked = [];
   if (index !== -1) {
-    const seqName = settings.sequences[index].name || "unnamed";
-    console.info(`${LOG_TAG} Using sequence: ${seqName}`);
-
     const bucketIds = settings.sequences[index].buckets;
     let usedFiles = new Set();
 
-    for (const [idx, bucketId] of bucketIds.entries()) {
+    for (const bucketId of bucketIds) {
       let files = [];
       const info = settings.buckets.find(({ id }) => id === bucketId.id.toString());
+      if (!info) {
+        log.warn(`Sequence "${settings.sequences[index].name}" uses a bucket that no longer exists, skipping it`);
+        continue;
+      }
 
       if (info.source === "2") {
         try {
-          const response = await axios.post(
-            getInternalURL("/backend/directory"),
-            { dir: `${info.dir}`, isSub: info.includeSub || false },
-            {
-              headers: {
-                "Content-Type": "application/json;charset=UTF-8",
-              },
-            },
-          );
-          response.data.forEach((media) => {
+          (listDirectory(info.dir, info.includeSub || false) ?? []).forEach((media) => {
             if (!media.isDir)
               files.push(`${settings.settings.plexLoc}${media.path.replace(settings.settings.loc, "")}/${media.name}`);
           });
         } catch (error) {
-          if (error.response) {
-            console.error(`${LOG_TAG} Server responded with error: ${error.response.data}`);
-          } else if (error.request) {
-            console.error(`${LOG_TAG} No response received: ${error.request}`);
-          } else {
-            console.error(`${LOG_TAG} Error setting up request: ${error.message}`);
-          }
+          log.error(`Could not list folder ${info.dir} for bucket "${info.name}":`, error.message);
         }
       } else {
         info.media.forEach((media) => {
@@ -412,34 +289,27 @@ async function createList(index) {
         });
       }
 
-      if (files.length !== 0) {
-        let randomFile;
-        do {
-          randomFile = files[Math.floor(Math.random() * files.length)];
-        } while (usedFiles.has(randomFile));
+      // Pick only from files not already used earlier in this list, so nothing plays twice
+      const unused = files.filter((file) => !usedFiles.has(file));
+      if (files.length === 0) {
+        log.warn(`Bucket "${info.name}" has no files, skipping it`);
+      } else if (unused.length === 0) {
+        log.warn(`Bucket "${info.name}": all of its files were already picked for earlier buckets, skipping it`);
+      } else {
+        const randomFile = unused[Math.floor(Math.random() * unused.length)];
         usedFiles.add(randomFile);
-
-        if (idx === bucketIds.length - 1) {
-          plexString += randomFile;
-        } else {
-          plexString += randomFile + ",";
-        }
+        picked.push(randomFile);
       }
     }
-    console.log(`${LOG_TAG} Updating using Sequence: ${settings.sequences[index].name}`);
-    console.debug(
-      `${LOG_TAG} Generated preroll string (${plexString.split(",").length} files, ${plexString.length} chars)`,
-    );
-  } else {
-    console.debug(`${LOG_TAG} No sequence selected - empty preroll string`);
+    log.debug(`Picked prerolls: ${picked.join(",")}`);
   }
 
-  return plexString;
+  // Joined at the end so a skipped last bucket never leaves a trailing comma
+  return picked.join(",");
 }
 
-async function sendList(string) {
+async function sendList(string, seqName) {
   const url = `http${settings.settings.ssl ? "s" : ""}://${settings.settings.ip}:${settings.settings.port}/:/prefs`;
-  console.debug(`${LOG_TAG} Sending Plex update to ${url} (string length: ${string.length})`);
 
   try {
     await axios.put(url, null, {
@@ -451,31 +321,23 @@ async function sendList(string) {
       },
     });
 
-    console.info(
+    log.info(
       string === ""
-        ? `${LOG_TAG} Plex preroll cleared successfully`
-        : `${LOG_TAG} Plex preroll updated successfully: ${string} (${string.split(",").length} files)`,
+        ? "Cleared the Plex preroll setting"
+        : `Updated Plex with ${string.split(",").length} preroll(s)${seqName ? ` from "${seqName}"` : ""}`,
     );
   } catch (error) {
     if (error.response && error.response.status === 401) {
-      console.warn(
-        `${LOG_TAG} Plex returned 401 Unauthorized → token likely invalid. Please log in via the webpage to create a valid token.`,
-      );
-      settings.isLoggedIn = "false";
-
-      const settingsToSave = { ...settings };
-
+      log.warn("Plex rejected the login token (401). Sign in to Preroll Plus again to get a new token.");
       try {
-        await axios.post(getInternalURL("/backend/save"), settingsToSave, {
-          headers: {
-            "Content-Type": "application/json",
-          },
+        store.update((s) => {
+          s.isLoggedIn = "false";
         });
       } catch (saveError) {
-        console.error(`${LOG_TAG} Failed to save settings after 401: ${saveError.message}`);
+        log.error("Could not save the signed-out state:", saveError);
       }
     } else {
-      console.error(`${LOG_TAG} Error updating preroll: ${error.message || error}`);
+      log.error("Could not update the Plex preroll setting:", error);
     }
   }
 }
@@ -483,7 +345,7 @@ async function sendList(string) {
 async function doTask() {
   const index = await checkSchedule();
   const string = await createList(index);
-  sendList(string);
+  await sendList(string, index !== -1 ? settings.sequences[index].name : null);
 }
 
 function getDelayUntilTargetTime(hour = 0, minute = 0) {
@@ -495,11 +357,6 @@ function getDelayUntilTargetTime(hour = 0, minute = 0) {
   if (targetTime <= now) {
     targetTime.setDate(targetTime.getDate() + 1);
   }
-
-  const delayMs = targetTime - now;
-  console.debug(
-    `${LOG_TAG} Calculated delay: ${Math.round(delayMs / 60000)} minutes (target: ${targetTime.toISOString()})`,
-  );
 
   return targetTime - now;
 }
@@ -513,104 +370,93 @@ function clearOverrideExpirationTimer() {
   }
 }
 
+// Clears an override that has ended, unless it was changed or removed in the meantime
+function endOverride(id) {
+  store.update((s) => {
+    if (s.currentOverride?.id === id) s.currentOverride = { id: null, endTimestamp: null };
+  });
+}
+
+/** (Re)start the timer that ends a timed override. Called on startup, after every settings save, and by updates. */
 function scheduleOverrideExpiration() {
   clearOverrideExpirationTimer();
 
-  if (!settings || !settings.currentOverride) {
-    console.debug(`${LOG_TAG} [OVERRIDE] Timer: settings not loaded yet, skipping for now`);
+  let ovr;
+  try {
+    ovr = store.read().currentOverride;
+  } catch (err) {
+    schedLog.error("Override timer: could not read settings:", err);
     return;
   }
 
-  const ovr = settings.currentOverride;
-
-  if (!ovr || !ovr.id || ovr.endTimestamp === null) {
+  if (!ovr || !ovr.id || ovr.endTimestamp === null || ovr.endTimestamp === undefined) {
     return;
   }
 
-  const now = Date.now();
-  const delayMs = ovr.endTimestamp - now;
+  const delayMs = ovr.endTimestamp - Date.now();
 
   if (delayMs <= 0) {
-    console.info(`${LOG_TAG} [OVERRIDE] Timer: Override already expired on startup - clearing`);
-    settings.currentOverride = { id: null, endTimestamp: null };
-    fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-    doTask();
+    schedLog.info("Override has expired, returning to the normal schedule");
+    endOverride(ovr.id);
+    updatePrerolls().catch((err) => schedLog.error("Sequence update after the override ended failed:", err));
     return;
   }
 
-  console.info(
-    `${LOG_TAG} [OVERRIDE] Timer scheduled to expire in ${Math.round(delayMs / 60000)} minutes ` +
-      `(${new Date(ovr.endTimestamp).toLocaleString()})`,
+  schedLog.info(
+    `Override ends ${new Date(ovr.endTimestamp).toLocaleString()} (in ${Math.round(delayMs / 60000)} minutes)`,
   );
 
   overrideExpirationTimer = setTimeout(() => {
-    console.info(`${LOG_TAG} [OVERRIDE] Timer fired - override has now expired`);
-
-    settings.currentOverride = { id: null, endTimestamp: null };
-    fs.writeFileSync("/config/settings.js", JSON.stringify(settings));
-
-    doTask();
     overrideExpirationTimer = null;
+    schedLog.info("Override has ended, returning to the normal schedule");
+    endOverride(ovr.id);
+    updatePrerolls().catch((err) => schedLog.error("Sequence update after the override ended failed:", err));
   }, delayMs);
 }
 
-global.scheduleOverrideExpiration = scheduleOverrideExpiration;
+/** Pick today's sequence and send a new preroll list to Plex, using the latest saved settings. */
+async function updatePrerolls() {
+  loadSettings();
+  scheduleOverrideExpiration();
+  await doTask();
+}
 
 function myAsyncTask() {
-  try {
-    settings = JSON.parse(fs.readFileSync(filePath));
-
-    console.log(`${LOG_TAG} Daily task started...`);
-
-    scheduleOverrideExpiration();
-
-    doTask()
-      .then(() => {
-        console.debug(`${LOG_TAG} Daily task completed successfully`);
-      })
-      .catch((err) => {
-        console.error(`${LOG_TAG} Daily task failed: ${err.message}`);
-      });
-  } catch (error) {
-    console.error(`${LOG_TAG} Failed to load settings for daily task: ${error.message}`);
-  }
+  schedLog.info("Daily sequence update");
+  updatePrerolls().catch((err) => {
+    schedLog.error("Daily sequence update failed:", err);
+  });
 }
 
 router.post("/", upload.single("thumb"), async function (req, res, next) {
   let payload;
   try {
     payload = JSON.parse(req.body.payload);
-    console.debug(`${LOG_TAG} Webhook received - event: ${payload.event}, type: ${payload.Metadata?.type}`);
+    log.debug(`Plex webhook: ${payload.event} (${payload.Metadata?.type ?? "no media type"})`);
   } catch (e) {
-    console.warn(`${LOG_TAG} Invalid webhook payload: ${e.message}`);
+    log.warn("Ignoring a webhook with an invalid payload:", e.message);
     return res.sendStatus(200);
   }
 
-  settings = JSON.parse(fs.readFileSync(filePath));
-
-  scheduleOverrideExpiration();
-
   try {
-    if (payload.event === "media.play" && payload.Metadata.type === "movie") {
-      console.info(`${LOG_TAG} Movie playback detected - triggering preroll update`);
-      await doTask();
-      console.debug(`${LOG_TAG} Preroll update triggered from webhook`);
+    if (payload.event === "media.play" && payload.Metadata?.type === "movie") {
+      log.info(`Movie started${payload.Metadata.title ? ` ("${payload.Metadata.title}")` : ""}, picking new prerolls`);
+      await updatePrerolls();
     }
     res.sendStatus(200);
   } catch (e) {
-    console.error(`${LOG_TAG} Webhook processing error: ${e.message}`);
+    log.error("Webhook processing failed:", e);
     res.sendStatus(200);
   }
 });
 
+// The web pages call this after saving, so Plex gets prerolls from the new settings right away
 router.get("/", async function (req, res, next) {
-  settings = JSON.parse(fs.readFileSync(filePath));
-
-  scheduleOverrideExpiration();
-
-  console.debug(`${LOG_TAG} Manual preroll update triggered`);
-  await doTask();
-
+  try {
+    await updatePrerolls();
+  } catch (err) {
+    log.error("Preroll update failed:", err);
+  }
   res.sendStatus(200);
 });
 
@@ -618,11 +464,7 @@ router.get("/", async function (req, res, next) {
 // Shared by the Calendar page (/webhook/calendar) and the iCal feed (/feed).
 async function getCalendarEvents(startStr, endStr) {
   const events = [];
-
-  if (!settings) {
-    console.warn(`${LOG_TAG} Calendar requested before settings were loaded`);
-    return events;
-  }
+  loadSettings();
 
   const bucketMap = {};
   settings.buckets.forEach((bucket) => {
@@ -661,8 +503,6 @@ async function getCalendarEvents(startStr, endStr) {
 
 router.get("/calendar", async (req, res) => {
   const { year, month } = req.query;
-  console.debug(`${LOG_TAG} Calendar request: year=${year}, month=${month}`);
-
   if (!year || !month) {
     return res.status(400).json({ error: "year and month required" });
   }
@@ -673,26 +513,31 @@ router.get("/calendar", async (req, res) => {
   const startStr = new Date(Date.UTC(y, m, 1)).toISOString().split("T")[0];
   const endStr = new Date(Date.UTC(y, m + 1, 0)).toISOString().split("T")[0];
 
-  console.log(`${LOG_TAG} Fetching calendar: ${year}-${month} (${startStr} to ${endStr})`);
-
   const events = await getCalendarEvents(startStr, endStr);
 
-  console.info(`${LOG_TAG} Calendar generated: ${events.length} events for ${year}-${month}`);
+  log.debug(`Calendar for ${year}-${month}: ${events.length} day(s) with a sequence`);
 
   res.json(events);
 });
 
-// Schedule the initial run
-const delay = getDelayUntilTargetTime(hours, minutes);
-console.info(
-  `${LOG_TAG} Scheduler initialized - daily update at ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} (delay: ${Math.round(delay / 60000)} minutes)`,
+// Daily sequence update. The delay is worked out again after every run (instead of a fixed 24-hour
+// interval) so it stays at the same local time across daylight saving changes.
+function scheduleDailyTask() {
+  // At least a minute, so a timer that fires a moment early can't run the task twice
+  const delay = Math.max(getDelayUntilTargetTime(hours, minutes), 60 * 1000);
+  schedLog.debug(`Next daily sequence update in ${Math.round(delay / 60000)} minutes`);
+  setTimeout(() => {
+    myAsyncTask();
+    scheduleDailyTask();
+  }, delay);
+}
+
+schedLog.info(
+  `Daily sequence update at ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} (next in ${Math.round(getDelayUntilTargetTime(hours, minutes) / 60000)} minutes)`,
 );
-
-setTimeout(() => {
-  myAsyncTask();
-
-  setInterval(myAsyncTask, 24 * 60 * 60 * 1000);
-}, delay);
+scheduleDailyTask();
 
 module.exports = router;
 module.exports.getCalendarEvents = getCalendarEvents;
+module.exports.updatePrerolls = updatePrerolls;
+module.exports.scheduleOverrideExpiration = scheduleOverrideExpiration;
