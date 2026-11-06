@@ -1,0 +1,12 @@
+# Build output and dependencies
+node_modules
+frontend/node_modules
+frontend/production
+
+# Generated / lock files
+package-lock.json
+frontend/package-lock.json
+
+# Local config folders (CONFIG_DIR)
+dev-config
+docker-config
