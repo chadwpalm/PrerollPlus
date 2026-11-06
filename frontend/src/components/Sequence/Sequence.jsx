@@ -7,6 +7,7 @@ import Col from "react-bootstrap/Col";
 import Image from "react-bootstrap/Image";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
+import { formatMonthDay, formatDateTime } from "../../locale";
 import "./Sequence.css";
 
 const DAYS = {
@@ -114,7 +115,7 @@ export default class Sequence extends Component {
                   <>
                     Override ends:
                     <br />
-                    {new Date(this.props.endTimestamp).toLocaleString()}
+                    {formatDateTime(this.props.endTimestamp)}
                   </>
                 )}
               </Tooltip>
@@ -137,15 +138,9 @@ export default class Sequence extends Component {
                   this.getDaysDisplayText()
                 ) : (
                   <>
-                    {new Intl.DateTimeFormat(undefined, {
-                      day: "2-digit",
-                      month: "2-digit",
-                    }).format(new Date(2023, this.props.startMonth - 1, this.props.startDay))}
+                    {formatMonthDay(this.props.startMonth, this.props.startDay)}
                     {" - "}
-                    {new Intl.DateTimeFormat(undefined, {
-                      day: "2-digit",
-                      month: "2-digit",
-                    }).format(new Date(2023, this.props.endMonth - 1, this.props.endDay))}
+                    {formatMonthDay(this.props.endMonth, this.props.endDay)}
                   </>
                 )}
               </div>

@@ -35,6 +35,7 @@
 13. The backend no longer sends HTTP requests to itself (folder listing, preroll updates); it calls those functions directly.
 14. The frontend uses one small `fetch` helper for all requests to the backend in place of `XMLHttpRequest` (and axios), removing a lot of repeated code. Signing in no longer freezes the page while the account details and token are saved.
 15. The bucket list tooltip on the Calendar and the override tooltip on Sequences now use the same tooltip component as the rest of the app.
+16. When a sequence's schedule is set to Custom, the Day field now comes before the Month field for regions that write the day first (e.g. the UK and most of Europe), based on the browser's preferred language.
 
 ### Fixes
 
@@ -50,6 +51,8 @@
 10. Fixed a new bucket marked as the default bucket not being saved as the default.
 11. Fixed sorting holidays by date in the sequence editor for date formats other than month/day/year.
 12. Fixed the loading indicator in the sequence editor never stopping when Premier (Calendarific) was selected without an API key.
+13. Fixed the dates on Sequence cards and the override end times not following the browser's preferred language (e.g. showing 02/14 instead of 14/02 for UK English in Firefox). They now use the same format as the holiday dates.
+14. Fixed the menu button on narrow screens being hard to see in dark mode.
 
 ## 1.5.0
 

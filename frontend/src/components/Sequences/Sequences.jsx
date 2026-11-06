@@ -14,6 +14,7 @@ import SortPriority from "bootstrap-icons/icons/sort-numeric-up.svg";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 import { api } from "../../api";
+import { formatDateTime } from "../../locale";
 import "./Sequences.css";
 
 export default class Sequences extends Component {
@@ -494,7 +495,7 @@ export default class Sequences extends Component {
                   disabled={this.state.overrideLength === "1"}
                 />
               </Stack>
-              Ends: {this.state.endTimestamp ? new Date(this.state.endTimestamp).toLocaleString() : "N/A"}
+              Ends: {this.state.endTimestamp ? formatDateTime(this.state.endTimestamp) : "N/A"}
               <div className="d-flex justify-content-between align-items-center mt-4">
                 <div className="d-flex gap-2">
                   <Button variant={this.props.isDarkMode ? "secondary" : "primary"} onClick={this.handleOverride}>

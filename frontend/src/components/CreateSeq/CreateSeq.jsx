@@ -19,10 +19,10 @@ import SettingsSection from "../SettingsSection/SettingsSection";
 import { InfoLabel } from "../Common/FormFields";
 import { PickerLayout, PickerPane } from "../Common/Picker";
 import { api } from "../../api";
+import { DAY_FIRST } from "../../locale";
 import "./CreateSeq.css";
 
 const MONTHS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
 const DAYS = {
   M: 1 << 0,
   T: 1 << 1,
@@ -536,35 +536,35 @@ export default class Create extends Component {
               {[
                 ["start", "Start Date", startMonths, startDays],
                 ["end", "End Date", endMonths, endDays],
-              ].map(([prefix, label, months, days]) => (
-                <Col xs={12} sm={6} key={prefix}>
-                  <Form.Label>{label}</Form.Label>
-                  <Stack gap={2} direction="horizontal">
-                    <span className="field-unit">Month</span>
-                    <Form.Select
-                      value={this.state[`${prefix}Month`]}
-                      id={`${prefix}Month`}
-                      name={`${prefix}Month`}
-                      onChange={this.handleDate}
-                      size="sm"
-                      className="date-select"
-                    >
-                      {months}
-                    </Form.Select>
-                    <span className="field-unit">Day</span>
-                    <Form.Select
-                      value={this.state[`${prefix}Day`]}
-                      id={`${prefix}Day`}
-                      name={`${prefix}Day`}
-                      onChange={this.handleDate}
-                      size="sm"
-                      className="date-select"
-                    >
-                      {days}
-                    </Form.Select>
-                  </Stack>
-                </Col>
-              ))}
+              ].map(([prefix, label, months, days]) => {
+                const fields = [
+                  ["Month", months],
+                  ["Day", days],
+                ];
+                if (DAY_FIRST) fields.reverse();
+                return (
+                  <Col xs={12} sm={6} key={prefix}>
+                    <Form.Label>{label}</Form.Label>
+                    <Stack gap={2} direction="horizontal">
+                      {fields.map(([unit, options]) => (
+                        <React.Fragment key={unit}>
+                          <span className="field-unit">{unit}</span>
+                          <Form.Select
+                            value={this.state[`${prefix}${unit}`]}
+                            id={`${prefix}${unit}`}
+                            name={`${prefix}${unit}`}
+                            onChange={this.handleDate}
+                            size="sm"
+                            className="date-select"
+                          >
+                            {options}
+                          </Form.Select>
+                        </React.Fragment>
+                      ))}
+                    </Stack>
+                  </Col>
+                );
+              })}
             </Row>
           )}
           {this.state.schedule === "4" && (
