@@ -20,11 +20,12 @@ import Modal from "react-bootstrap/Modal";
 import NavDropdown from "react-bootstrap/NavDropdown";
 import Image from "react-bootstrap/Image";
 import Badge from "react-bootstrap/Badge";
-import { default as axios } from "axios";
+import { api } from "../../api";
 import "./App.css";
 import SequenceCalendar from "../Calendar/Calendar";
 
-const baseName = window.__BASE_PATH__;
+// Injected by the server (app.js); "/" when running under the Vite dev server
+const baseName = window.__BASE_PATH__ || "/";
 
 export default class App extends Component {
   state = {
@@ -39,10 +40,9 @@ export default class App extends Component {
     isUpdate: false,
     isOnline: true,
     announce: false,
-    first: false,
     dismiss: false,
     isDarkMode: false,
-    announcement: false,
+    announcement: true, // set to true for releases that have an announcement in Announce.jsx
     sockConnected: false,
     cannotConnect: false,
     reconnectAttempts: 0,
@@ -51,84 +51,53 @@ export default class App extends Component {
 
   componentDidMount() {
     this.connectWebSocket();
+    this.loadSettings();
+  }
 
-    var xhr = new XMLHttpRequest();
-    var state = false;
-    var online = true;
+  // Newer version available? Dev builds compare with the develop branch, releases with main.
+  async checkForUpdate(json) {
+    const branch = json.branch === "dev" ? "develop" : "main";
+    const url = `https://raw.githubusercontent.com/chadwpalm/PrerollPlus/${branch}/version.json?cb=${Date.now()}`;
+    try {
+      const latest = await api.get(url);
+      return { online: true, isUpdate: latest?.version !== json.version };
+    } catch {
+      // Dev builds treat an unreachable GitHub as "no internet" (as before); releases just skip the check
+      return { online: json.branch !== "dev", isUpdate: false };
+    }
+  }
 
-    xhr.addEventListener("readystatechange", async () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
+  async loadSettings() {
+    let json;
+    try {
+      json = await api.get(`${baseName}backend/load`);
+    } catch (err) {
+      this.setState({ isLoaded: true, error: err.body || err.message });
+      return;
+    }
 
-          var url = "";
+    const { online, isUpdate } = await this.checkForUpdate(json);
+    if (!online) {
+      this.setState({ isOnline: false });
+      return;
+    }
 
-          if (json.branch === "dev") {
-            url = `https://raw.githubusercontent.com/chadwpalm/PrerollPlus/develop/version.json?cb=${Date.now()}`;
+    this.setState(
+      {
+        isLoaded: true,
+        config: json,
+        thumb: json.thumb,
+        isBucket: json.buckets.length !== 0,
+        isUpdate,
+        isLoggedIn: json.isLoggedIn === "true",
+        isConnected: json.connected === "true",
+        isDarkMode: json.darkMode,
+      },
+      this.toggleBodyClass,
+    );
 
-            await axios
-              .get(url, { headers: { "Content-Type": "application/json;charset=UTF-8" } })
-              .then(function (response) {
-                var data = response.data;
-                if (data.version !== json.version) {
-                  state = true;
-                }
-              })
-              .catch(function (error) {
-                online = false;
-              });
-          } else {
-            url = `https://raw.githubusercontent.com/chadwpalm/PrerollPlus/main/version.json`;
-
-            await axios
-              .get(url, { headers: { "Content-Type": "application/json;charset=UTF-8" } })
-              .then(function (response) {
-                var data = response.data;
-
-                if (data.version !== json.version) {
-                  state = true;
-                }
-              })
-              .catch(function (error) {});
-          }
-
-          if (!online) {
-            this.setState({ isOnline: false });
-          } else {
-            this.setState({
-              isLoaded: true,
-              config: json,
-              thumb: json.thumb,
-            });
-
-            if (json.buckets.length !== 0) this.setState({ isBucket: true });
-
-            if (state) this.setState({ isUpdate: true });
-
-            if (json.isLoggedIn === "true") this.setState({ isLoggedIn: true });
-
-            if (json.connected === "true") {
-              this.setState({ isConnected: true });
-            }
-
-            if (json.message) this.setState({ first: true });
-
-            this.setState({ isDarkMode: json.darkMode }, () => {
-              this.toggleBodyClass();
-            });
-          }
-        } else {
-          this.setState({
-            isLoaded: true,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("GET", `${baseName}backend/load`, true);
-    xhr.send();
+    // Show the announcement after an update (unless dismissed); it appears once the signed-in pages show
+    if (json.message) this.handleOpenAnn();
   }
 
   connectWebSocket() {
@@ -174,16 +143,10 @@ export default class App extends Component {
   }
 
   refreshConfig() {
-    axios
+    api
       .get(`${baseName}backend/load`)
-      .then((response) => {
-        this.setState({
-          config: response.data,
-        });
-      })
-      .catch((error) => {
-        console.error("Error refreshing config:", error);
-      });
+      .then((config) => this.setState({ config }))
+      .catch((error) => console.error("Error refreshing config:", error));
   }
 
   toggleBodyClass = () => {
@@ -204,35 +167,24 @@ export default class App extends Component {
 
   handleClose = () => this.setState({ show: false });
 
-  handleOpen = () => this.setState({ show: true, fullscreen: "md-down" });
+  handleOpen = () => {
+    this.setState({ show: true, fullscreen: "md-down" });
+    // Config/app folders come from the server (CONFIG_DIR can change the config folder)
+    fetch("backend/host")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((host) => host && this.setState({ host }))
+      .catch(() => {});
+  };
 
   handleCloseAnn = () => {
     this.setState({ announce: false });
     if (this.state.dismiss) {
-      var settings = { ...this.state.config };
-
-      settings.message = false;
-
-      var xhr = new XMLHttpRequest();
-
-      xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-          } else {
-            this.setState({
-              error: xhr.responseText,
-            });
-          }
-        }
-      });
-
-      xhr.open("POST", `${baseName}backend/save`, true);
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(settings));
+      const settings = { ...this.state.config, message: false };
+      api.post(`${baseName}backend/save`, settings).catch((err) => this.setState({ error: err.body || err.message }));
     }
   };
 
-  handleOpenAnn = () => this.setState({ announce: true, first: false, fullscreenAnn: "md-down" });
+  handleOpenAnn = () => this.setState({ announce: true, fullscreenAnn: "md-down" });
 
   handleDismiss = () => {
     if (this.state.dismiss) {
@@ -259,23 +211,10 @@ export default class App extends Component {
     delete settings["email"];
     delete settings["username"];
 
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ isLoggedIn: false });
-        } else {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", `${baseName}backend/save`, true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    api
+      .post(`${baseName}backend/save`, settings)
+      .then(() => this.setState({ isLoggedIn: false }))
+      .catch((err) => this.setState({ error: err.body || err.message }));
   };
 
   updateSettings = (newSettings) => {
@@ -290,24 +229,8 @@ export default class App extends Component {
     this.setState((prevState) => {
       const newMode = !prevState.isDarkMode;
 
-      var settings = { ...prevState.config, darkMode: newMode };
-
-      var xhr = new XMLHttpRequest();
-
-      xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-          } else {
-            this.setState({
-              error: xhr.responseText,
-            });
-          }
-        }
-      });
-
-      xhr.open("POST", `${baseName}backend/save`, true);
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(settings));
+      const settings = { ...prevState.config, darkMode: newMode };
+      api.post(`${baseName}backend/save`, settings).catch((err) => this.setState({ error: err.body || err.message }));
 
       return { isDarkMode: newMode, config: settings };
     }, this.toggleBodyClass);
@@ -450,7 +373,6 @@ export default class App extends Component {
                   </Navbar>
                 </Row>
 
-                {this.state.first ? this.handleOpenAnn() : <></>}
                 <Modal
                   show={this.state.show}
                   fullscreen={this.state.fullscreen}
@@ -469,9 +391,9 @@ export default class App extends Component {
                     <br />
                     <b>Build:</b> &nbsp;{this.state.config.build}
                     <br />
-                    <b>Config Dir:</b>&nbsp; /config
+                    <b>Config Dir:</b>&nbsp; {this.state.host?.configDir ?? "…"}
                     <br />
-                    <b>App Dir:</b>&nbsp; {this.state.config.appDir}
+                    <b>App Dir:</b>&nbsp; {this.state.host?.appDir ?? this.state.config.appDir}
                     <br />
                     <b>Docker:</b>&nbsp;
                     <a

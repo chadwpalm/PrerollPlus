@@ -12,7 +12,30 @@ import Stack from "react-bootstrap/Stack";
 import Image from "react-bootstrap/Image";
 import { v4 as uuid } from "uuid";
 import SettingsSection from "../SettingsSection/SettingsSection";
+import { api } from "../../api";
+import { InfoLabel } from "../Common/FormFields";
 import "./Settings.css";
+
+// Must match normalizeBaseURL() in backend/config.js
+function normalizeBaseURL(value) {
+  const trimmed = (value || "").trim().replace(/^\/+|\/+$/g, "");
+  if (!trimmed) return "";
+  if (!/^[A-Za-z0-9._~\-/]+$/.test(trimmed) || trimmed.split("/").some((s) => s === "" || s === "." || s === "..")) {
+    return null; // invalid
+  }
+  return "/" + trimmed;
+}
+
+function validInt(value, min, max) {
+  const n = Number(value);
+  return String(value ?? "").trim() !== "" && Number.isInteger(n) && n >= min && n <= max;
+}
+
+function validPort(value) {
+  if (String(value ?? "").trim() === "") return true; // empty = default
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 && n < 65536;
+}
 
 export default class Settings extends Component {
   constructor(props) {
@@ -40,11 +63,12 @@ export default class Settings extends Component {
         dayOfWeek: this.props.settings.settings.dayOfWeek ?? "0",
         logSize: this.props.settings.settings.logSize ?? "1",
         logFiles: this.props.settings.settings.logFiles ?? "5",
-        appPort: this.props.settings.settings.appPort ?? "4949",
+        appPort: this.props.settings.settings.appPort ?? "",
         baseURL: this.props.settings.settings.baseURL ?? "",
         deletion: this.props.settings.settings.deletion ?? "1",
         mainApiKey: this.props.settings.mainApiKey ?? "",
         copySuccess: false,
+        host: null, // what the server is running with, from backend/host
       };
     } else {
       this.state = {
@@ -68,13 +92,42 @@ export default class Settings extends Component {
         dayOfWeek: "0",
         logSize: "1",
         logFiles: "5",
-        appPort: "4949",
+        appPort: "",
         baseURL: "",
         deletion: "1",
         mainApiKey: "",
         copySuccess: false,
+        host: null,
       };
     }
+  }
+
+  componentDidMount() {
+    api
+      .get("backend/host")
+      .then((host) => this.setState({ host }))
+      .catch(() => this.setState({ host: null }));
+  }
+
+  formErrors() {
+    const errors = {};
+    if (!validPort(this.state.appPort)) errors.appPort = "Port must be a whole number from 1 to 65535.";
+    if (normalizeBaseURL(this.state.baseURL) === null)
+      errors.baseURL = "Use letters, numbers and . _ ~ - separated by /, e.g. /prerollplus";
+    if (!validInt(this.state.logSize, 1, 100)) errors.logSize = "Enter a whole number from 1 to 100.";
+    if (!validInt(this.state.logFiles, 1, 60)) errors.logFiles = "Enter a whole number from 1 to 60.";
+    return errors;
+  }
+
+  // True when the saved host settings differ from what the server is running with
+  hostNeedsRestart() {
+    const { host } = this.state;
+    if (!host) return false;
+    const savedPort = Number(this.props.settings.settings?.appPort) || host.defaultPort;
+    const savedBase = normalizeBaseURL(this.props.settings.settings?.baseURL) ?? "";
+    const portChanged = host.portSource !== "APP_PORT" && host.portSource !== "PORT" && savedPort !== host.port;
+    const baseChanged = host.baseURLSource !== "APP_BASE_URL" && savedBase !== host.baseURL;
+    return this.state.isSaved && (portChanged || baseChanged);
   }
 
   handleFormSubmit = async (e) => {
@@ -87,6 +140,8 @@ export default class Settings extends Component {
       return;
     }
 
+    if (Object.keys(this.formErrors()).length) return;
+
     if (!this.props.settings.settings) this.props.settings.settings = {};
 
     this.props.settings.settings.ip = this.state.ip;
@@ -97,97 +152,69 @@ export default class Settings extends Component {
     this.props.settings.connected = "true";
     this.props.settings.settings.polling = this.state.polling;
     this.props.settings.settings.logLevel = this.state.logLevel;
-    this.props.settings.settings.logSize = this.state.logSize;
-    this.props.settings.settings.logFiles = this.state.logFiles;
+    this.props.settings.settings.logSize = String(parseInt(this.state.logSize, 10));
+    this.props.settings.settings.logFiles = String(parseInt(this.state.logFiles, 10));
     this.props.settings.settings.apiKey = this.state.apiKey;
     this.props.settings.settings.dayOfWeek = this.state.dayOfWeek;
-    this.props.settings.settings.appPort = this.state.appPort;
-    this.props.settings.settings.baseURL = this.state.baseURL;
+    this.props.settings.settings.appPort = String(this.state.appPort).trim();
+    this.props.settings.settings.baseURL = normalizeBaseURL(this.state.baseURL);
     this.props.settings.settings.deletion = this.state.deletion;
     this.props.connection(1);
 
     try {
-      const saveResponse = await fetch("backend/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json;charset=UTF-8" },
-        body: JSON.stringify(this.props.settings),
-      });
+      // Saving also applies the logging settings on the server
+      await api.post("backend/save", this.props.settings);
+      this.setState({ isSaved: true, baseURL: this.props.settings.settings.baseURL });
 
-      if (!saveResponse.ok) throw new Error(`Save failed: ${saveResponse.status}`);
-
-      this.setState({ isSaved: true });
-
-      const monitorResp = await fetch("backend/monitor");
-      if (!monitorResp.ok) throw new Error(`Monitor failed: ${monitorResp.status}`);
-
-      const loggerResp = await fetch("backend/logger");
-      if (!loggerResp.ok) throw new Error(`Logger failed: ${loggerResp.status}`);
-
-      const webhookResp = await fetch("webhook");
-      if (!webhookResp.ok) throw new Error(`Webhook failed: ${webhookResp.status}`);
+      // Restart the file watcher (the preroll folder may have changed) and send Plex new prerolls
+      await api.get("backend/monitor");
+      await api.get("webhook");
     } catch (err) {
       console.error(err);
       this.setState({ error: err.message });
     }
   };
 
-  handleServerGet = () => {
-    var xhr = new XMLHttpRequest();
+  handleServerGet = async () => {
+    this.setState({ isGetting: true, isLoaded: false, isSaved: false });
 
-    this.setState({ isGetting: true });
-    this.setState({ isLoaded: false });
-    this.setState({ isSaved: false });
+    let json;
+    try {
+      json = await api.post("backend/settings", this.props.settings);
+    } catch (err) {
+      this.setState({ isLoaded: true, error: err.body || err.message });
+      return;
+    }
 
-    xhr.addEventListener("readystatechange", async () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          // request successful
-          var response = xhr.responseText,
-            json = JSON.parse(response);
+    var tempList = [];
+    var index = 0;
 
-          var tempList = [];
-          var index = 0;
-
-          const createServerEntry = (element, index, secure, location, socket) => ({
-            index: index,
-            name: element.name,
-            ip: location === "remote" ? element.remoteIP : element.localIP,
-            port: element.port,
-            location,
-            secure,
-            cert: element.cert,
-            certSuccessful: element.certSuccessful,
-            socket: socket,
-          });
-
-          for (const element of json) {
-            if (element.certSuccessful) {
-              if (!element.https) {
-                tempList.push(createServerEntry(element, ++index, false, "local", false));
-                tempList.push(createServerEntry(element, ++index, false, "remote", false));
-              }
-              tempList.push(createServerEntry(element, ++index, true, "local", false));
-              tempList.push(createServerEntry(element, ++index, true, "remote", false));
-            } else {
-              tempList.push(createServerEntry(element, ++index, false, "local", true));
-              tempList.push(createServerEntry(element, ++index, false, "remote", true));
-            }
-          }
-          this.setState({ servers: tempList });
-          this.setState({ isLoaded: true });
-        } else {
-          // error
-          this.setState({
-            isLoaded: true,
-            error: xhr.responseText,
-          });
-        }
-      }
+    const createServerEntry = (element, index, secure, location, socket) => ({
+      index: index,
+      name: element.name,
+      ip: location === "remote" ? element.remoteIP : element.localIP,
+      port: element.port,
+      location,
+      secure,
+      cert: element.cert,
+      certSuccessful: element.certSuccessful,
+      socket: socket,
     });
 
-    xhr.open("POST", "backend/settings", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(this.props.settings));
+    for (const element of json) {
+      if (element.certSuccessful) {
+        if (!element.https) {
+          tempList.push(createServerEntry(element, ++index, false, "local", false));
+          tempList.push(createServerEntry(element, ++index, false, "remote", false));
+        }
+        tempList.push(createServerEntry(element, ++index, true, "local", false));
+        tempList.push(createServerEntry(element, ++index, true, "remote", false));
+      } else {
+        tempList.push(createServerEntry(element, ++index, false, "local", true));
+        tempList.push(createServerEntry(element, ++index, false, "remote", true));
+      }
+    }
+    this.setState({ servers: tempList, isLoaded: true });
   };
 
   handleServerChange = (e) => {
@@ -241,11 +268,11 @@ export default class Settings extends Component {
   };
 
   handleLogSize = (e) => {
-    this.setState({ logSize: e.target.value.toString() });
+    this.setState({ logSize: e.target.value.toString(), isSaved: false });
   };
 
   handleLogFiles = (e) => {
-    this.setState({ logFiles: e.target.value.toString() });
+    this.setState({ logFiles: e.target.value.toString(), isSaved: false });
   };
 
   handleAPIKey = (e) => {
@@ -261,60 +288,28 @@ export default class Settings extends Component {
   };
 
   handleAdvanced = () => {
-    this.setState((prevState) => {
-      const newMode = !prevState.advanced;
-
-      var settings = { ...this.props.settings, advanced: newMode };
-
-      var xhr = new XMLHttpRequest();
-
-      xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-          } else {
-            // error
-            this.setState({
-              error: xhr.responseText,
-            });
-          }
-        }
-      });
-
-      xhr.open("POST", "backend/save", true);
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(settings));
-
-      return { advanced: newMode };
-    });
+    const advanced = !this.state.advanced;
+    this.setState({ advanced });
+    api
+      .post("backend/save", { ...this.props.settings, advanced })
+      .catch((err) => this.setState({ error: err.body || err.message }));
   };
 
   handleCache = () => {
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ isCacheSuccess: true });
-        } else if (xhr.status === 500) {
-          this.setState({ isCacheFailed: true });
-        } else {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("GET", "backend/clearcache", true);
-    xhr.send();
+    api
+      .get("backend/clearcache")
+      .then(() => this.setState({ isCacheSuccess: true }))
+      .catch((err) =>
+        err.status === 500 ? this.setState({ isCacheFailed: true }) : this.setState({ error: err.body || err.message }),
+      );
   };
 
   handleAppPort = (e) => {
-    this.setState({ appPort: e.target.value.toString() });
+    this.setState({ appPort: e.target.value.toString(), isSaved: false });
   };
 
   handleBaseURL = (e) => {
-    this.setState({ baseURL: e.target.value.toString() });
+    this.setState({ baseURL: e.target.value.toString(), isSaved: false });
   };
 
   handleDeletion = (e) => {
@@ -324,41 +319,25 @@ export default class Settings extends Component {
   handleGenerateApiKey = () => {
     const newApiKey = uuid().replace(/-/g, "");
 
-    this.setState((prevState) => {
-      const settings = { ...this.props.settings };
+    const settings = { ...this.props.settings, settings: this.props.settings.settings ?? {}, mainApiKey: newApiKey };
+    this.setState({ mainApiKey: newApiKey });
 
-      if (!settings.settings) {
-        settings.settings = {};
-      }
-
-      settings.mainApiKey = newApiKey;
-
-      const xhr = new XMLHttpRequest();
-      xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            this.props.settings.mainApiKey = newApiKey;
-            this.setState({
-              mainApiKey: newApiKey,
-              isSaved: true,
-            });
-          } else {
-            this.setState({
-              error: xhr.responseText || "Failed to save API key",
-            });
-          }
-        }
-      });
-
-      xhr.open("POST", "backend/save", true);
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(settings));
-
-      return { mainApiKey: newApiKey };
-    });
+    api
+      .post("backend/save", settings)
+      .then(() => {
+        this.props.settings.mainApiKey = newApiKey;
+        this.setState({ mainApiKey: newApiKey, isSaved: true });
+      })
+      .catch((err) => this.setState({ error: err.body || "Failed to save API key" }));
   };
 
   render() {
+    const { host } = this.state;
+    const errors = this.formErrors();
+    const portOverride =
+      host && (host.portSource === "APP_PORT" || host.portSource === "PORT") ? host.portSource : null;
+    const baseOverride = host && host.baseURLSource === "APP_BASE_URL";
+
     return (
       <>
         <Row className="mb-3">
@@ -722,61 +701,80 @@ export default class Settings extends Component {
               </div>
             </SettingsSection>
             <SettingsSection title="Host" isDarkMode={this.props.isDarkMode}>
-              <h6>
-                Port Number &nbsp;&nbsp;
-                <OverlayTrigger
-                  placement="right"
-                  overlay={
-                    <Tooltip>
-                      The port number Preroll Plus runs on. If left blank the port will default to "4949".
-                      <br />
-                      <br />
-                      Note: If running in a Docker container this will be the port as seen <i>inside</i> the container.
-                      If APP_PORT is used as an ENV variable, it will override this port setting.
-                    </Tooltip>
-                  }
-                >
-                  <img src={Info} className="image-info" alt="Info" />
-                </OverlayTrigger>
-              </h6>
+              {host && (
+                <div className="mb-3 host-running">
+                  Currently running on port <b>{host.port}</b> at <b>{host.baseURL || "/"}</b>
+                </div>
+              )}
+              <InfoLabel
+                htmlFor="appPort"
+                tip={
+                  <>
+                    The port number Preroll Plus runs on. If left blank the port will default to "
+                    {host?.defaultPort ?? 4949}".
+                    <br />
+                    <br />
+                    Note: If running in a Docker container this will be the port as seen <i>inside</i> the container. If
+                    APP_PORT is used as an environment variable, it will override this setting.
+                  </>
+                }
+              >
+                Port Number
+              </InfoLabel>
               <Form.Control
                 value={this.state.appPort}
                 id="appPort"
                 name="appPort"
+                inputMode="numeric"
+                placeholder={String(host?.defaultPort ?? 4949)}
                 onChange={this.handleAppPort}
+                isInvalid={!!errors.appPort}
+                disabled={!!portOverride}
                 size="sm"
               />
-              <div className="footnote mb-3">Requires restart to take effect</div>
-              <Form.Label for="baseURL">URL Base &nbsp;&nbsp;</Form.Label>
-              <OverlayTrigger
-                placement="right"
-                overlay={
-                  <Tooltip>
+              <Form.Control.Feedback type="invalid">{errors.appPort}</Form.Control.Feedback>
+              <div className="footnote mb-3">
+                {portOverride
+                  ? `Set by the ${portOverride} environment variable; this setting is ignored.`
+                  : "Requires restart to take effect"}
+              </div>
+              <InfoLabel
+                htmlFor="baseURL"
+                tip={
+                  <>
                     For reverse proxy support, default is empty.
                     <br />
                     <br />
                     Note: If using a reverse proxy (example: mydomain.com/prerollplus) you would enter '/prerollplus'
-                    for URL Base.
-                  </Tooltip>
+                    for URL Base. If APP_BASE_URL is used as an environment variable, it will override this setting.
+                  </>
                 }
               >
-                <img src={Info} className="image-info" alt="Info" />
-              </OverlayTrigger>
+                URL Base
+              </InfoLabel>
               <Form.Control
                 value={this.state.baseURL}
                 id="baseURL"
                 name="baseURL"
+                placeholder="/"
                 onChange={this.handleBaseURL}
+                isInvalid={!!errors.baseURL}
+                disabled={baseOverride}
                 size="sm"
               />
-              <div className="footnote">Requires restart to take effect</div>
+              <Form.Control.Feedback type="invalid">{errors.baseURL}</Form.Control.Feedback>
+              <div className="footnote">
+                {baseOverride
+                  ? "Set by the APP_BASE_URL environment variable; this setting is ignored."
+                  : "Requires restart to take effect"}
+              </div>
             </SettingsSection>
             <SettingsSection title="Security" isDarkMode={this.props.isDarkMode}>
               <Stack direction="horizontal" gap={2}>
                 <h6>API Key</h6>
                 {this.state.copySuccess && <span className="text-success mb-1">Copied!</span>}
               </Stack>
-              <Stack direction="horizontal" gap={2} className="mb-3">
+              <Stack direction="horizontal" gap={2}>
                 <Form.Control value={this.state.mainApiKey} readOnly id="mainApiKey" name="mainApiKey" size="sm" />
                 <Button
                   variant="outline-light"
@@ -805,68 +803,96 @@ export default class Settings extends Component {
               </Stack>
             </SettingsSection>
             {this.state.advanced ? (
-              <SettingsSection title="Logging" isDarkMode={this.props.isDarkMode}>
-                <h6>Log Level</h6>
-                <Form.Select
-                  value={this.state.logLevel}
-                  id="logLevel"
-                  name="logLevel"
-                  onChange={this.handleLogLevel}
-                  size="sm"
-                  className="sched-style mb-3"
-                >
-                  <option value="0">Info</option>
-                  <option value="1">Debug</option>
-                </Form.Select>
-                <h6>
-                  Log Size Limit &nbsp;&nbsp;
-                  <OverlayTrigger
-                    placement="right"
-                    overlay={<Tooltip>Maximum log file size in MB before archiving. Default is 1MB.</Tooltip>}
-                  >
-                    <img src={Info} className="image-info" alt="Info" />
-                  </OverlayTrigger>
-                </h6>
-                <Stack direction="horizontal" gap={2} style={{ maxWidth: "220px" }} className="mb-3">
-                  <Form.Control
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={this.state.logSize}
-                    onChange={this.handleLogSize}
-                    size="sm"
-                    style={{ width: "80px" }}
-                  />
-                  <span>MB</span>
-                </Stack>
-                <h6>
-                  Max Files &nbsp;&nbsp;
-                  <OverlayTrigger
-                    placement="right"
-                    overlay={<Tooltip>Maximum number of log files to archive.</Tooltip>}
-                  >
-                    <img src={Info} className="image-info" alt="Info" />
-                  </OverlayTrigger>
-                </h6>
-                <Form.Control
-                  type="number"
-                  min={1}
-                  max={20}
-                  defaultValue={this.state.logFiles}
-                  style={{ width: "80px" }}
-                  onChange={this.handleLogFiles}
-                />
+              <SettingsSection
+                title="Logging"
+                tooltip={`Logs are written to ${host?.configDir ?? "/config"}/logs and to the console. Changes apply as soon as you save.`}
+                isDarkMode={this.props.isDarkMode}
+              >
+                <Row className="g-3">
+                  <Col xs={12} md={4}>
+                    <InfoLabel
+                      htmlFor="logLevel"
+                      tip={
+                        <>
+                          Info: what Preroll Plus did (today's sequence, Plex updates, file changes, errors).
+                          <br />
+                          <br />
+                          Debug: also why (how each sequence matched or didn't), every API request, and details of Plex
+                          and holiday lookups. Use this when troubleshooting.
+                        </>
+                      }
+                    >
+                      Log Level
+                    </InfoLabel>
+                    <Form.Select
+                      value={this.state.logLevel}
+                      id="logLevel"
+                      name="logLevel"
+                      onChange={this.handleLogLevel}
+                      size="sm"
+                      className="w-100"
+                    >
+                      <option value="0">Info</option>
+                      <option value="1">Debug</option>
+                    </Form.Select>
+                  </Col>
+                  <Col xs={6} md={4}>
+                    <InfoLabel
+                      htmlFor="logSize"
+                      tip="Maximum size of a log file before a new one is started. Default is 1 MB."
+                    >
+                      Max File Size (MB)
+                    </InfoLabel>
+                    <Form.Control
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={this.state.logSize}
+                      id="logSize"
+                      name="logSize"
+                      onChange={this.handleLogSize}
+                      isInvalid={!!errors.logSize}
+                      size="sm"
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.logSize}</Form.Control.Feedback>
+                  </Col>
+                  <Col xs={6} md={4}>
+                    <InfoLabel
+                      htmlFor="logFiles"
+                      tip="How many log files to keep. A new file starts each day or when the size limit is reached; the oldest are deleted. Default is 5."
+                    >
+                      Files to Keep
+                    </InfoLabel>
+                    <Form.Control
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={this.state.logFiles}
+                      id="logFiles"
+                      name="logFiles"
+                      onChange={this.handleLogFiles}
+                      isInvalid={!!errors.logFiles}
+                      size="sm"
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.logFiles}</Form.Control.Feedback>
+                  </Col>
+                </Row>
               </SettingsSection>
             ) : (
               <></>
             )}
             {/* Cancel/Save */}
-            <Button type="submit" variant="secondary">
+            <Button type="submit" variant="secondary" disabled={Object.keys(errors).length > 0}>
               Save
             </Button>
             &nbsp;&nbsp;
             {this.state.isIncomplete ? <i style={{ color: "#f00" }}>&nbsp; IP and Port must be filled. </i> : <></>}
             {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
+            {this.hostNeedsRestart() && (
+              <div className="footnote mt-2">
+                Restart Preroll Plus to apply the new host settings. Afterwards, open it at the new port/URL base.
+              </div>
+            )}
           </Form>
         </Row>
       </>

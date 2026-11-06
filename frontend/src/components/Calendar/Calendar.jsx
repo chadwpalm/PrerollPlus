@@ -1,20 +1,104 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "react-bootstrap/Image";
-import { ReactComponent as CalendarIcon } from "bootstrap-icons/icons/calendar-event-fill.svg";
 import copyIcon from "bootstrap-icons/icons/copy.svg";
 import subscribeIcon from "bootstrap-icons/icons/calendar-plus.svg";
 import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import { addMonths, format, startOfYear } from "date-fns";
+import dayGridPlugin from "@fullcalendar/react/daygrid";
+import classicThemePlugin from "@fullcalendar/react/themes/classic";
+import "@fullcalendar/react/skeleton.css";
+import "@fullcalendar/react/themes/classic/theme.css";
+import "@fullcalendar/react/themes/classic/palette.css";
+import { addMonths, format, getDaysInMonth, startOfYear } from "date-fns";
 import "./Calendar.css";
 import Form from "react-bootstrap/Form";
 import Stack from "react-bootstrap/Stack";
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
 
 const today = new Date();
 const start = format(startOfYear(today), "yyyy-MM-dd");
 const end = format(addMonths(startOfYear(today), 24), "yyyy-MM-dd");
+
+// Phones get a month agenda instead of the month grid (sequence names don't fit in 7 narrow columns)
+const NARROW_QUERY = "(max-width: 767.98px)";
+
+function useIsNarrow() {
+  const [isNarrow, setIsNarrow] = useState(() => window.matchMedia(NARROW_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY);
+    const onChange = (e) => setIsNarrow(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isNarrow;
+}
+
+const pad = (n) => String(n).padStart(2, "0");
+
+/** Days of the month grouped into runs of the same sequence: [{ first, last, event }] (event null = none). */
+function groupMonth(year, month, days) {
+  const byDate = new Map(days.map((d) => [d.date, d]));
+  const groups = [];
+  const count = getDaysInMonth(new Date(year, month - 1, 1));
+  for (let day = 1; day <= count; day++) {
+    const event = byDate.get(`${year}-${pad(month)}-${pad(day)}`) ?? null;
+    const last = groups[groups.length - 1];
+    if (last && (last.event?.id ?? null) === (event?.id ?? null)) last.last = day;
+    else groups.push({ first: day, last: day, event });
+  }
+  return groups;
+}
+
+/** Phone layout: month title with prev/next/today, then one row per run of days with the same sequence. */
+function MonthAgenda({ year, month, days, isDarkMode, onMove, canPrev, canNext }) {
+  const isThisMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+  const dayLabel = (day) => format(new Date(year, month - 1, day), "EEE, MMM d");
+  const variant = isDarkMode ? "outline-light" : "outline-secondary";
+
+  return (
+    <div className={`month-agenda ${isDarkMode ? "dark" : ""}`}>
+      <div className="agenda-toolbar">
+        <Button variant={variant} size="sm" onClick={() => onMove(-1)} disabled={!canPrev} aria-label="Previous month">
+          ‹
+        </Button>
+        <h5 className="agenda-title">{format(new Date(year, month - 1, 1), "MMMM yyyy")}</h5>
+        <Button variant={variant} size="sm" onClick={() => onMove(1)} disabled={!canNext} aria-label="Next month">
+          ›
+        </Button>
+        <Button variant={variant} size="sm" onClick={() => onMove(0)} disabled={isThisMonth}>
+          Today
+        </Button>
+      </div>
+      {groupMonth(year, month, days).map(({ first, last, event }) => {
+        const isCurrent = isThisMonth && today.getDate() >= first && today.getDate() <= last;
+        return (
+          <div key={first} className={`agenda-item ${event ? "" : "agenda-empty"} ${isCurrent ? "agenda-today" : ""}`}>
+            <div className="agenda-dates">
+              {first === last ? dayLabel(first) : `${dayLabel(first)} – ${dayLabel(last)}`}
+              {isCurrent && <span className="agenda-today-badge">Today</span>}
+            </div>
+            {event ? (
+              <>
+                <div className="agenda-sequence">{event.title}</div>
+                {event.buckets?.length > 0 && (
+                  <ol className="agenda-buckets">
+                    {event.buckets.map((name, i) => (
+                      <li key={i}>{name}</li>
+                    ))}
+                  </ol>
+                )}
+              </>
+            ) : (
+              <div className="agenda-sequence">No sequence</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function SequenceCalendar({ events, isDarkMode = false, settings }) {
   const [monthEvents, setMonthEvents] = useState([]);
@@ -23,6 +107,9 @@ export default function SequenceCalendar({ events, isDarkMode = false, settings 
   const [copySuccess, setCopySuccess] = useState(false);
   const currentMonthRef = useRef("");
   const feedInputRef = useRef(null);
+  const isNarrow = useIsNarrow();
+  // Month shown by the phone agenda (the desktop grid keeps its own date)
+  const [agendaMonth, setAgendaMonth] = useState({ year: today.getFullYear(), month: today.getMonth() + 1 });
 
   const loadMonth = (year, month) => {
     const key = `${year}-${month}`;
@@ -31,11 +118,30 @@ export default function SequenceCalendar({ events, isDarkMode = false, settings 
 
     fetch(`webhook/calendar?year=${year}&month=${month}&_=${Date.now()}`)
       .then((r) => r.json())
-      .then((data) => {
-        console.log("Fresh data loaded:", year, month, data);
-        setMonthEvents(data);
-      });
+      .then((data) => setMonthEvents(data))
+      .catch(() => setMonthEvents([]));
   };
+
+  // Phone agenda navigation: -1 / +1 month, or 0 for this month. Same range as the grid's validRange.
+  const firstMonth = startOfYear(today);
+  const lastMonth = addMonths(firstMonth, 23);
+  const agendaDate = new Date(agendaMonth.year, agendaMonth.month - 1, 1);
+  const moveAgenda = (step) => {
+    const next = step === 0 ? new Date(today.getFullYear(), today.getMonth(), 1) : addMonths(agendaDate, step);
+    if (next < firstMonth || next > lastMonth) return;
+    const year = next.getFullYear();
+    const month = next.getMonth() + 1;
+    setAgendaMonth({ year, month });
+    loadMonth(year, month);
+  };
+
+  // Switching between phone and desktop layouts: load the month the new layout shows
+  useEffect(() => {
+    currentMonthRef.current = "";
+    if (isNarrow) loadMonth(agendaMonth.year, agendaMonth.month);
+    // the desktop grid loads its month through datesSet when it mounts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNarrow]);
 
   const apiKey = settings?.mainApiKey ?? "";
   const basePath = window.__BASE_PATH__ || "/";
@@ -80,118 +186,127 @@ export default function SequenceCalendar({ events, isDarkMode = false, settings 
     setIncludeBuckets(e.target.checked);
   };
 
-  useEffect(() => {
-    const now = new Date();
-    loadMonth(now.getFullYear(), now.getMonth() + 1);
-  }, []);
-
   return (
     <>
       <div className={`calendar-header ${isDarkMode ? "dark" : ""}`}>
         <button type="button" className="ical-button" onClick={handleCalendarLink}>
-          <CalendarIcon className="ical-icon" aria-hidden="true" />
+          <svg
+            className="ical-icon"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            {/* bootstrap-icons calendar-event-fill */}
+            <path d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2m-3.5-7h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5" />
+          </svg>
           <span className="ical-text">iCal Link</span>
         </button>
-        <div className="hover-instruction">Hover over a Sequence name to view its buckets</div>
+        {!isNarrow && <div className="hover-instruction">Hover over a Sequence name to view its buckets</div>}
       </div>
-      <FullCalendar
-        plugins={[dayGridPlugin]}
-        initialView="dayGridMonth"
-        headerToolbar={{
-          left: "prev,next today",
-          center: "title",
-          right: "",
-        }}
-        height="auto"
-        events={events}
-        validRange={{ start, end }}
-        firstDay={parseInt(settings.settings.dayOfWeek, 10) || 0}
-        datesSet={(info) => {
-          const currentDate = info.view.calendar.getDate();
-          const year = currentDate.getFullYear();
-          const month = currentDate.getMonth() + 1;
-          loadMonth(year, month);
-        }}
-        dayCellContent={(arg) => {
-          const dateStr = arg.date.toISOString().split("T")[0];
-          const ev = monthEvents.find((e) => e.date === dateStr);
+      {isNarrow ? (
+        <MonthAgenda
+          year={agendaMonth.year}
+          month={agendaMonth.month}
+          days={monthEvents}
+          isDarkMode={isDarkMode}
+          onMove={moveAgenda}
+          canPrev={agendaDate > firstMonth}
+          canNext={agendaDate < lastMonth}
+        />
+      ) : (
+        <div className="calendar-wrapper" data-color-scheme={isDarkMode ? "dark" : "light"}>
+          <FullCalendar
+            plugins={[dayGridPlugin, classicThemePlugin]}
+            initialView="dayGridMonth"
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "",
+            }}
+            height="auto"
+            // FullCalendar 7 sizes rows from the aspect ratio even with height="auto", so rows grow with
+            // the screen width. A large ratio disables that; row height comes from .calendar-day-row instead.
+            aspectRatio={100}
+            dayRowClass="calendar-day-row"
+            dayHeaderClass="calendar-day-header"
+            toolbarTitleClass="calendar-title"
+            events={events}
+            validRange={{ start, end }}
+            firstDay={parseInt(settings.settings.dayOfWeek, 10) || 0}
+            datesSet={(info) => {
+              const currentDate = info.view.calendar.getDate();
+              const year = currentDate.getFullYear();
+              const month = currentDate.getMonth() + 1;
+              loadMonth(year, month);
+            }}
+            dayCellTopContent={(arg) => {
+              const dateStr = arg.date.toISOString().split("T")[0];
+              const ev = monthEvents.find((e) => e.date === dateStr);
 
-          const dayNumberColor = isDarkMode ? "#ffffff" : "#000000";
-          const textColor = isDarkMode ? "#e0e0e0" : "#000000";
-          const bgColor = isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
+              const dayNumberColor = isDarkMode ? "#ffffff" : "#000000";
+              const textColor = isDarkMode ? "#e0e0e0" : "#000000";
+              const bgColor = isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)";
 
-          return (
-            <div style={{ position: "relative", height: "100%", padding: "4px" }}>
-              {/* Day number — top right */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 6,
-                  fontWeight: "bold",
-                  color: dayNumberColor,
-                  fontSize: "13px",
-                  zIndex: 10,
-                }}
-              >
-                {arg.dayNumberText.replace(/\D/g, "")}
-              </div>
-
-              {/* Sequence title */}
-              {ev && (
-                <div style={{ textAlign: "center", marginTop: "20px" }}>
+              return (
+                <div style={{ position: "relative", height: "100%", padding: "4px" }}>
+                  {/* Day number — top right */}
                   <div
                     style={{
-                      background: bgColor,
-                      color: textColor,
-                      fontWeight: 600,
+                      position: "absolute",
+                      top: 4,
+                      right: 6,
+                      fontWeight: "bold",
+                      color: dayNumberColor,
                       fontSize: "13px",
-                      padding: "6px 12px",
-                      borderRadius: "8px",
-                      display: "inline-block",
-                      cursor: "default",
-                    }}
-                    onMouseEnter={(e) => {
-                      // Remove any existing tooltip
-                      document.querySelectorAll(".bucket-tooltip").forEach((t) => t.remove());
-
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const tooltip = document.createElement("div");
-                      tooltip.className = "bucket-tooltip";
-                      tooltip.innerHTML = ev.buckets.map((name, i) => `${i + 1}. ${name}`).join("<br>");
-
-                      Object.assign(tooltip.style, {
-                        position: "fixed",
-                        top: rect.bottom + 8 + "px",
-                        left: rect.left + rect.width / 2 + "px",
-                        transform: "translateX(-50%)",
-                        background: isDarkMode ? "#1a1a1a" : "#ffffff",
-                        color: isDarkMode ? "#eee" : "#222",
-                        border: `1px solid ${isDarkMode ? "#444" : "#ccc"}`,
-                        borderRadius: "8px",
-                        padding: "10px 14px",
-                        fontSize: "13px",
-                        fontWeight: "500",
-                        zIndex: "999999",
-                        boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-                        pointerEvents: "none",
-                        whiteSpace: "nowrap",
-                      });
-
-                      document.body.appendChild(tooltip);
-                    }}
-                    onMouseLeave={() => {
-                      document.querySelectorAll(".bucket-tooltip").forEach((t) => t.remove());
+                      zIndex: 10,
+                      // Dim days that belong to the previous/next month
+                      opacity: arg.isOther ? 0.35 : 1,
                     }}
                   >
-                    {ev.title}
+                    {arg.dayNumberText.replace(/\D/g, "")}
                   </div>
+
+                  {/* Sequence title */}
+                  {ev && (
+                    <div style={{ textAlign: "center", marginTop: "20px" }}>
+                      <OverlayTrigger
+                        placement="bottom"
+                        overlay={
+                          <Tooltip className={`bucket-tooltip ${isDarkMode ? "dark" : ""}`}>
+                            {ev.buckets.map((name, i) => (
+                              <div key={i}>
+                                {i + 1}. {name}
+                              </div>
+                            ))}
+                          </Tooltip>
+                        }
+                      >
+                        <div
+                          style={{
+                            background: bgColor,
+                            color: textColor,
+                            fontWeight: 600,
+                            fontSize: "13px",
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            display: "inline-block",
+                            cursor: "default",
+                          }}
+                        >
+                          {ev.title}
+                        </div>
+                      </OverlayTrigger>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        }}
-      />
+              );
+            }}
+          />
+        </div>
+      )}
       <Modal show={showICAL} onHide={handleClose} size="lg" className={isDarkMode ? "dark-mode" : ""}>
         <Modal.Header closeButton closeVariant={isDarkMode ? "white" : undefined}>
           <Modal.Title>Preroll Plus Calendar Feed</Modal.Title>

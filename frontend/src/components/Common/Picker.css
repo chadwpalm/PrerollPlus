@@ -1,0 +1,87 @@
+.picker-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.picker-add {
+  display: flex;
+  justify-content: center;
+}
+
+.picker-pane {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: white;
+}
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 46px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+}
+
+.picker-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgb(90, 90, 90);
+  overflow-wrap: anywhere;
+}
+
+.picker-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.picker-list {
+  height: 420px;
+  overflow-y: auto;
+}
+
+.picker-list .list-group-item {
+  overflow-wrap: anywhere;
+}
+
+.form-content.dark-mode .picker-pane {
+  border-color: #555;
+  background-color: rgb(46, 46, 46);
+}
+
+.form-content.dark-mode .picker-header {
+  border-bottom-color: #555;
+  background-color: #2e2e2e;
+}
+
+.form-content.dark-mode .picker-title {
+  color: rgb(200, 200, 200);
+}
+
+/* Phones: stack the lists; the arrow points up to the chosen list */
+@media (max-width: 767.98px) {
+  .picker-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .picker-add-icon {
+    transform: rotate(90deg);
+  }
+
+  .picker-list {
+    height: 280px;
+  }
+}
+
+/* "then" arrow between buckets in a sequence */
+.picker-list .listgroup-arrow {
+  height: auto;
+  padding: 0 !important;
+}

@@ -18,34 +18,59 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         <Modal.Title>Announcement</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <b>Update v1.4.0</b>
+        <b>Preroll Plus v1.6.0 Update</b>
         <br />
         <br />
-        This update focuses a lot on much needed backend improvements, including updating the Node version to 20 LTS in
-        the Docker images after sitting on an old unsupported version for far too long. The 3rd party API which I was
-        using for Plex has been removed due to being unmaintained and replaced with native and up to date code.
-        <br />
-        <br />
-        Logging has been greatly improved with more detailed debug logging for troubleshooting issues. Also, several new
-        features have been added for more customizable features which I won't cover here, but can be reviewed in the{" "}
+        This one started as a quick security update and, well, got a little out of hand. Preroll Plus got a fresh coat
+        of paint and a brand new engine under the hood.
+        <ul>
+          <li>
+            <b>A new look for your sequences and buckets.</b> The create and edit pages are now organized into tidy
+            sections, and the file and bucket lists stretch to use your whole screen.
+          </li>
+          <li>
+            <b>Phone friendly.</b> The Sequence and Bucket cards line up neatly on your phone now (no more overlapping
+            cards), and the editors stack nicely on small screens.
+          </li>
+          <li>
+            <b>A calendar you can read on the go.</b> On your phone, the Calendar now shows a simple list of which
+            sequence plays when, along with its buckets. No more squinting at tiny boxes.
+          </li>
+          <li>
+            <b>"Why is this sequence playing?"</b> Preroll Plus now tells you. Set the log level to Debug under Settings
+            &gt; Show Advanced &gt; Logging and the logs will walk through how every sequence was checked against today.
+          </li>
+          <li>
+            <b>A smarter Host section.</b> Settings now shows the port and URL base Preroll Plus is actually running on,
+            and lets you know when a Docker environment variable is in charge.
+          </li>
+          <li>
+            <b>Fresh and secure.</b> Everything under the hood has been updated to the latest versions, with zero known
+            security vulnerabilities. You won't see most of it, but your Docker image will thank you (it's smaller,
+            too).
+          </li>
+        </ul>
+        A few bugs were squashed along the way as well. For the full (and much nerdier) list of changes, check out the{" "}
         <a href="https://prerollplus.org/changelog" target="_blank" rel="noreferrer">
-          Changelog
+          changelog
         </a>
+        .
         <br />
         <br />
-        Most importantly, all documentation has now been moved from the GitHub wiki over to a new website called{" "}
-        <a href="https://prerollplus.org" target="_blank" rel="noreferrer">
-          prerollplus.org
-        </a>
+        As always, thank you for your support on this project, and I hope you enjoy the new look!
         <br />
         <br />
-        As always, if you have any issues please{" "}
+        If you run into any issues please{" "}
         <a href="https://github.com/chadwpalm/PrerollPlus/issues" target="_blank" rel="noreferrer">
           create an issue on GitHub
         </a>
-        , or if you simply have a question or want to discuss any features you and use the{" "}
+        , or if you have a question or want to talk about features, stop by the{" "}
         <a href="https://github.com/chadwpalm/PrerollPlus/discussions" target="_blank" rel="noreferrer">
           discussion board
+        </a>{" "}
+        or the{" "}
+        <a href="https://discord.gg/sXse6H8fMF" target="_blank" rel="noreferrer">
+          Discord server
         </a>
         .
         <br />

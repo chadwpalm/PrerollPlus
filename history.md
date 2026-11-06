@@ -1,5 +1,56 @@
 # Preroll Plus Version History
 
+## 1.6.0
+
+### New Features
+
+1. Added the `CONFIG_DIR` environment variable to change where settings, logs and the holiday cache are kept (default `/config`). Mainly useful for native installs. `npm run dev` uses `./dev-config`.
+2. The Host section in Settings now shows the port and URL base Preroll Plus is running on, validates both fields, and locks them with a note when the `APP_PORT`/`PORT` or `APP_BASE_URL` environment variable is overriding them. A reminder to restart appears after changing them.
+3. The `PORT` environment variable is now accepted as an alternative to `APP_PORT`.
+4. The Docker image now has a health check, so `docker ps` reports the container as healthy once Preroll Plus answers on its port.
+5. On phones, the Calendar shows a month agenda (date ranges with the sequence and its buckets) instead of the month grid.
+6. Added a contributing guide (CONTRIBUTING.md) with development setup, project layout, logging conventions and pull request checklist.
+
+### Changes
+
+1. Security updates. Updated Node to version 26 in the Docker image, and moved the image to Alpine Linux. npm is removed from the final image since it isn't needed to run the app, which also removes the vulnerabilities reported in its bundled packages. The image is about 50 MB smaller and reports no high or critical vulnerabilities.
+2. Security updates. Updated all backend and frontend packages to their latest versions, including Express 5, Multer 2, React 19 and FullCalendar 7. Both the backend and frontend now report 0 vulnerabilities.
+3. Migrated the frontend build from Create React App (no longer maintained, and the source of most remaining reported vulnerabilities) to Vite.
+4. The calendar was updated to FullCalendar 7 and restyled to keep its previous look, with fixed-height rows on any screen width.
+5. Logging rewritten:
+   - Every line is tagged with where it came from (e.g. `[SCHEDULE]`, `[WEBHOOK]`, `[MONITOR]`).
+   - Info level describes what Preroll Plus did (today's sequence, Plex updates, file changes); debug level explains why (how each sequence matched or didn't, holiday windows, every API request with its status and time).
+   - The Plex token, email, iCal API key and Calendarific API key are masked in the logs.
+   - HTTP errors are written as one readable line, and other errors include their stack trace.
+   - A startup line shows the version, branch, build, Node version, OS, port, URL base and config folder.
+   - Log settings are applied on save without opening a new log file each time.
+   - Uncaught errors and unhandled promise rejections are logged instead of being lost.
+6. The Logging settings now validate their values (file size 1–100 MB, 1–60 files).
+7. The Sequence and Bucket create/edit pages were reorganized into cards, with the file and bucket lists sized to the screen and stacked on phones. The page scrolls to the editor when it opens.
+8. The Sequence and Bucket cards line up in an even grid, two per row on phones, with smaller page margins on phones.
+9. The About dialog shows the actual config and app folders.
+10. Added ESLint and Prettier configs for the backend and frontend (`npm run lint`).
+11. Settings are now read and written through one place in the backend. Background updates (today's sequence, the end of a timed override, file renames and removals, the signed-out state) change only their own fields on freshly read settings, so they can no longer undo edits saved in the meantime.
+12. Holiday lists are handled by one shared module for the schedule, Calendar page, iCal feed and sequence editor. Lists are kept in memory once read, so the Calendar page and iCal feed are much faster (a month now takes a few milliseconds), and Legacy (Nager.Date) lists are now cached for the sequence editor too.
+13. The backend no longer sends HTTP requests to itself (folder listing, preroll updates); it calls those functions directly.
+14. The frontend uses one small `fetch` helper for all requests to the backend in place of `XMLHttpRequest` (and axios), removing a lot of repeated code. Signing in no longer freezes the page while the account details and token are saved.
+15. The bucket list tooltip on the Calendar and the override tooltip on Sequences now use the same tooltip component as the rest of the app.
+
+### Fixes
+
+1. Fixed video previews failing with an error when the browser requested a byte range past the end of the file.
+2. Fixed the Docker startup skipping some settings updates (API key creation, version update) when the settings file had no Plex server settings yet.
+3. Fixed the log files from earlier settings saves being kept open (a new log file transport was added on every save).
+4. Fixed Preroll Plus freezing when every file in a bucket had already been picked for an earlier bucket in the same sequence (e.g. the same one-file bucket added twice). Such a bucket is now skipped with a warning in the log, so no preroll plays twice.
+5. Fixed the preroll list sent to Plex ending in a stray comma when the last bucket in a sequence had no files. Empty buckets are now skipped with a warning.
+6. Fixed the thumbnail images Plex attaches to webhooks being saved in /tmp and never deleted, slowly filling the container's disk. They are now ignored.
+7. Fixed the daily sequence change drifting an hour early or late after a daylight saving time change. The next run is now worked out after each run.
+8. Security fix: the preview player and folder browser endpoints (`/backend/streamer` and `/backend/directory`) now only allow files and folders inside the Location of Preroll Media folder. Before, anyone who could reach the port could request them directly to read any file or list any folder on the system, including the settings file with the Plex token. This mainly matters for installs reachable from outside the local network.
+9. Fixed the folder browser in the bucket editor listing folders and files in no particular order. They are now sorted by name, folders first.
+10. Fixed a new bucket marked as the default bucket not being saved as the default.
+11. Fixed sorting holidays by date in the sequence editor for date formats other than month/day/year.
+12. Fixed the loading indicator in the sequence editor never stopping when Premier (Calendarific) was selected without an API key.
+
 ## 1.5.0
 
 ### New Features

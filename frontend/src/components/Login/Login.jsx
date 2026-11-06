@@ -4,7 +4,7 @@ import Row from "react-bootstrap/Row";
 import Button from "react-bootstrap/Button";
 import LoginIcon from "bootstrap-icons/icons/box-arrow-in-left.svg";
 import Card from "react-bootstrap/Card";
-import Axios from "axios";
+import { api } from "../../api";
 import qs from "qs";
 
 export default class Login extends Component {
@@ -62,10 +62,9 @@ export default class Login extends Component {
     };
 
     try {
-      const response = await Axios.post(url, { strong: true }, { headers });
-      return response.data;
+      return await api.post(url, { strong: true }, { headers });
     } catch (error) {
-      console.error("Error", error.response?.data || error.message);
+      console.error("Error", error.data || error.message);
       throw error;
     }
   };
@@ -81,10 +80,9 @@ export default class Login extends Component {
     };
 
     try {
-      const response = await Axios.get(url, { timeout: 5000, headers });
-      return response.data;
+      return await api.get(url, { timeout: 5000, headers });
     } catch (error) {
-      console.error("Error", error.response?.data || error.message);
+      console.error("Error", error.data || error.message);
       throw error;
     }
   };
@@ -138,9 +136,9 @@ export default class Login extends Component {
 
       if (token) {
         this.setState({ gotToken: true });
-        this.handleGetThumb(token);
-        this.handleSaveToken(token);
         this.externalWindow.close();
+        await this.handleGetThumb(token);
+        await this.handleSaveToken(token);
       } else if (token === null && !this.externalWindow.closed) {
         setTimeout(this.executePoll, 1000);
       } else {
@@ -165,59 +163,36 @@ export default class Login extends Component {
     await this.executePoll();
   };
 
-  handleSaveToken = (token) => {
-    var settings = { ...this.props.settings };
+  handleSaveToken = async (token) => {
+    const settings = {
+      ...this.props.settings,
+      token,
+      thumb: this.thumb,
+      email: this.email,
+      username: this.username,
+      isLoggedIn: "true",
+    };
 
-    settings.token = token;
-    settings.thumb = this.thumb;
-    settings.email = this.email;
-    settings.username = this.username;
-    settings.isLoggedIn = "true";
-
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-        } else {
-          // error
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "backend/save", false);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    try {
+      await api.post("backend/save", settings);
+    } catch (err) {
+      this.setState({ error: err.body || err.message });
+    }
 
     this.props.handleLogin();
     this.props.handleUpdateThumb(this.thumb, token, this.username, this.email);
   };
 
-  handleGetThumb = (token) => {
-    var data = {};
-    data.token = token;
-    var xhr = new XMLHttpRequest();
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          // request successful
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-
-          this.thumb = json.thumb;
-          this.email = json.email;
-          this.username = json.username;
-        } else {
-          // error
-        }
-      }
-    });
-    xhr.open("POST", "backend/thumb", false);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(data));
+  // Plex account name, email and avatar for the signed-in user
+  handleGetThumb = async (token) => {
+    try {
+      const json = await api.post("backend/thumb", { token });
+      this.thumb = json.thumb;
+      this.email = json.email;
+      this.username = json.username;
+    } catch {
+      // keep going without the avatar
+    }
   };
 
   render() {
