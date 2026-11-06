@@ -62,6 +62,7 @@ pipeline {
           sh "docker push ${REPO}/${IMAGE_NAME}:latest"
           sh "docker rmi ${REPO}/${IMAGE_NAME}:${APPVersion}"
         }
+        build job: 'PrerollPlus-Docs/main', wait: false
       }
     }
     stage('Build Features/Fixes') {
