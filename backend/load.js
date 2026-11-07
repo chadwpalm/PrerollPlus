@@ -2,7 +2,8 @@ var express = require("express");
 var router = express.Router();
 var fs = require("fs");
 var os = require("os");
-var uuid = require("crypto").randomUUID;
+var crypto = require("crypto");
+var uuid = crypto.randomUUID;
 var updates = require("./migrate.js");
 const { CONFIG_DIR, SETTINGS_FILE, configPath } = require("./paths");
 const log = require("./logger").tagged("SETTINGS");
@@ -11,6 +12,8 @@ var appVersion, branch, UID, GID, build;
 var platform = `${os.platform().charAt(0).toUpperCase()}${os.platform().slice(1).toLowerCase()} ${os.release}`;
 var appDir = process.cwd();
 const mainApiKey = uuid().replace(/-/g, "");
+// Signs the session cookies (backend/auth.js)
+const newSecret = () => crypto.randomBytes(32).toString("hex");
 
 try {
   var info = fs.readFileSync("version.json");
@@ -24,11 +27,11 @@ UID = process.env.PUID ? Number(process.env.PUID) : os.userInfo().uid;
 GID = process.env.PGID ? Number(process.env.PGID) : os.userInfo().gid;
 build = process.env.BUILD || "Native";
 
-var fileData = `{"connected": "false","isLoggedIn": "false","platform":"${
+var fileData = `{"connected": "false","platform":"${
   platform
-}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}","appDir":"${appDir}","mainApiKey":"${mainApiKey}","sequences": [], "buckets": [],"message":true}`;
+}","uuid":"${uuid()}","version":"${appVersion}","branch":"${branch}","build":"${build}","appDir":"${appDir}","mainApiKey":"${mainApiKey}","sessionSecret":"${newSecret()}","sequences": [], "buckets": [],"message":true}`;
 
-// After an update (new version, build or branch): record it, show the announcement and ask for a new login
+// After an update (new version, build or branch): record it and show the announcement
 function applyVersionChange(temp) {
   if (temp.version === appVersion && temp.build === build && temp.branch === branch) return;
   log.info(
@@ -39,7 +42,6 @@ function applyVersionChange(temp) {
   temp.branch = branch;
   temp.message = true;
   temp.platform = platform;
-  temp.isLoggedIn = "false";
 }
 
 // Push today's sequence to Plex now that the server is starting (loaded here to keep startup order simple)
@@ -74,9 +76,9 @@ try {
     temp.settings.loc = "/prerolls";
   }
 
-  if (!("isLoggedIn" in temp)) {
-    temp.isLoggedIn = "token" in temp ? "true" : "false";
-  }
+  // Before 1.6.0 the signed-in state was one shared flag; sign-in is now checked per browser (backend/auth.js)
+  delete temp.isLoggedIn;
+  if (!temp.sessionSecret) temp.sessionSecret = newSecret();
 
   temp.appDir = appDir;
 
@@ -88,11 +90,13 @@ try {
       newTemp.api = "v2";
       applyVersionChange(newTemp);
       writeSettings(newTemp);
+      require("./auth").resolveOwnerFromToken();
       if (newTemp.settings) startupUpdate();
     });
   } else {
     applyVersionChange(temp);
     writeSettings(temp);
+    require("./auth").resolveOwnerFromToken();
     if (temp.settings) startupUpdate();
   }
 } catch (err) {
@@ -108,14 +112,20 @@ try {
   }
 }
 
+// Settings that stay on the server: the browser never needs them, and backend/save keeps them as they are
+const SERVER_ONLY = ["token", "sessionSecret", "ownerId", "plexSignInNeeded"];
+
 router.get("/", function (req, res, next) {
+  let settings;
   try {
-    fileData = fs.readFileSync(SETTINGS_FILE);
+    settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8"));
   } catch (err) {
     log.error("Could not read settings file:", err);
+    return next(err);
   }
-
-  res.send(fileData);
+  for (const key of SERVER_ONLY) delete settings[key];
+  res.json(settings);
 });
 
 module.exports = router;
+module.exports.SERVER_ONLY = SERVER_ONLY;

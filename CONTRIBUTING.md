@@ -113,6 +113,7 @@ Then open **http://localhost:4949**.
 | `CONFIG_DIR`    | Folder for settings, logs and the holiday cache (default `/config`). `npm run dev` sets it to `./dev-config`. Relative paths are resolved from the start folder. |
 | `APP_PORT`      | Port to listen on (default 4949). Overrides the Port setting. `PORT` also works.                                                                                  |
 | `APP_BASE_URL`  | URL base for reverse proxies, e.g. `/prerollplus`. Overrides the URL Base setting.                                                                                |
+| `DISABLE_AUTH`  | `true` turns off sign-in, and lets a different Plex account become the owner on its next sign-in. For recovery; overrides the Authentication setting.                |
 | `SCHEDULE_TIME` | Time of day (`HH:MM`, 24-hour) for the daily sequence change. Default `00:00`.                                                                                    |
 | `PUID` / `PGID` | Owner applied to the settings file (mainly for Docker).                                                                                                           |
 | `BUILD`         | Build number shown in the UI and logs (set by CI; defaults to `Native`).                                                                                          |
@@ -133,7 +134,7 @@ backend/
   load.js, save.js      Startup settings checks/migration, and the routes the pages load and save through
   migrate.js            Upgrades settings from the v1 format
   settings.js           Lists the Plex servers on the account (Settings page)
-  thumb.js              Plex account name, email and avatar (after sign-in)
+  auth.js               Sign-in: Plex owner check, session cookie, Authentication setting, access checks
   directory.js          Lists preroll files and folders (bucket editor)
   streamer.js           Streams a preroll file for the preview player
   mediaPath.js          Keeps directory listing and streaming inside the preroll media folder
@@ -149,8 +150,11 @@ feed/index.js           iCal feed of the schedule (secured with the API key from
 frontend/               React app (Vite)
   src/components/       One folder per page or component
   src/api.js            fetch helper for backend requests (api.get, api.post, api.saveSettings, ...)
+  src/locale.js         Browser locale and date formatting helpers
   src/components/Common Shared form pieces (labels with tooltips, the two-list picker)
 ```
+
+Every route under `/backend` (except `/backend/auth`) and the page's own `/webhook` calls require a signed-in browser (see [`backend/auth.js`](backend/auth.js) and [`app.js`](app.js)), so new routes there are protected automatically. In a fresh `dev-config`, the first Plex account you sign in with becomes the owner. To sign in with a different account, delete `ownerId` from `dev-config/settings.js` or start with `DISABLE_AUTH=true`. Settings the browser must never see or change (the Plex token, `ownerId`, `sessionSecret`) are listed in `SERVER_ONLY` in [`backend/load.js`](backend/load.js).
 
 Backend modules log through a tagged logger:
 

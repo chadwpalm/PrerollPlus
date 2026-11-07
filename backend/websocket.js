@@ -5,7 +5,9 @@ let wss;
 let clientCounter = 0;
 
 function initializeWebSocket(server) {
-  wss = new WebSocket.Server({ server });
+  // Same access rules as the web pages (session cookie, or the Authentication setting allows this browser)
+  const { allowUpgrade } = require("./auth");
+  wss = new WebSocket.Server({ server, verifyClient: (info) => allowUpgrade(info.req) });
 
   wss.on("connection", (ws, req) => {
     clientCounter++;

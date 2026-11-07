@@ -3,13 +3,15 @@ var router = express.Router();
 var axios = require("axios").default;
 const https = require("https");
 var parser = require("xml-js");
+const store = require("./settingsStore");
 const log = require("../backend/logger").tagged("PLEX");
 
 router.post("/", async function (req, res, next) {
   var serverList = [];
   var finalList = [];
 
-  const token = req.body.token;
+  // The saved Plex token (it is no longer sent to the browser)
+  const token = store.read().token;
   const plexApiUrl = "https://plex.tv/api/servers";
 
   try {

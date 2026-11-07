@@ -25,6 +25,11 @@ const Announce = ({ announce, fullscreenAnn, handleCloseAnn, handleDismiss, dism
         of paint and a brand new engine under the hood.
         <ul>
           <li>
+            <b>Only you can sign in.</b> Signing in with Plex used to let any Plex account in. Now only the account that
+            set up Preroll Plus can sign in, and each browser stays signed in on its own. If you'd rather not sign in at
+            home, go to Settings &gt; Security &gt; Authentication and choose "Not required for local addresses".
+          </li>
+          <li>
             <b>A new look for your sequences and buckets.</b> The create and edit pages are now organized into tidy
             sections, and the file and bucket lists stretch to use your whole screen.
           </li>

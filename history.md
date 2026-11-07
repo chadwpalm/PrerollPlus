@@ -10,6 +10,12 @@
 4. The Docker image now has a health check, so `docker ps` reports the container as healthy once Preroll Plus answers on its port.
 5. On phones, the Calendar shows a month agenda (date ranges with the sequence and its buckets) instead of the month grid.
 6. Added a contributing guide (CONTRIBUTING.md) with development setup, project layout, logging conventions and pull request checklist.
+7. Sign-in security. The Plex sign-in is now checked by the server, not just the web page:
+   - Only the Plex account that set up Preroll Plus (the owner) can sign in. Other Plex accounts are refused. Existing installs recognize the owner from the saved sign-in automatically.
+   - Each browser gets its own session (30 days, renewed while in use). Signing out only signs out that browser, and updates no longer sign everyone out.
+   - Every page and API request needs a signed-in browser, except the Plex webhook and the iCal feed (which uses its API key).
+   - New Authentication setting under Settings > Security: Required (default), Not required for local addresses, or Off (for reverse proxies that already require a login). Behind a reverse proxy, the client address is taken from X-Forwarded-For when the proxy is on the local network.
+   - New `DISABLE_AUTH=true` environment variable turns sign-in off, and lets a different Plex account take over as owner on its next sign-in (for when the owner can't sign in any more).
 
 ### Changes
 
@@ -53,6 +59,9 @@
 12. Fixed the loading indicator in the sequence editor never stopping when Premier (Calendarific) was selected without an API key.
 13. Fixed the dates on Sequence cards and the override end times not following the browser's preferred language (e.g. showing 02/14 instead of 14/02 for UK English in Firefox). They now use the same format as the holiday dates.
 14. Fixed the menu button on narrow screens being hard to see in dark mode.
+15. Security fix: the settings, including the Plex token, could be read and changed by anyone who could reach the port, without signing in. The Plex token and session details are no longer sent to the browser at all, and saving from a page can no longer change the Plex token or (in Docker) the preroll media folder.
+16. Fixed any Plex account being able to sign in and replace the owner's Plex token.
+17. Fixed the live-update connection not using the URL base, so it didn't work behind a reverse proxy that only forwards that path.
 
 ## 1.5.0
 

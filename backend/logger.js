@@ -31,7 +31,13 @@ const SECRET_PATTERNS = [
 ];
 
 function loadSecrets(settings) {
-  const values = [settings?.token, settings?.email, settings?.mainApiKey, settings?.settings?.apiKey];
+  const values = [
+    settings?.token,
+    settings?.email,
+    settings?.mainApiKey,
+    settings?.settings?.apiKey,
+    settings?.sessionSecret,
+  ];
   secrets = values.filter((v) => typeof v === "string" && v.length >= 6).sort((a, b) => b.length - a.length);
 }
 

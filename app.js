@@ -10,7 +10,6 @@ var webhookRouter = require("./webhook/index");
 var feedRouter = require("./feed/index");
 var load = require("./backend/load");
 var save = require("./backend/save");
-var thumb = require("./backend/thumb");
 var settings = require("./backend/settings");
 var directory = require("./backend/directory");
 var streamer = require("./backend/streamer");
@@ -18,8 +17,12 @@ var monitor = require("./backend/monitor");
 var holiday = require("./backend/holiday");
 var clearCache = require("./backend/clearcache");
 var host = require("./backend/host");
+var auth = require("./backend/auth");
 
 var app = express();
+
+// Believe X-Forwarded-For/-Proto only from proxies on the local network (client address, HTTPS detection)
+app.set("trust proxy", auth.TRUST_PROXY);
 
 // URL base for reverse proxies, e.g. "/prerollplus" ("" = root). Everything is mounted under it.
 const base = getBaseURL();
@@ -53,9 +56,16 @@ var routes = express.Router();
 
 routes.use(express.static(frontendDir, { index: false }));
 
+// Sign-in endpoints are public; everything else under /backend needs a signed-in (or allowed) browser
+routes.use("/backend/auth", auth.router);
+routes.use("/backend", auth.requireAuth);
+// Plex's webhook POST stays open; the page's own /webhook calls (preroll update, calendar) need sign-in
+routes.use("/webhook", (req, res, next) =>
+  req.method === "POST" && req.path === "/" ? next() : auth.requireAuth(req, res, next),
+);
+
 routes.use("/backend/load", load);
 routes.use("/backend/save", save);
-routes.use("/backend/thumb", thumb);
 routes.use("/backend/settings", settings);
 routes.use("/backend/directory", directory);
 routes.use("/backend/streamer", streamer);

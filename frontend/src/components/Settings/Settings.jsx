@@ -67,6 +67,7 @@ export default class Settings extends Component {
         baseURL: this.props.settings.settings.baseURL ?? "",
         deletion: this.props.settings.settings.deletion ?? "1",
         mainApiKey: this.props.settings.mainApiKey ?? "",
+        authMode: this.props.settings.settings.authMode ?? "required",
         copySuccess: false,
         host: null, // what the server is running with, from backend/host
       };
@@ -96,6 +97,7 @@ export default class Settings extends Component {
         baseURL: "",
         deletion: "1",
         mainApiKey: "",
+        authMode: "required",
         copySuccess: false,
         host: null,
       };
@@ -159,6 +161,7 @@ export default class Settings extends Component {
     this.props.settings.settings.appPort = String(this.state.appPort).trim();
     this.props.settings.settings.baseURL = normalizeBaseURL(this.state.baseURL);
     this.props.settings.settings.deletion = this.state.deletion;
+    this.props.settings.settings.authMode = this.state.authMode;
     this.props.connection(1);
 
     try {
@@ -316,6 +319,10 @@ export default class Settings extends Component {
     this.setState({ deletion: e.target.value.toString() });
   };
 
+  handleAuthMode = (e) => {
+    this.setState({ authMode: e.target.value, isSaved: false });
+  };
+
   handleGenerateApiKey = () => {
     const newApiKey = uuid().replace(/-/g, "");
 
@@ -337,6 +344,7 @@ export default class Settings extends Component {
     const portOverride =
       host && (host.portSource === "APP_PORT" || host.portSource === "PORT") ? host.portSource : null;
     const baseOverride = host && host.baseURLSource === "APP_BASE_URL";
+    const authOverride = this.props.auth?.authModeSource === "DISABLE_AUTH";
 
     return (
       <>
@@ -770,6 +778,48 @@ export default class Settings extends Component {
               </div>
             </SettingsSection>
             <SettingsSection title="Security" isDarkMode={this.props.isDarkMode}>
+              <InfoLabel
+                htmlFor="authMode"
+                tip={
+                  <>
+                    Who has to sign in with Plex to use Preroll Plus. Only the Plex account that set up Preroll Plus
+                    (the owner) can sign in.
+                    <br />
+                    <br />
+                    Required: every browser must sign in.
+                    <br />
+                    <br />
+                    Not required for local addresses: browsers on your local network (private addresses such as
+                    192.168.x.x) are let in without signing in. Behind a reverse proxy, the proxy must send the
+                    X-Forwarded-For header, otherwise every visitor looks local.
+                    <br />
+                    <br />
+                    Off: no sign-in. Only use this if something else, such as your reverse proxy, already requires a
+                    login. The DISABLE_AUTH environment variable also turns it off.
+                  </>
+                }
+              >
+                Authentication
+              </InfoLabel>
+              <Form.Select
+                value={authOverride ? "off" : this.state.authMode}
+                id="authMode"
+                name="authMode"
+                onChange={this.handleAuthMode}
+                disabled={authOverride}
+                size="sm"
+              >
+                <option value="required">Required</option>
+                <option value="local">Not required for local addresses</option>
+                <option value="off">Off</option>
+              </Form.Select>
+              <div className="footnote mb-3">
+                {authOverride
+                  ? "Turned off by the DISABLE_AUTH environment variable; this setting is ignored."
+                  : this.state.authMode === "off"
+                    ? "Anyone who can reach Preroll Plus can use it and change its settings."
+                    : "Applies as soon as you save."}
+              </div>
               <Stack direction="horizontal" gap={2}>
                 <h6>API Key</h6>
                 {this.state.copySuccess && <span className="text-success mb-1">Copied!</span>}

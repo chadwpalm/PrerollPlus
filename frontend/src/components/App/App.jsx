@@ -20,7 +20,7 @@ import Modal from "react-bootstrap/Modal";
 import NavDropdown from "react-bootstrap/NavDropdown";
 import Image from "react-bootstrap/Image";
 import Badge from "react-bootstrap/Badge";
-import { api } from "../../api";
+import { api, SIGNED_OUT_EVENT } from "../../api";
 import "./App.css";
 import SequenceCalendar from "../Calendar/Calendar";
 
@@ -47,12 +47,22 @@ export default class App extends Component {
     cannotConnect: false,
     reconnectAttempts: 0,
     isBucket: false,
+    auth: {}, // backend/auth/status: whether this browser is let in, and the Plex sign-in client details
   };
 
   componentDidMount() {
-    this.connectWebSocket();
+    window.addEventListener(SIGNED_OUT_EVENT, this.handleSignedOut);
     this.loadSettings();
   }
+
+  componentWillUnmount() {
+    window.removeEventListener(SIGNED_OUT_EVENT, this.handleSignedOut);
+  }
+
+  // A backend request was refused (session ended or Authentication changed): back to the sign-in page
+  handleSignedOut = () => {
+    if (this.state.isLoggedIn) this.setState({ isLoggedIn: false });
+  };
 
   // Newer version available? Dev builds compare with the develop branch, releases with main.
   async checkForUpdate(json) {
@@ -68,19 +78,36 @@ export default class App extends Component {
   }
 
   async loadSettings() {
-    let json;
+    // First ask whether this browser may use the app (backend/auth.js); the sign-in page needs these details too
+    let auth;
     try {
-      json = await api.get(`${baseName}backend/load`);
+      auth = await api.get(`${baseName}backend/auth/status`);
     } catch (err) {
       this.setState({ isLoaded: true, error: err.body || err.message });
       return;
     }
 
-    const { online, isUpdate } = await this.checkForUpdate(json);
+    const { online, isUpdate } = await this.checkForUpdate(auth);
     if (!online) {
       this.setState({ isOnline: false });
       return;
     }
+
+    if (!auth.allowed) {
+      this.setState({ isLoaded: true, isLoggedIn: false, auth });
+      return;
+    }
+
+    let json;
+    try {
+      json = await api.get(`${baseName}backend/load`);
+    } catch (err) {
+      if (err.status === 401) this.setState({ isLoaded: true, isLoggedIn: false, auth });
+      else this.setState({ isLoaded: true, error: err.body || err.message });
+      return;
+    }
+
+    this.connectWebSocket();
 
     this.setState(
       {
@@ -89,7 +116,8 @@ export default class App extends Component {
         thumb: json.thumb,
         isBucket: json.buckets.length !== 0,
         isUpdate,
-        isLoggedIn: json.isLoggedIn === "true",
+        isLoggedIn: true,
+        auth,
         isConnected: json.connected === "true",
         isDarkMode: json.darkMode,
       },
@@ -102,7 +130,8 @@ export default class App extends Component {
 
   connectWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    this.ws = new WebSocket(`${protocol}://${window.location.host}`);
+    // Under the URL base, so a reverse proxy passes it through and the session cookie is sent with it
+    this.ws = new WebSocket(`${protocol}://${window.location.host}${baseName}`);
 
     this.ws.onopen = () => {
       console.log("WebSocket connection opened");
@@ -194,27 +223,14 @@ export default class App extends Component {
     }
   };
 
-  handleUpdateThumb = (thumb, token, username, email) => {
-    var temp = this.state.config;
-    temp.token = token;
-    temp.thumb = thumb;
-    temp.email = email;
-    temp.username = username;
-    this.setState({ config: temp });
-  };
-
-  handleLogout = () => {
-    var settings = { ...this.state.config };
-
-    settings.isLoggedIn = "false";
-    delete settings["thumb"];
-    delete settings["email"];
-    delete settings["username"];
-
-    api
-      .post(`${baseName}backend/save`, settings)
-      .then(() => this.setState({ isLoggedIn: false }))
-      .catch((err) => this.setState({ error: err.body || err.message }));
+  // Ends this browser's session only (other browsers stay signed in)
+  handleLogout = async () => {
+    try {
+      await api.post(`${baseName}backend/auth/logout`);
+    } catch {
+      // reload anyway
+    }
+    window.location.reload(false);
   };
 
   updateSettings = (newSettings) => {
@@ -363,10 +379,12 @@ export default class App extends Component {
                           ) : (
                             <></>
                           )}
-                          <NavDropdown.Item onClick={this.handleLogout} className="d-flex align-items-center">
-                            <img src={Logout} alt="Logout" className="logout-icon" />
-                            &nbsp; Sign Out
-                          </NavDropdown.Item>
+                          {this.state.auth.signedIn && (
+                            <NavDropdown.Item onClick={this.handleLogout} className="d-flex align-items-center">
+                              <img src={Logout} alt="Logout" className="logout-icon" />
+                              &nbsp; Sign Out
+                            </NavDropdown.Item>
+                          )}
                         </NavDropdown>
                       </Nav>
                     </Navbar.Collapse>
@@ -430,6 +448,7 @@ export default class App extends Component {
                       element={
                         <Settings
                           settings={this.state.config}
+                          auth={this.state.auth}
                           connection={this.handleConnectionChange}
                           isDarkMode={this.state.isDarkMode}
                         />
@@ -461,7 +480,6 @@ export default class App extends Component {
                             element={
                               <Sequences
                                 settings={this.state.config}
-                                logout={this.handleLogout}
                                 isDarkMode={this.state.isDarkMode}
                                 onSettingsChanged={this.refreshConfig.bind(this)}
                                 updateSettings={this.updateSettings}
@@ -505,11 +523,7 @@ export default class App extends Component {
                 <Route
                   path="/login"
                   element={
-                    <Login
-                      handleLogin={this.handleLogin}
-                      handleUpdateThumb={this.handleUpdateThumb}
-                      settings={this.state.config}
-                    />
+                    <Login handleLogin={this.handleLogin} settings={this.state.auth} />
                   }
                 />
               </Routes>

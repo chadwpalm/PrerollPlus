@@ -330,8 +330,9 @@ async function sendList(string, seqName) {
     if (error.response && error.response.status === 401) {
       log.warn("Plex rejected the login token (401). Sign in to Preroll Plus again to get a new token.");
       try {
+        // The pages show the Plex sign-in until the owner signs in again (backend/auth.js)
         store.update((s) => {
-          s.isLoggedIn = "false";
+          s.plexSignInNeeded = true;
         });
       } catch (saveError) {
         log.error("Could not save the signed-out state:", saveError);

@@ -8,6 +8,9 @@
 // - Bodies are sent as JSON. Responses are parsed as JSON when possible, otherwise returned as text.
 // - Failed requests (network error, timeout, or a non-2xx status) throw an Error with `status` and `body`
 //   (the response text) so callers can show the server's message.
+// - A 401 from the backend also fires SIGNED_OUT_EVENT on window, so App can show the sign-in page.
+
+export const SIGNED_OUT_EVENT = "prerollplus:signed-out";
 
 async function request(method, url, { body, timeout, headers } = {}) {
   const options = { method, headers: { ...headers } };
@@ -26,6 +29,9 @@ async function request(method, url, { body, timeout, headers } = {}) {
   } catch {
     // not JSON: keep the text
   }
+
+  // Our own backend says this browser isn't signed in (e.g. the session ended): App shows the sign-in page
+  if (res.status === 401 && !/^https?:/i.test(url)) window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
 
   if (!res.ok) {
     const err = new Error(
