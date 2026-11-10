@@ -17,31 +17,23 @@
    - New Authentication setting under Settings > Security: Required (default), Not required for local addresses, or Off (for reverse proxies that already require a login). Behind a reverse proxy, the client address is taken from X-Forwarded-For when the proxy is on the local network.
    - New `DISABLE_AUTH=true` environment variable turns sign-in off, and lets a different Plex account take over as owner on its next sign-in (for when the owner can't sign in any more).
 
-### Changes
+### Changes/Improvements
 
 1. Security updates. Updated Node to version 26 in the Docker image, and moved the image to Alpine Linux. npm is removed from the final image since it isn't needed to run the app, which also removes the vulnerabilities reported in its bundled packages. The image is about 50 MB smaller and reports no high or critical vulnerabilities.
 2. Security updates. Updated all backend and frontend packages to their latest versions, including Express 5, Multer 2, React 19 and FullCalendar 7. Both the backend and frontend now report 0 vulnerabilities.
 3. Migrated the frontend build from Create React App (no longer maintained, and the source of most remaining reported vulnerabilities) to Vite.
 4. The calendar was updated to FullCalendar 7 and restyled to keep its previous look, with fixed-height rows on any screen width.
-5. Logging rewritten:
-   - Every line is tagged with where it came from (e.g. `[SCHEDULE]`, `[WEBHOOK]`, `[MONITOR]`).
-   - Info level describes what Preroll Plus did (today's sequence, Plex updates, file changes); debug level explains why (how each sequence matched or didn't, holiday windows, every API request with its status and time).
-   - The Plex token, email, iCal API key and Calendarific API key are masked in the logs.
-   - HTTP errors are written as one readable line, and other errors include their stack trace.
-   - A startup line shows the version, branch, build, Node version, OS, port, URL base and config folder.
-   - Log settings are applied on save without opening a new log file each time.
-   - Uncaught errors and unhandled promise rejections are logged instead of being lost.
-6. The Logging settings now validate their values (file size 1–100 MB, 1–60 files).
-7. The Sequence and Bucket create/edit pages were reorganized into cards, with the file and bucket lists sized to the screen and stacked on phones. The page scrolls to the editor when it opens.
-8. The Sequence and Bucket cards line up in an even grid, two per row on phones, with smaller page margins on phones.
-9. The About dialog shows the actual config and app folders.
-10. Added ESLint and Prettier configs for the backend and frontend (`npm run lint`).
-11. Settings are now read and written through one place in the backend. Background updates (today's sequence, the end of a timed override, file renames and removals, the signed-out state) change only their own fields on freshly read settings, so they can no longer undo edits saved in the meantime.
-12. Holiday lists are handled by one shared module for the schedule, Calendar page, iCal feed and sequence editor. Lists are kept in memory once read, so the Calendar page and iCal feed are much faster (a month now takes a few milliseconds), and Legacy (Nager.Date) lists are now cached for the sequence editor too.
-13. The backend no longer sends HTTP requests to itself (folder listing, preroll updates); it calls those functions directly.
-14. The frontend uses one small `fetch` helper for all requests to the backend in place of `XMLHttpRequest` (and axios), removing a lot of repeated code. Signing in no longer freezes the page while the account details and token are saved.
-15. The bucket list tooltip on the Calendar and the override tooltip on Sequences now use the same tooltip component as the rest of the app.
-16. When a sequence's schedule is set to Custom, the Day field now comes before the Month field for regions that write the day first (e.g. the UK and most of Europe), based on the browser's preferred language.
+5. Logging rewritten to be informative.
+6. The Sequence and Bucket create/edit pages were reorganized into cards, with the file and bucket lists sized to the screen and stacked on phones. The page scrolls to the editor when it opens.
+7. The Sequence and Bucket cards line up in an even grid, two per row on phones, with smaller page margins on phones.
+8. The About dialog shows the actual config and app folders.
+9.  Added ESLint and Prettier configs for the backend and frontend (`npm run lint`).
+10. Settings are now read and written through one place in the backend. Background updates (today's sequence, the end of a timed override, file renames and removals, the signed-out state) change only their own fields on freshly read settings, so they can no longer undo edits saved in the meantime.
+11. Holiday lists are handled by one shared module for the schedule, Calendar page, iCal feed and sequence editor. Lists are kept in memory once read, so the Calendar page and iCal feed are much faster (a month now takes a few milliseconds), and Legacy (Nager.Date) lists are now cached for the sequence editor too.
+12. The backend no longer sends HTTP requests to itself (folder listing, preroll updates); it calls those functions directly.
+13. The frontend uses one small `fetch` helper for all requests to the backend in place of `XMLHttpRequest` (and axios), removing a lot of repeated code. Signing in no longer freezes the page while the account details and token are saved.
+14. The bucket list tooltip on the Calendar and the override tooltip on Sequences now use the same tooltip component as the rest of the app.
+15. When a sequence's schedule is set to Custom, the Day field now comes before the Month field for regions that write the day first (e.g. the UK and most of Europe), based on the browser's preferred language. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
 
 ### Fixes
 
