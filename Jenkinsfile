@@ -1,6 +1,20 @@
+def dockerLogin() {
+  withCredentials([usernamePassword(credentialsId: '71aeb696-0670-4267-8db4-8ee74774e051', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+    sh ('echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin')
+  }
+}
+
+def buildAndPush(String arch) {
+  dockerLogin()
+  def image = "${env.REPO}/${env.IMAGE_NAME}:${env.IMAGE_TAG}-${arch}"
+  sh "docker build --force-rm --pull --build-arg BUILD='${env.APP_BUILD}' -t ${image} ."
+  sh "docker push ${image}"
+  sh "docker rmi ${image}"
+}
+
 pipeline {
 
-  agent any
+  agent none
 
   environment {
       REPO="chadwpalm"
@@ -9,85 +23,75 @@ pipeline {
   }
 
   options {
-      timeout (time: 10, unit: 'MINUTES')
+      timeout (time: 30, unit: 'MINUTES')
       buildDiscarder (logRotator (numToKeepStr: '3'))
   }
 
-  stages { 
-    stage('Login') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: '71aeb696-0670-4267-8db4-8ee74774e051', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {              
-          sh ('echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin')
-        }
-      }
-    }
-    stage('Build Dev') {
-      when {
-        branch "develop"
-      }
+  stages {
+    // Work out the version and tags once, so the build number is only incremented once per run
+    stage('Version') {
+      agent { label 'built-in' }
       steps {
         script {
-          def JSONVersion = readJSON file: "version.json"
-          def PulledVersion = JSONVersion.version
+          def PulledVersion = readJSON(file: "version.json").version
+          // main reads the current build number; every other branch increments it
+          def suffix = env.BRANCH_NAME == 'main' ? '/get' : ''
           def BuildNumber = sh (
-            script: 'curl https://increment.build/${BUILD_CRED}',
+            script: 'curl -fsS https://increment.build/${BUILD_CRED}' + suffix,
             returnStdout: true
           ).trim()
           def APPVersion = "${PulledVersion}.${BuildNumber}"
-          sh "docker build --force-rm --pull --build-arg BUILD='${BuildNumber}' -t ${REPO}/${IMAGE_NAME}:develop-${APPVersion} ."
-          sh "docker tag ${REPO}/${IMAGE_NAME}:develop-${APPVersion} ${REPO}/${IMAGE_NAME}:develop"
-          sh "docker push ${REPO}/${IMAGE_NAME}:develop-${APPVersion}"
-          sh "docker push ${REPO}/${IMAGE_NAME}:develop"          
-          sh "docker rmi ${REPO}/${IMAGE_NAME}:develop-${APPVersion}"
+          env.APP_BUILD = BuildNumber
+          if (env.BRANCH_NAME == 'main') {
+            env.IMAGE_TAG = APPVersion
+            env.ALIAS_TAG = 'latest'
+          } else if (env.BRANCH_NAME == 'develop') {
+            env.IMAGE_TAG = "develop-${APPVersion}"
+            env.ALIAS_TAG = 'develop'
+          } else {
+            env.IMAGE_TAG = "${env.BRANCH_NAME}-${APPVersion}"
+            env.ALIAS_TAG = ''
+          }
+          echo "Building ${REPO}/${IMAGE_NAME}:${env.IMAGE_TAG}" + (env.ALIAS_TAG ? " (+ ${env.ALIAS_TAG})" : '')
         }
-        
       }
     }
-    stage('Build Prod') {
+    stage('Build') {
+      parallel {
+        stage('amd64') {
+          agent { label 'built-in' }
+          steps {
+            script { buildAndPush('amd64') }
+          }
+        }
+        stage('arm64') {
+          agent { label 'arm64' }
+          steps {
+            script { buildAndPush('arm64') }
+          }
+        }
+      }
+    }
+    stage('Manifest') {
+      agent { label 'built-in' }
+      steps {
+        script {
+          dockerLogin()
+          def base = "${REPO}/${IMAGE_NAME}"
+          def tags = "-t ${base}:${env.IMAGE_TAG}" + (env.ALIAS_TAG ? " -t ${base}:${env.ALIAS_TAG}" : '')
+          sh "docker buildx imagetools create ${tags} ${base}:${env.IMAGE_TAG}-amd64 ${base}:${env.IMAGE_TAG}-arm64"
+          sh "docker buildx imagetools inspect ${base}:${env.IMAGE_TAG}"
+        }
+      }
+    }
+    stage('Docs') {
       when {
         branch "main"
       }
       steps {
-        script {
-          def JSONVersion = readJSON file: "version.json"
-          def PulledVersion = JSONVersion.version
-          def BuildNumber = sh (
-            script: 'curl https://increment.build/${BUILD_CRED}/get',
-            returnStdout: true
-          ).trim()
-          def APPVersion = "${PulledVersion}.${BuildNumber}"
-          sh "docker build --force-rm --pull --build-arg BUILD='${BuildNumber}' -t ${REPO}/${IMAGE_NAME}:${APPVersion} ."
-          sh "docker tag ${REPO}/${IMAGE_NAME}:${APPVersion} ${REPO}/${IMAGE_NAME}:latest"
-          sh "docker push ${REPO}/${IMAGE_NAME}:${APPVersion}"
-          sh "docker push ${REPO}/${IMAGE_NAME}:latest"
-          sh "docker rmi ${REPO}/${IMAGE_NAME}:${APPVersion}"
-        }
+        // Rebuild the docs site so it picks up the new release
         build job: 'PrerollPlus-Docs/main', wait: false
-      }
-    }
-    stage('Build Features/Fixes') {
-      when {
-        not {
-           anyOf {
-            branch "main";
-            branch "develop"
-          }
-        }
-      }
-      steps {
-        script {
-          def JSONVersion = readJSON file: "version.json"
-          def PulledVersion = JSONVersion.version
-          def BuildNumber = sh (
-            script: 'curl https://increment.build/${BUILD_CRED}',
-            returnStdout: true
-          ).trim()
-          def APPVersion = "${PulledVersion}.${BuildNumber}"
-          sh "docker build --force-rm --pull --build-arg BUILD=${BuildNumber} -t ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion} ."
-          sh "docker push ${REPO}/${IMAGE_NAME}:${BRANCH_NAME}-${APPVersion}"
-        }
       }
     }
   }
 }
-

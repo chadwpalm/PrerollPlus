@@ -240,6 +240,21 @@ export default class Login extends Component {
                 )}
               </div>
             </Row>
+            {this.props.onCancel && (
+              <Row style={{ textAlign: "center", paddingTop: "15px" }}>
+                <div>
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      this.stopSignIn();
+                      this.props.onCancel();
+                    }}
+                  >
+                    Back to Preroll Plus
+                  </Button>
+                </div>
+              </Row>
+            )}
           </Card>
           <br />
           {this.state.error && (

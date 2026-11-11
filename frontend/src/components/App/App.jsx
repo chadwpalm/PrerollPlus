@@ -14,6 +14,7 @@ import Navbar from "react-bootstrap/Navbar";
 import "bootstrap/dist/css/bootstrap.min.css";
 // Using `Nav.Link` as={Link} for client-side navigation
 import Logout from "bootstrap-icons/icons/box-arrow-right.svg";
+import SignIn from "bootstrap-icons/icons/box-arrow-in-right.svg";
 import Moon from "bootstrap-icons/icons/moon-stars.svg";
 import Sun from "bootstrap-icons/icons/sun.svg";
 import Modal from "react-bootstrap/Modal";
@@ -48,6 +49,7 @@ export default class App extends Component {
     reconnectAttempts: 0,
     isBucket: false,
     auth: {}, // backend/auth/status: whether this browser is let in, and the Plex sign-in client details
+    signingIn: false, // Sign In chosen from the menu while DISABLE_AUTH is set (to take over as owner)
   };
 
   componentDidMount() {
@@ -233,6 +235,12 @@ export default class App extends Component {
     window.location.reload(false);
   };
 
+  // With DISABLE_AUTH set the app opens without signing in, so this is the way to reach the sign-in page
+  // and let a different Plex account take over as owner (backend/auth.js)
+  handleSignIn = () => this.setState({ signingIn: true });
+
+  handleCancelSignIn = () => this.setState({ signingIn: false });
+
   updateSettings = (newSettings) => {
     this.setState({ config: newSettings });
   };
@@ -270,7 +278,7 @@ export default class App extends Component {
       } else if (this.state.error) {
         return <div>Error occured: {this.state.error}</div>;
       } else {
-        if (this.state.isLoggedIn) {
+        if (this.state.isLoggedIn && !this.state.signingIn) {
           return (
             <Router basename={baseName}>
               <Container fluid>
@@ -383,6 +391,12 @@ export default class App extends Component {
                             <NavDropdown.Item onClick={this.handleLogout} className="d-flex align-items-center">
                               <img src={Logout} alt="Logout" className="logout-icon" />
                               &nbsp; Sign Out
+                            </NavDropdown.Item>
+                          )}
+                          {!this.state.auth.signedIn && this.state.auth.authModeSource === "DISABLE_AUTH" && (
+                            <NavDropdown.Item onClick={this.handleSignIn} className="d-flex align-items-center">
+                              <img src={SignIn} alt="Sign in" className="logout-icon" />
+                              &nbsp; Sign In
                             </NavDropdown.Item>
                           )}
                         </NavDropdown>
@@ -523,7 +537,11 @@ export default class App extends Component {
                 <Route
                   path="/login"
                   element={
-                    <Login handleLogin={this.handleLogin} settings={this.state.auth} />
+                    <Login
+                      handleLogin={this.handleLogin}
+                      settings={this.state.auth}
+                      onCancel={this.state.isLoggedIn ? this.handleCancelSignIn : undefined}
+                    />
                   }
                 />
               </Routes>

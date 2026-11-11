@@ -15,7 +15,7 @@
    - Each browser gets its own session (30 days, renewed while in use). Signing out only signs out that browser, and updates no longer sign everyone out.
    - Every page and API request needs a signed-in browser, except the Plex webhook and the iCal feed (which uses its API key).
    - New Authentication setting under Settings > Security: Required (default), Not required for local addresses, or Off (for reverse proxies that already require a login). Behind a reverse proxy, the client address is taken from X-Forwarded-For when the proxy is on the local network.
-   - New `DISABLE_AUTH=true` environment variable turns sign-in off, and lets a different Plex account take over as owner on its next sign-in (for when the owner can't sign in any more).
+   - New `DISABLE_AUTH=true` environment variable turns sign-in off, and lets a different Plex account take over as owner on its next sign-in (for when the owner can't sign in any more). While it is set, the account menu has a Sign In item that opens the sign-in page for this.
 
 ### Changes/Improvements
 
@@ -34,6 +34,7 @@
 13. The frontend uses one small `fetch` helper for all requests to the backend in place of `XMLHttpRequest` (and axios), removing a lot of repeated code. Signing in no longer freezes the page while the account details and token are saved.
 14. The bucket list tooltip on the Calendar and the override tooltip on Sequences now use the same tooltip component as the rest of the app.
 15. When a sequence's schedule is set to Custom, the Day field now comes before the Month field for regions that write the day first (e.g. the UK and most of Europe), based on the browser's preferred language. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
+16. The Docker image is now multi-architecture: `latest` and each version tag run on both amd64 and arm64 (64-bit ARM, e.g. a Raspberry Pi with a 64-bit OS). The separate `-arm` tags are no longer published, and 32-bit ARM (arm/v7) is no longer supported.
 
 ### Fixes
 
