@@ -14,17 +14,19 @@ import Navbar from "react-bootstrap/Navbar";
 import "bootstrap/dist/css/bootstrap.min.css";
 // Using `Nav.Link` as={Link} for client-side navigation
 import Logout from "bootstrap-icons/icons/box-arrow-right.svg";
+import SignIn from "bootstrap-icons/icons/box-arrow-in-right.svg";
 import Moon from "bootstrap-icons/icons/moon-stars.svg";
 import Sun from "bootstrap-icons/icons/sun.svg";
 import Modal from "react-bootstrap/Modal";
 import NavDropdown from "react-bootstrap/NavDropdown";
 import Image from "react-bootstrap/Image";
 import Badge from "react-bootstrap/Badge";
-import { default as axios } from "axios";
+import { api, SIGNED_OUT_EVENT } from "../../api";
 import "./App.css";
 import SequenceCalendar from "../Calendar/Calendar";
 
-const baseName = window.__BASE_PATH__;
+// Injected by the server (app.js); "/" when running under the Vite dev server
+const baseName = window.__BASE_PATH__ || "/";
 
 export default class App extends Component {
   state = {
@@ -39,101 +41,99 @@ export default class App extends Component {
     isUpdate: false,
     isOnline: true,
     announce: false,
-    first: false,
     dismiss: false,
     isDarkMode: false,
-    announcement: false,
+    announcement: true, // set to true for releases that have an announcement in Announce.jsx
     sockConnected: false,
     cannotConnect: false,
     reconnectAttempts: 0,
     isBucket: false,
+    auth: {}, // backend/auth/status: whether this browser is let in, and the Plex sign-in client details
+    signingIn: false, // Sign In chosen from the menu while DISABLE_AUTH is set (to take over as owner)
   };
 
   componentDidMount() {
+    window.addEventListener(SIGNED_OUT_EVENT, this.handleSignedOut);
+    this.loadSettings();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener(SIGNED_OUT_EVENT, this.handleSignedOut);
+  }
+
+  // A backend request was refused (session ended or Authentication changed): back to the sign-in page
+  handleSignedOut = () => {
+    if (this.state.isLoggedIn) this.setState({ isLoggedIn: false });
+  };
+
+  // Newer version available? Dev builds compare with the develop branch, releases with main.
+  async checkForUpdate(json) {
+    const branch = json.branch === "dev" ? "develop" : "main";
+    const url = `https://raw.githubusercontent.com/chadwpalm/PrerollPlus/${branch}/version.json?cb=${Date.now()}`;
+    try {
+      const latest = await api.get(url);
+      return { online: true, isUpdate: latest?.version !== json.version };
+    } catch {
+      // Dev builds treat an unreachable GitHub as "no internet" (as before); releases just skip the check
+      return { online: json.branch !== "dev", isUpdate: false };
+    }
+  }
+
+  async loadSettings() {
+    // First ask whether this browser may use the app (backend/auth.js); the sign-in page needs these details too
+    let auth;
+    try {
+      auth = await api.get(`${baseName}backend/auth/status`);
+    } catch (err) {
+      this.setState({ isLoaded: true, error: err.body || err.message });
+      return;
+    }
+
+    const { online, isUpdate } = await this.checkForUpdate(auth);
+    if (!online) {
+      this.setState({ isOnline: false });
+      return;
+    }
+
+    if (!auth.allowed) {
+      this.setState({ isLoaded: true, isLoggedIn: false, auth });
+      return;
+    }
+
+    let json;
+    try {
+      json = await api.get(`${baseName}backend/load`);
+    } catch (err) {
+      if (err.status === 401) this.setState({ isLoaded: true, isLoggedIn: false, auth });
+      else this.setState({ isLoaded: true, error: err.body || err.message });
+      return;
+    }
+
     this.connectWebSocket();
 
-    var xhr = new XMLHttpRequest();
-    var state = false;
-    var online = true;
+    this.setState(
+      {
+        isLoaded: true,
+        config: json,
+        thumb: json.thumb,
+        isBucket: json.buckets.length !== 0,
+        isUpdate,
+        isLoggedIn: true,
+        auth,
+        isConnected: json.connected === "true",
+        isDarkMode: json.darkMode,
+      },
+      this.toggleBodyClass,
+    );
 
-    xhr.addEventListener("readystatechange", async () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-
-          var url = "";
-
-          if (json.branch === "dev") {
-            url = `https://raw.githubusercontent.com/chadwpalm/PrerollPlus/develop/version.json?cb=${Date.now()}`;
-
-            await axios
-              .get(url, { headers: { "Content-Type": "application/json;charset=UTF-8" } })
-              .then(function (response) {
-                var data = response.data;
-                if (data.version !== json.version) {
-                  state = true;
-                }
-              })
-              .catch(function (error) {
-                online = false;
-              });
-          } else {
-            url = `https://raw.githubusercontent.com/chadwpalm/PrerollPlus/main/version.json`;
-
-            await axios
-              .get(url, { headers: { "Content-Type": "application/json;charset=UTF-8" } })
-              .then(function (response) {
-                var data = response.data;
-
-                if (data.version !== json.version) {
-                  state = true;
-                }
-              })
-              .catch(function (error) {});
-          }
-
-          if (!online) {
-            this.setState({ isOnline: false });
-          } else {
-            this.setState({
-              isLoaded: true,
-              config: json,
-              thumb: json.thumb,
-            });
-
-            if (json.buckets.length !== 0) this.setState({ isBucket: true });
-
-            if (state) this.setState({ isUpdate: true });
-
-            if (json.isLoggedIn === "true") this.setState({ isLoggedIn: true });
-
-            if (json.connected === "true") {
-              this.setState({ isConnected: true });
-            }
-
-            if (json.message) this.setState({ first: true });
-
-            this.setState({ isDarkMode: json.darkMode }, () => {
-              this.toggleBodyClass();
-            });
-          }
-        } else {
-          this.setState({
-            isLoaded: true,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("GET", `${baseName}backend/load`, true);
-    xhr.send();
+    // Show the announcement after an update (unless dismissed); it appears once the signed-in pages show
+    if (json.message) this.handleOpenAnn();
   }
 
   connectWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    this.ws = new WebSocket(`${protocol}://${window.location.host}`);
+    // Under the URL base, so a reverse proxy passes it through and the session cookie is sent with it
+    this.ws = new WebSocket(`${protocol}://${window.location.host}${baseName}`);
 
     this.ws.onopen = () => {
       console.log("WebSocket connection opened");
@@ -174,16 +174,10 @@ export default class App extends Component {
   }
 
   refreshConfig() {
-    axios
+    api
       .get(`${baseName}backend/load`)
-      .then((response) => {
-        this.setState({
-          config: response.data,
-        });
-      })
-      .catch((error) => {
-        console.error("Error refreshing config:", error);
-      });
+      .then((config) => this.setState({ config }))
+      .catch((error) => console.error("Error refreshing config:", error));
   }
 
   toggleBodyClass = () => {
@@ -204,35 +198,24 @@ export default class App extends Component {
 
   handleClose = () => this.setState({ show: false });
 
-  handleOpen = () => this.setState({ show: true, fullscreen: "md-down" });
+  handleOpen = () => {
+    this.setState({ show: true, fullscreen: "md-down" });
+    // Config/app folders come from the server (CONFIG_DIR can change the config folder)
+    fetch("backend/host")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((host) => host && this.setState({ host }))
+      .catch(() => {});
+  };
 
   handleCloseAnn = () => {
     this.setState({ announce: false });
     if (this.state.dismiss) {
-      var settings = { ...this.state.config };
-
-      settings.message = false;
-
-      var xhr = new XMLHttpRequest();
-
-      xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-          } else {
-            this.setState({
-              error: xhr.responseText,
-            });
-          }
-        }
-      });
-
-      xhr.open("POST", `${baseName}backend/save`, true);
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(settings));
+      const settings = { ...this.state.config, message: false };
+      api.post(`${baseName}backend/save`, settings).catch((err) => this.setState({ error: err.body || err.message }));
     }
   };
 
-  handleOpenAnn = () => this.setState({ announce: true, first: false, fullscreenAnn: "md-down" });
+  handleOpenAnn = () => this.setState({ announce: true, fullscreenAnn: "md-down" });
 
   handleDismiss = () => {
     if (this.state.dismiss) {
@@ -242,41 +225,21 @@ export default class App extends Component {
     }
   };
 
-  handleUpdateThumb = (thumb, token, username, email) => {
-    var temp = this.state.config;
-    temp.token = token;
-    temp.thumb = thumb;
-    temp.email = email;
-    temp.username = username;
-    this.setState({ config: temp });
+  // Ends this browser's session only (other browsers stay signed in)
+  handleLogout = async () => {
+    try {
+      await api.post(`${baseName}backend/auth/logout`);
+    } catch {
+      // reload anyway
+    }
+    window.location.reload(false);
   };
 
-  handleLogout = () => {
-    var settings = { ...this.state.config };
+  // With DISABLE_AUTH set the app opens without signing in, so this is the way to reach the sign-in page
+  // and let a different Plex account take over as owner (backend/auth.js)
+  handleSignIn = () => this.setState({ signingIn: true });
 
-    settings.isLoggedIn = "false";
-    delete settings["thumb"];
-    delete settings["email"];
-    delete settings["username"];
-
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ isLoggedIn: false });
-        } else {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", `${baseName}backend/save`, true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
-  };
+  handleCancelSignIn = () => this.setState({ signingIn: false });
 
   updateSettings = (newSettings) => {
     this.setState({ config: newSettings });
@@ -290,24 +253,8 @@ export default class App extends Component {
     this.setState((prevState) => {
       const newMode = !prevState.isDarkMode;
 
-      var settings = { ...prevState.config, darkMode: newMode };
-
-      var xhr = new XMLHttpRequest();
-
-      xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-          } else {
-            this.setState({
-              error: xhr.responseText,
-            });
-          }
-        }
-      });
-
-      xhr.open("POST", `${baseName}backend/save`, true);
-      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      xhr.send(JSON.stringify(settings));
+      const settings = { ...prevState.config, darkMode: newMode };
+      api.post(`${baseName}backend/save`, settings).catch((err) => this.setState({ error: err.body || err.message }));
 
       return { isDarkMode: newMode, config: settings };
     }, this.toggleBodyClass);
@@ -331,7 +278,7 @@ export default class App extends Component {
       } else if (this.state.error) {
         return <div>Error occured: {this.state.error}</div>;
       } else {
-        if (this.state.isLoggedIn) {
+        if (this.state.isLoggedIn && !this.state.signingIn) {
           return (
             <Router basename={baseName}>
               <Container fluid>
@@ -440,17 +387,24 @@ export default class App extends Component {
                           ) : (
                             <></>
                           )}
-                          <NavDropdown.Item onClick={this.handleLogout} className="d-flex align-items-center">
-                            <img src={Logout} alt="Logout" className="logout-icon" />
-                            &nbsp; Sign Out
-                          </NavDropdown.Item>
+                          {this.state.auth.signedIn && (
+                            <NavDropdown.Item onClick={this.handleLogout} className="d-flex align-items-center">
+                              <img src={Logout} alt="Logout" className="logout-icon" />
+                              &nbsp; Sign Out
+                            </NavDropdown.Item>
+                          )}
+                          {!this.state.auth.signedIn && this.state.auth.authModeSource === "DISABLE_AUTH" && (
+                            <NavDropdown.Item onClick={this.handleSignIn} className="d-flex align-items-center">
+                              <img src={SignIn} alt="Sign in" className="logout-icon" />
+                              &nbsp; Sign In
+                            </NavDropdown.Item>
+                          )}
                         </NavDropdown>
                       </Nav>
                     </Navbar.Collapse>
                   </Navbar>
                 </Row>
 
-                {this.state.first ? this.handleOpenAnn() : <></>}
                 <Modal
                   show={this.state.show}
                   fullscreen={this.state.fullscreen}
@@ -469,9 +423,9 @@ export default class App extends Component {
                     <br />
                     <b>Build:</b> &nbsp;{this.state.config.build}
                     <br />
-                    <b>Config Dir:</b>&nbsp; /config
+                    <b>Config Dir:</b>&nbsp; {this.state.host?.configDir ?? "…"}
                     <br />
-                    <b>App Dir:</b>&nbsp; {this.state.config.appDir}
+                    <b>App Dir:</b>&nbsp; {this.state.host?.appDir ?? this.state.config.appDir}
                     <br />
                     <b>Docker:</b>&nbsp;
                     <a
@@ -508,6 +462,7 @@ export default class App extends Component {
                       element={
                         <Settings
                           settings={this.state.config}
+                          auth={this.state.auth}
                           connection={this.handleConnectionChange}
                           isDarkMode={this.state.isDarkMode}
                         />
@@ -539,7 +494,6 @@ export default class App extends Component {
                             element={
                               <Sequences
                                 settings={this.state.config}
-                                logout={this.handleLogout}
                                 isDarkMode={this.state.isDarkMode}
                                 onSettingsChanged={this.refreshConfig.bind(this)}
                                 updateSettings={this.updateSettings}
@@ -585,8 +539,8 @@ export default class App extends Component {
                   element={
                     <Login
                       handleLogin={this.handleLogin}
-                      handleUpdateThumb={this.handleUpdateThumb}
-                      settings={this.state.config}
+                      settings={this.state.auth}
+                      onCancel={this.state.isLoggedIn ? this.handleCancelSignIn : undefined}
                     />
                   }
                 />

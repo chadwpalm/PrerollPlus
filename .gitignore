@@ -22,3 +22,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# local config folders (npm run dev / docker testing)
+/dev-config
+/docker-config

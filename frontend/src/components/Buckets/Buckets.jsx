@@ -3,7 +3,6 @@ import Bucket from "../Bucket/Bucket";
 import AddIcon from "../../images/add-icon.png";
 import Create from "../Create/Create";
 import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
@@ -11,6 +10,7 @@ import SortName from "bootstrap-icons/icons/sort-alpha-up.svg";
 import Image from "react-bootstrap/Image";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
+import { api } from "../../api";
 import "../Sequences/Sequences.css";
 
 export default class Buckets extends Component {
@@ -73,30 +73,13 @@ export default class Buckets extends Component {
       buckets: sequence.buckets.filter((bucketId) => bucketId.id !== this.state.tempID),
     }));
 
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", async () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ show: false });
-
-          const response = await fetch("webhook", { method: "GET" });
-          if (!response.ok) {
-            throw new Error(`Response status: ${response.status}`);
-          }
-        } else {
-          // error
-          this.setState({
-            show: false,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    api
+      .saveSettings(settings)
+      .then(() => {
+        this.setState({ show: false });
+        return api.updatePrerolls();
+      })
+      .catch((err) => this.setState({ show: false, error: err.body || err.message }));
 
     this.props.updateSettings(settings);
     this.handleSaveCreate();
@@ -111,21 +94,10 @@ export default class Buckets extends Component {
     settings.buckets = buckets;
 
     // Save to backend
-    const xhr = new XMLHttpRequest();
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.refreshSettings();
-        } else {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-    xhr.open("POST", "backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    api
+      .saveSettings(settings)
+      .then(this.refreshSettings)
+      .catch((err) => this.setState({ error: err.body || err.message }));
 
     // Instant UI update
     this.props.updateSettings(settings);
@@ -151,9 +123,9 @@ export default class Buckets extends Component {
             </OverlayTrigger>
           </div>
         </Row>
-        <Row xs={2} sm="auto">
+        <div className="card-grid">
           {this.props.settings.buckets?.map((bucket) => (
-            <Col key={bucket.id}>
+            <div key={bucket.id}>
               <Bucket
                 settings={this.props.settings}
                 bucket={bucket.name}
@@ -167,11 +139,10 @@ export default class Buckets extends Component {
                 delete={this.handleOpen}
                 isDarkMode={this.props.isDarkMode}
               />
-              <br />
-            </Col>
+            </div>
           ))}
 
-          <Col>
+          <div>
             {this.state.isEdit || this.state.isCreating ? (
               <Card
                 className={`card-global ${this.state.id === "-1" ? "card-error" : "card-default"} ${
@@ -192,8 +163,8 @@ export default class Buckets extends Component {
                 </Card.Body>
               </Card>
             )}
-          </Col>
-        </Row>
+          </div>
+        </div>
         <Row className="row-custom">
           {this.state.isCreating ? (
             <Create
@@ -208,12 +179,14 @@ export default class Buckets extends Component {
             />
           ) : (
             <>
-              <p className="mb-3" style={{ fontSize: "12px" }}>
-                Default: This indicates the default bucket which will be automatically added to a new sequence
-              </p>
-              <p className="mb-3" style={{ fontSize: "12px" }}>
-                Red Border: Currently Editing Bucket
-              </p>
+              <div className="card-legend mb-3">
+                <span>
+                  <b>Default</b>: added automatically to new sequences
+                </span>
+                <span>
+                  <span className="legend-swatch legend-editing" /> Currently Editing
+                </span>
+              </div>
               <h6 className="mb-0">Click the plus to add a new Bucket.</h6>
             </>
           )}

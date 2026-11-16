@@ -5,6 +5,9 @@ import Edit from "bootstrap-icons/icons/pencil-square.svg";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Image from "react-bootstrap/Image";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
+import { formatMonthDay, formatDateTime } from "../../locale";
 import "./Sequence.css";
 
 const DAYS = {
@@ -56,6 +59,19 @@ export default class Sequence extends Component {
     return DAY_LABELS.filter((label) => (days & DAYS[label]) !== 0).join(", ");
   }
 
+  // Sequence name; click it to set or change an override
+  renderName() {
+    return (
+      <Card.Subtitle
+        className="d-flex align-items-center justify-content-center sub-custom override-toggle"
+        style={{ cursor: "pointer" }}
+        onClick={() => this.props.override([this.props.id, this.props.sequence])}
+      >
+        {this.props.sequence}
+      </Card.Subtitle>
+    );
+  }
+
   render() {
     return (
       <Card
@@ -88,46 +104,28 @@ export default class Sequence extends Component {
             </Col>
           </Row>
         </Card.Header>
-        <Card.Subtitle
-          className="d-flex align-items-center justify-content-center sub-custom override-toggle"
-          style={{ cursor: "pointer" }}
-          onMouseEnter={(e) => {
-            if (this.props.currentOvr !== this.props.id) return;
-
-            document.querySelectorAll(".override-tooltip").forEach((t) => t.remove());
-
-            const rect = e.currentTarget.getBoundingClientRect();
-
-            const tooltip = document.createElement("div");
-            tooltip.className = "override-tooltip";
-
-            const endTime = this.props.endTimestamp;
-            let tooltipText = "";
-
-            if (endTime === null) {
-              tooltipText = "Override active indefinitely";
-            } else {
-              const date = new Date(endTime);
-              tooltipText = `Override ends:<br>${date.toLocaleString()}`;
+        {this.props.currentOvr === this.props.id ? (
+          <OverlayTrigger
+            placement="bottom"
+            overlay={
+              <Tooltip>
+                {this.props.endTimestamp === null ? (
+                  "Override active indefinitely"
+                ) : (
+                  <>
+                    Override ends:
+                    <br />
+                    {formatDateTime(this.props.endTimestamp)}
+                  </>
+                )}
+              </Tooltip>
             }
-
-            tooltip.innerHTML = tooltipText;
-
-            Object.assign(tooltip.style, {
-              top: rect.bottom + 8 + "px",
-              left: rect.left + rect.width / 2 + "px",
-              transform: "translateX(-50%)",
-            });
-
-            document.body.appendChild(tooltip);
-          }}
-          onMouseLeave={() => {
-            document.querySelectorAll(".override-tooltip").forEach((t) => t.remove());
-          }}
-          onClick={() => this.props.override([this.props.id, this.props.sequence])}
-        >
-          {this.props.sequence}
-        </Card.Subtitle>
+          >
+            {this.renderName()}
+          </OverlayTrigger>
+        ) : (
+          this.renderName()
+        )}
         <Card.Footer className={`border-top-0 footer-custom ${this.props.isDarkMode ? "dark-mode" : ""}`}>
           <Row>
             <Col xs={9}>
@@ -140,15 +138,9 @@ export default class Sequence extends Component {
                   this.getDaysDisplayText()
                 ) : (
                   <>
-                    {new Intl.DateTimeFormat(undefined, {
-                      day: "2-digit",
-                      month: "2-digit",
-                    }).format(new Date(2023, this.props.startMonth - 1, this.props.startDay))}
+                    {formatMonthDay(this.props.startMonth, this.props.startDay)}
                     {" - "}
-                    {new Intl.DateTimeFormat(undefined, {
-                      day: "2-digit",
-                      month: "2-digit",
-                    }).format(new Date(2023, this.props.endMonth - 1, this.props.endDay))}
+                    {formatMonthDay(this.props.endMonth, this.props.endDay)}
                   </>
                 )}
               </div>

@@ -1,11 +1,10 @@
 var axios = require("axios").default;
-
-const LOG_TAG = "[MIGRATE]";
+const log = require("./logger").tagged("MIGRATE");
 
 async function updateSequences(temp) {
-  console.log(`${LOG_TAG} Starting migration to configuration schema v2`);
+  log.info("Upgrading settings to the v2 format");
   if (!temp || !Array.isArray(temp.sequences)) {
-    console.warn(`${LOG_TAG} No sequences found to migrate`);
+    log.info("No sequences to upgrade");
     return temp;
   }
 
@@ -32,15 +31,12 @@ async function updateSequences(temp) {
         sequence.holidayDate = match.date;
         sequence.holidaySource = sequence.holidaySource ?? "1";
 
-        console.info(`${LOG_TAG} Migrated sequence "${sequence.name}" (${sequence.id}) -> holiday ${match.date}`);
+        log.info(`Sequence "${sequence.name}": holiday set to ${match.date}`);
       } else {
-        console.info(`${LOG_TAG} No holiday match for sequence "${sequence.name}" in country ${sequence.country}`);
+        log.debug(`Sequence "${sequence.name}": no holiday to upgrade`);
       }
     } catch (error) {
-      console.error(
-        `${LOG_TAG} Error fetching holidays for country=${sequence.country} (sequence="${sequence.name}"):`,
-        error.message,
-      );
+      log.error(`Could not get ${sequence.country} holidays for sequence "${sequence.name}":`, error);
     }
 
     if (i < temp.sequences.length - 1) {
@@ -48,7 +44,7 @@ async function updateSequences(temp) {
     }
   }
 
-  console.log(`${LOG_TAG} Migration complete`);
+  log.info("Settings upgrade complete");
   return temp;
 }
 

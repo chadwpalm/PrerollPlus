@@ -1,5 +1,61 @@
 # Preroll Plus Version History
 
+## 1.6.0
+
+### New Features
+
+1. Added the `CONFIG_DIR` environment variable to change where settings, logs and the holiday cache are kept (default `/config`). Mainly useful for native installs. `npm run dev` uses `./dev-config`.
+2. The Host section in Settings now shows the port and URL base Preroll Plus is running on, validates both fields, and locks them with a note when the `APP_PORT`/`PORT` or `APP_BASE_URL` environment variable is overriding them. A reminder to restart appears after changing them.
+3. The `PORT` environment variable is now accepted as an alternative to `APP_PORT`.
+4. The Docker image now has a health check, so `docker ps` reports the container as healthy once Preroll Plus answers on its port.
+5. On phones, the Calendar shows a month agenda (date ranges with the sequence and its buckets) instead of the month grid.
+6. Added a contributing guide (CONTRIBUTING.md) with development setup, project layout, logging conventions and pull request checklist.
+7. Sign-in security. The Plex sign-in is now checked by the server, not just the web page:
+   - Only the Plex account that set up Preroll Plus (the owner) can sign in. Other Plex accounts are refused. Existing installs recognize the owner from the saved sign-in automatically.
+   - Each browser gets its own session (30 days, renewed while in use). Signing out only signs out that browser, and updates no longer sign everyone out.
+   - Every page and API request needs a signed-in browser, except the Plex webhook and the iCal feed (which uses its API key).
+   - New Authentication setting under Settings > Security: Required (default), Not required for local addresses, or Off (for reverse proxies that already require a login). Behind a reverse proxy, the client address is taken from X-Forwarded-For when the proxy is on the local network.
+   - New `DISABLE_AUTH=true` environment variable turns sign-in off, and lets a different Plex account take over as owner on its next sign-in (for when the owner can't sign in any more). While it is set, the account menu has a Sign In item that opens the sign-in page for this.
+
+### Changes/Improvements
+
+1. Security updates. Updated Node to version 26 in the Docker image, and moved the image to Alpine Linux. npm is removed from the final image since it isn't needed to run the app, which also removes the vulnerabilities reported in its bundled packages. The image is about 50 MB smaller and reports no high or critical vulnerabilities.
+2. Security updates. Updated all backend and frontend packages to their latest versions, including Express 5, Multer 2, React 19 and FullCalendar 7. Both the backend and frontend now report 0 vulnerabilities.
+3. Migrated the frontend build from Create React App (no longer maintained, and the source of most remaining reported vulnerabilities) to Vite.
+4. The calendar was updated to FullCalendar 7 and restyled to keep its previous look, with fixed-height rows on any screen width.
+5. Logging rewritten to be informative.
+6. The Sequence and Bucket create/edit pages were reorganized into cards, with the file and bucket lists sized to the screen and stacked on phones. The page scrolls to the editor when it opens.
+7. The Sequence and Bucket cards line up in an even grid, two per row on phones, with smaller page margins on phones.
+8. The About dialog shows the actual config and app folders.
+9.  Added ESLint and Prettier configs for the backend and frontend (`npm run lint`).
+10. Settings are now read and written through one place in the backend. Background updates (today's sequence, the end of a timed override, file renames and removals, the signed-out state) change only their own fields on freshly read settings, so they can no longer undo edits saved in the meantime.
+11. Holiday lists are handled by one shared module for the schedule, Calendar page, iCal feed and sequence editor. Lists are kept in memory once read, so the Calendar page and iCal feed are much faster (a month now takes a few milliseconds), and Legacy (Nager.Date) lists are now cached for the sequence editor too.
+12. The backend no longer sends HTTP requests to itself (folder listing, preroll updates); it calls those functions directly.
+13. The frontend uses one small `fetch` helper for all requests to the backend in place of `XMLHttpRequest` (and axios), removing a lot of repeated code. Signing in no longer freezes the page while the account details and token are saved.
+14. The bucket list tooltip on the Calendar and the override tooltip on Sequences now use the same tooltip component as the rest of the app.
+15. When a sequence's schedule is set to Custom, the Day field now comes before the Month field for regions that write the day first (e.g. the UK and most of Europe), based on the browser's preferred language. [[#25](https://github.com/chadwpalm/PrerollPlus/discussions/25)]
+16. The Docker image is now multi-architecture: `latest` and each version tag run on both amd64 and arm64 (64-bit ARM, e.g. a Raspberry Pi with a 64-bit OS). The separate `-arm` tags are no longer published, and 32-bit ARM (arm/v7) is no longer supported.
+
+### Fixes
+
+1. Fixed video previews failing with an error when the browser requested a byte range past the end of the file.
+2. Fixed the Docker startup skipping some settings updates (API key creation, version update) when the settings file had no Plex server settings yet.
+3. Fixed the log files from earlier settings saves being kept open (a new log file transport was added on every save).
+4. Fixed Preroll Plus freezing when every file in a bucket had already been picked for an earlier bucket in the same sequence (e.g. the same one-file bucket added twice). Such a bucket is now skipped with a warning in the log, so no preroll plays twice.
+5. Fixed the preroll list sent to Plex ending in a stray comma when the last bucket in a sequence had no files. Empty buckets are now skipped with a warning.
+6. Fixed the thumbnail images Plex attaches to webhooks being saved in /tmp and never deleted, slowly filling the container's disk. They are now ignored.
+7. Fixed the daily sequence change drifting an hour early or late after a daylight saving time change. The next run is now worked out after each run.
+8. Security fix: the preview player and folder browser endpoints (`/backend/streamer` and `/backend/directory`) now only allow files and folders inside the Location of Preroll Media folder. Before, anyone who could reach the port could request them directly to read any file or list any folder on the system, including the settings file with the Plex token. This mainly matters for installs reachable from outside the local network.
+9. Fixed the folder browser in the bucket editor listing folders and files in no particular order. They are now sorted by name, folders first.
+10. Fixed a new bucket marked as the default bucket not being saved as the default.
+11. Fixed sorting holidays by date in the sequence editor for date formats other than month/day/year.
+12. Fixed the loading indicator in the sequence editor never stopping when Premier (Calendarific) was selected without an API key.
+13. Fixed the dates on Sequence cards and the override end times not following the browser's preferred language (e.g. showing 02/14 instead of 14/02 for UK English in Firefox). They now use the same format as the holiday dates.
+14. Fixed the menu button on narrow screens being hard to see in dark mode.
+15. Security fix: the settings, including the Plex token, could be read and changed by anyone who could reach the port, without signing in. The Plex token and session details are no longer sent to the browser at all, and saving from a page can no longer change the Plex token or (in Docker) the preroll media folder.
+16. Fixed any Plex account being able to sign in and replace the owner's Plex token.
+17. Fixed the live-update connection not using the URL base, so it didn't work behind a reverse proxy that only forwards that path.
+
 ## 1.5.0
 
 ### New Features

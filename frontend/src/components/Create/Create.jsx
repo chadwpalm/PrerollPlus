@@ -3,15 +3,13 @@ import { v4 as uuid } from "uuid";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import ListGroup from "react-bootstrap/ListGroup";
-import OverlayTrigger from "react-bootstrap/OverlayTrigger";
-import Tooltip from "react-bootstrap/Tooltip";
-import Info from "bootstrap-icons/icons/info-circle.svg";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Card from "react-bootstrap/Card";
 import Badge from "react-bootstrap/Badge";
-import LeftArrow from "bootstrap-icons/icons/arrow-left.svg";
-import Image from "react-bootstrap/Image";
+import SettingsSection from "../SettingsSection/SettingsSection";
+import { InfoLabel } from "../Common/FormFields";
+import { PickerLayout, PickerPane } from "../Common/Picker";
+import { api } from "../../api";
 import "../CreateSeq/CreateSeq.css";
 
 export default class Create extends Component {
@@ -77,49 +75,32 @@ export default class Create extends Component {
     this.fetchDirectoryList = this.fetchDirectoryList.bind(this);
   }
 
-  componentDidMount() {
-    var xhr = new XMLHttpRequest();
-    xhr.timeout = 3000;
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          // request successful
-          var response = xhr.responseText,
-            json = JSON.parse(response);
+  formRef = createRef();
 
-          this.setState((prevState) => {
-            const updatedDirTree = [
-              ...prevState.dirTree,
-              this.state.root,
-              ...(this.state.source === "2"
-                ? this.state.currentDir
-                    .replace(this.state.root, "")
-                    .split("/")
-                    .filter((dir) => dir !== "")
-                : []),
-            ];
-            return {
-              dirTree: updatedDirTree,
-              directoryList: json,
-            };
-          });
-        } else {
-          // error
-          this.setState({
-            isError: true,
-            errorRes: JSON.parse(xhr.responseText),
-          });
-        }
-      }
-    });
-    xhr.open("POST", "backend/directory", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(
-      JSON.stringify({
-        dir: `${this.state.source === "2" ? this.state.currentDir : this.state.root}`,
-        isSub: false,
-      }),
-    );
+  componentDidMount() {
+    // The editor opens below the cards; bring it into view (mainly for phones)
+    this.formRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    api
+      .post(
+        "backend/directory",
+        { dir: `${this.state.source === "2" ? this.state.currentDir : this.state.root}`, isSub: false },
+        { timeout: 3000 },
+      )
+      .then((json) => {
+        // Built from scratch (not appended) so a second mount, e.g. React StrictMode in development,
+        // doesn't add the root folder twice
+        const updatedDirTree = [
+          this.state.root,
+          ...(this.state.source === "2"
+            ? this.state.currentDir
+                .replace(this.state.root, "")
+                .split("/")
+                .filter((dir) => dir !== "")
+            : []),
+        ];
+        this.setState({ dirTree: updatedDirTree, directoryList: json });
+      })
+      .catch((err) => this.setState({ isError: true, errorRes: err.data }));
   }
 
   componentDidUpdate(prevProps) {
@@ -225,28 +206,10 @@ export default class Create extends Component {
   };
 
   fetchDirectoryList = () => {
-    var xhr = new XMLHttpRequest();
-    xhr.timeout = 3000;
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          // request successful
-          var response = xhr.responseText,
-            json = JSON.parse(response);
-
-          this.setState({ directoryList: json });
-        } else {
-          // error
-          this.setState({
-            isError: true,
-            errorRes: JSON.parse(xhr.responseText),
-          });
-        }
-      }
-    });
-    xhr.open("POST", "backend/directory", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify({ dir: `${this.state.currentDir}`, isSub: false }));
+    api
+      .post("backend/directory", { dir: `${this.state.currentDir}`, isSub: false }, { timeout: 3000 })
+      .then((json) => this.setState({ directoryList: json }))
+      .catch((err) => this.setState({ isError: true, errorRes: err.data }));
   };
 
   handleAdd = (e) => {
@@ -320,7 +283,7 @@ export default class Create extends Component {
     temp.includeSub = this.state.includeSub;
 
     if (this.state.default) {
-      settings.settings.defaultBucket = this.state.id;
+      settings.settings.defaultBucket = temp.id; // (a new bucket only gets its id above)
     }
 
     if (this.state.removeDefault) {
@@ -334,34 +297,14 @@ export default class Create extends Component {
       settings.buckets.push(temp);
     }
 
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", async () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ isSaved: true });
-
-          const response = await fetch("webhook", { method: "GET" });
-          if (!response.ok) {
-            throw new Error(`Response status: ${response.status}`);
-          }
-
-          const response2 = await fetch("backend/monitor", { method: "GET" });
-          if (!response2.ok) {
-            throw new Error(`Response status: ${response.status}`);
-          }
-        } else {
-          // error
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    api
+      .saveSettings(settings)
+      .then(async () => {
+        this.setState({ isSaved: true });
+        await api.updatePrerolls();
+        await api.get("backend/monitor");
+      })
+      .catch((err) => this.setState({ error: err.body || err.message }));
 
     this.props.saved();
   };
@@ -410,10 +353,6 @@ export default class Create extends Component {
     this.setState({ player: false });
   };
 
-  truncateString = (str, num) => {
-    return str.length > num ? str.slice(0, num) + "..." : str;
-  };
-
   handleSource = (e) => {
     this.setState({ source: e.target.value.toString() });
   };
@@ -431,360 +370,281 @@ export default class Create extends Component {
   };
 
   render() {
-    return (
-      <Form className={`form-content ${this.props.isDarkMode ? "dark-mode" : ""}`}>
-        {this.state.isDefault ? (
-          <>
-            <Form.Label for="default">
-              Remove default?&nbsp;&nbsp;
-              <OverlayTrigger
-                placement="right"
-                overlay={
-                  <Tooltip>
-                    This will remove the bucket as the default and there will be no default bucket until another one is
-                    set.
-                  </Tooltip>
+    const variant = this.props.isDarkMode ? "outline-light" : "outline-secondary";
+
+    // Folder browser: the right-hand list in Manual mode, the whole picker in Directory mode
+    const browser = (
+      <PickerPane
+        title={this.state.currentDir}
+        toolbar={
+          this.state.source === "1" && (
+            <>
+              <Button onClick={this.handleSelectAll} variant={variant} size="sm">
+                Select All
+              </Button>
+              <Button onClick={this.handleSelectNone} variant={variant} size="sm">
+                Select None
+              </Button>
+              <Button onClick={this.handleStreamer} variant={variant} size="sm">
+                Preview
+              </Button>
+            </>
+          )
+        }
+      >
+        {this.state.currentDir !== `${this.state.root}` ? (
+          <ListGroup.Item
+            value={JSON.stringify({ name: "..", isDir: true })}
+            action
+            onClick={this.handleClick}
+            className="listgroup-custom-b"
+          >
+            ../
+          </ListGroup.Item>
+        ) : null}
+        {this.state.directoryList ? (
+          this.state.directoryList.map((file) =>
+            file.isDir ? (
+              <ListGroup.Item
+                key={file.name}
+                value={JSON.stringify(file)}
+                action
+                onClick={this.handleClick}
+                className="listgroup-custom-b"
+              >
+                {file.name}/
+              </ListGroup.Item>
+            ) : this.state.source === "1" ? (
+              <ListGroup.Item
+                key={file.name}
+                value={JSON.stringify(file)}
+                action
+                active={this.state.selectedList.includes(file.name)}
+                onClick={this.handleClick}
+                className={
+                  this.state.selectedList.includes(file.name) ? "listgroup-custom-active" : "listgroup-custom-b"
                 }
               >
-                <img src={Info} className="image-info" alt="Info" />
-              </OverlayTrigger>
-            </Form.Label>
-            <Form.Check
-              checked={this.state.removeDefault}
-              id="removeDefault"
-              name="removeDefault"
-              onChange={this.handleRemoveDefault}
-            />
-          </>
+                {file.name}
+              </ListGroup.Item>
+            ) : null,
+          )
         ) : (
-          <>
-            <h6>
-              Set as default?&nbsp;&nbsp;
-              <OverlayTrigger
-                placement="right"
-                overlay={
-                  <Tooltip>
-                    This will set this bucket as the current default which will automatically be added to a newly
-                    created sequence.
-                  </Tooltip>
+          <ListGroup.Item className="listgroup-custom-s">Directory does not exist</ListGroup.Item>
+        )}
+      </PickerPane>
+    );
+
+    return (
+      <Form ref={this.formRef} className={`form-content editor-form ${this.props.isDarkMode ? "dark-mode" : ""}`}>
+        <SettingsSection title={this.props.isEdit ? "Edit Bucket" : "New Bucket"} isDarkMode={this.props.isDarkMode}>
+          <Row className="g-3">
+            <Col xs={12} md={6}>
+              <Form.Label htmlFor="name">Name</Form.Label>
+              <Form.Control value={this.state.name} id="name" name="name" onChange={this.handleName} size="sm" />
+            </Col>
+            <Col xs={12} md={6}>
+              <InfoLabel
+                tip={
+                  <>
+                    This setting selects whether you wish to manually add files to the bucket or just use a specific
+                    directory.
+                    <br />
+                    <br />
+                    Manual: You select which files are added to your bucket from this page. This allows you to mix and
+                    match files from different directories.
+                    <br />
+                    <br />
+                    Directory: Select a directory to bind to the bucket and Preroll Plus will randomly select files from
+                    that directory when creating the Preroll entry.
+                    <br />
+                    <br />
+                    Note: Using Directory as an option will not allow you to add weights to each file. To accomplish
+                    weights you will need to create duplicates of the file in the file system.
+                  </>
                 }
               >
-                <img src={Info} className="image-info" alt="Info" />
-              </OverlayTrigger>
-            </h6>
+                Source of Files
+              </InfoLabel>
+              <div>
+                <Form.Check
+                  inline
+                  type="radio"
+                  label="Manual"
+                  value="1"
+                  id="source-1"
+                  name="source"
+                  onChange={this.handleSource}
+                  checked={this.state.source === "1"}
+                />
+                <Form.Check
+                  inline
+                  type="radio"
+                  label="Directory"
+                  value="2"
+                  id="source-2"
+                  name="source"
+                  onChange={this.handleSource}
+                  checked={this.state.source === "2"}
+                />
+              </div>
+            </Col>
+            <Col xs={12}>
+              {this.state.isDefault ? (
+                <Form.Check
+                  type="switch"
+                  checked={this.state.removeDefault}
+                  id="removeDefault"
+                  name="removeDefault"
+                  onChange={this.handleRemoveDefault}
+                  label={
+                    <InfoLabel
+                      className="mb-0"
+                      tip="This will remove the bucket as the default and there will be no default bucket until another one is set."
+                    >
+                      Remove as default bucket
+                    </InfoLabel>
+                  }
+                />
+              ) : (
+                <Form.Check
+                  type="switch"
+                  checked={this.state.default}
+                  id="default"
+                  name="default"
+                  onChange={this.handleDefault}
+                  label={
+                    <InfoLabel
+                      className="mb-0"
+                      tip="This will set this bucket as the current default which will automatically be added to a newly created sequence."
+                    >
+                      Default bucket
+                    </InfoLabel>
+                  }
+                />
+              )}
+            </Col>
+          </Row>
+        </SettingsSection>
+
+        <SettingsSection
+          title={this.state.source === "1" ? "Files" : "Folder"}
+          tooltip={
+            this.state.source === "1"
+              ? "Select files on the right and press the arrow to add them. Adding a file more than once makes it play more often; the percentage shows how often each file is picked."
+              : "Browse to the folder this bucket uses. Each time, Preroll Plus picks a random file from it."
+          }
+          isDarkMode={this.props.isDarkMode}
+        >
+          {!this.props.sockConnected && (
+            <div className="error-text small mb-2">
+              {this.props.cannotConnect
+                ? "Unable to reconnect. Restart server then refresh page."
+                : "Lost connection to backend, trying to reconnect..."}
+            </div>
+          )}
+          {this.state.source === "2" && (
             <Form.Check
-              checked={this.state.default}
-              id="default"
-              name="default"
-              onChange={this.handleDefault}
+              type="checkbox"
+              id="includeSub"
+              label="Include Subdirectories"
+              checked={this.state.includeSub}
+              onChange={this.handleSub}
               className="mb-3"
             />
-          </>
-        )}
-        <h6>Name of bucket</h6>
-        <Form.Control
-          value={this.state.name}
-          id="name"
-          name="name"
-          onChange={this.handleName}
-          size="sm"
-          className="mb-3"
-        />
-        <h6>
-          Source of files &nbsp;&nbsp;
-          <OverlayTrigger
-            placement="right"
-            overlay={
-              <Tooltip>
-                This setting selects whether you wish to manually add files to the bucket or just use a specific
-                directory.
-                <br />
-                <br />
-                Manual: You select which files are added to your bucket from this page. This allows you to mix and match
-                files from different directories.
-                <br />
-                <br />
-                Directory: Select a directory to bind to the bucket and Preroll Plus will randomly select files from
-                that directory when creating the Preroll entry.
-                <br />
-                <br />
-                Note: Using Directory as an option will not allow you to add weights to each file. To accompish weights
-                you will need to create duplicates of the file in the file system.
-              </Tooltip>
-            }
-          >
-            <img src={Info} className="image-info" alt="Info" />
-          </OverlayTrigger>
-        </h6>
-        <div className="mb-3">
-          <Form.Check
-            inline
-            type="radio"
-            label="Manual"
-            value="1"
-            id="source"
-            name="source"
-            onChange={this.handleSource}
-            size="sm"
-            checked={this.state.source === "1"}
-          />
-          <Form.Check
-            inline
-            type="radio"
-            label="Directory"
-            value="2"
-            id="source"
-            name="source"
-            onChange={this.handleSource}
-            size="sm"
-            checked={this.state.source === "2"}
-          />
-        </div>
-        {this.state.source === "2" ? (
-          <Form.Check
-            key="includeSub"
-            inline
-            type="checkbox"
-            id="includeSub"
-            label="Include Subdirectories"
-            checked={this.state.includeSub}
-            onChange={this.handleSub}
-            size="sm"
-            className="mb-3"
-          />
-        ) : (
-          <></>
-        )}
-        <Row xs={1} sm="auto" className="mb-3">
-          {this.state.source === "1" ? (
-            <>
-              <Col>
-                <Button
-                  onClick={this.handleRemove}
-                  type="submit"
-                  variant={this.props.isDarkMode ? "outline-light" : "light"}
-                  className="mb-3"
-                >
-                  Remove
-                </Button>
-                {/* File Listing */}
-                <div className="div-font">
-                  <Card className="card-custom">
-                    <Card.Title className="m-0 p-2">
-                      <ListGroup.Item className="listgroup-header" variant="light">
-                        Files in bucket
-                      </ListGroup.Item>
-                    </Card.Title>
-                    <Card.Body className="m-0 p-0 card-body-custom">
-                      <ListGroup variant="flush">
-                        {this.state.media.length === 0 ? (
-                          <ListGroup.Item className="listgroup-custom-s">&lt;Add Files Here&gt;</ListGroup.Item>
-                        ) : (
-                          Object.entries(
-                            this.state.media.reduce((acc, item) => {
-                              acc[item.file] = (acc[item.file] || 0) + 1;
-                              return acc;
-                            }, {}),
-                          )
-                            .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
-                            .map(([file, count]) => {
-                              const dir = this.state.media.find((item) => item.file === file)?.dir || "";
-                              const percentage = ((count / this.state.media.length) * 100).toFixed(1);
-                              const truncatedFile = this.truncateString(file, 45);
-                              return this.state.selectedFileList.includes(file) ? (
-                                <ListGroup.Item
-                                  key={file}
-                                  value={JSON.stringify(file)}
-                                  action
-                                  active
-                                  onClick={this.handleClickFiles}
-                                  className="d-flex justify-content-between listgroup-custom-active"
-                                >
-                                  <span>
-                                    {truncatedFile} {count > 1 ? `(${count})` : <></>}
-                                    <br />
-                                    <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
-                                  </span>
-                                  <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
-                                </ListGroup.Item>
-                              ) : (
-                                <ListGroup.Item
-                                  key={file}
-                                  value={JSON.stringify(file)}
-                                  action
-                                  onClick={this.handleClickFiles}
-                                  className="d-flex justify-content-between listgroup-custom-s"
-                                >
-                                  <span>
-                                    {file} {count > 1 ? `(${count})` : <></>}
-                                    <br />
-                                    <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
-                                  </span>
-
-                                  <Badge bg={this.props.isDarkMode ? "secondary" : "primary"}>{percentage}%</Badge>
-                                </ListGroup.Item>
-                              );
-                            })
-                        )}
-                      </ListGroup>
-                    </Card.Body>
-                  </Card>
-                </div>
-              </Col>
-              <Col xs="auto" className="d-flex align-items-center justify-content-center">
-                <Button onClick={this.handleAdd} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-                  <Image src={LeftArrow} alt="UpArrow" className="arrow-icon" />
-                </Button>
-              </Col>
-            </>
-          ) : (
-            <></>
           )}
-          <Col>
-            {this.state.source === "1" ? (
-              <div className="mb-3">
-                <Button onClick={this.handleSelectAll} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-                  Select All
-                </Button>
-                &nbsp;&nbsp;
-                <Button onClick={this.handleSelectNone} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-                  Select None
-                </Button>
-                &nbsp;&nbsp;
-                <Button onClick={this.handleStreamer} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-                  Preview
-                </Button>
-              </div>
-            ) : (
-              ""
-            )}
-            {/* Directory Listing */}
-            <div className="div-font">
-              {" "}
-              {this.props.sockConnected ? (
-                ""
-              ) : this.props.cannotConnect ? (
-                <div style={{ textAlign: "right", color: "red" }}>
-                  Unable to reconnect. Restart server then refresh page.
-                </div>
-              ) : (
-                <div style={{ textAlign: "right", color: "red" }}>
-                  Lost connection to backend, trying to reconnect...
-                </div>
-              )}
-              <Card className="card-custom">
-                <Card.Title className="m-0 p-2">
-                  <ListGroup.Item className="listgroup-header" variant="light">
-                    {this.state.currentDir}
-                  </ListGroup.Item>
-                </Card.Title>
-                <Card.Body className="m-0 p-0 card-body-custom">
-                  <ListGroup variant="flush">
-                    {this.state.currentDir !== `${this.state.root}` ? (
-                      <ListGroup.Item
-                        value={JSON.stringify({ name: "..", isDir: true })}
-                        action
-                        onClick={this.handleClick}
-                        className="listgroup-custom-b"
-                      >
-                        ../
-                      </ListGroup.Item>
-                    ) : null}
-                    {this.state.directoryList ? (
-                      this.state.directoryList.map((file) =>
-                        file.isDir ? (
+          {this.state.source === "1" ? (
+            <PickerLayout
+              isDarkMode={this.props.isDarkMode}
+              onAdd={this.handleAdd}
+              addTitle="Add the selected files"
+              chosen={
+                <PickerPane
+                  title="Files in bucket"
+                  toolbar={
+                    <Button onClick={this.handleRemove} variant={variant} size="sm">
+                      Remove
+                    </Button>
+                  }
+                >
+                  {this.state.media.length === 0 ? (
+                    <ListGroup.Item className="listgroup-custom-s">&lt;Add Files Here&gt;</ListGroup.Item>
+                  ) : (
+                    Object.entries(
+                      this.state.media.reduce((acc, item) => {
+                        acc[item.file] = (acc[item.file] || 0) + 1;
+                        return acc;
+                      }, {}),
+                    )
+                      .sort(([fileA], [fileB]) => fileA.localeCompare(fileB))
+                      .map(([file, count]) => {
+                        const dir = this.state.media.find((item) => item.file === file)?.dir || "";
+                        const percentage = ((count / this.state.media.length) * 100).toFixed(1);
+                        const selected = this.state.selectedFileList.includes(file);
+                        return (
                           <ListGroup.Item
-                            key={file.name}
+                            key={file}
                             value={JSON.stringify(file)}
                             action
-                            onClick={this.handleClick}
-                            className="listgroup-custom-b"
+                            active={selected}
+                            onClick={this.handleClickFiles}
+                            className={`d-flex justify-content-between gap-2 ${
+                              selected ? "listgroup-custom-active" : "listgroup-custom-s"
+                            }`}
                           >
-                            {file.name}/
+                            <span className="min-w-0">
+                              {file} {count > 1 ? `(${count})` : <></>}
+                              <br />
+                              <div className="directory-loc">{dir !== "" ? dir : "/"}</div>
+                            </span>
+                            <Badge bg={this.props.isDarkMode ? "secondary" : "primary"} className="align-self-start">
+                              {percentage}%
+                            </Badge>
                           </ListGroup.Item>
-                        ) : this.state.source === "1" ? (
-                          this.state.selectedList.includes(file.name) ? (
-                            <ListGroup.Item
-                              key={file.name}
-                              value={JSON.stringify(file)}
-                              action
-                              active
-                              onClick={this.handleClick}
-                              className="listgroup-custom-active"
-                            >
-                              {file.name}
-                            </ListGroup.Item>
-                          ) : (
-                            <ListGroup.Item
-                              key={file.name}
-                              value={JSON.stringify(file)}
-                              action
-                              onClick={this.handleClick}
-                              className="listgroup-custom-b"
-                            >
-                              {file.name}
-                            </ListGroup.Item>
-                          )
-                        ) : (
-                          ""
-                        ),
-                      )
-                    ) : (
-                      <ListGroup.Item>Directory does not exist</ListGroup.Item> // Display this if directoryList is null or empty
-                    )}
-                  </ListGroup>
-                </Card.Body>
-              </Card>
-            </div>
-          </Col>
-          {this.state.player ? (
-            <Col>
-              <Row style={{ height: "51px" }}></Row>
-              <Row>
-                <div>
-                  <video
-                    width="400"
-                    controls
-                    controlsList="nodownload"
-                    autoPlay
-                    ref={this.videoRef}
-                    onEnded={this.handleVideoEnded}
-                  >
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
-              </Row>
-              <Button onClick={this.handleStop} variant={this.props.isDarkMode ? "outline-light" : "light"}>
-                Close
-              </Button>
-            </Col>
+                        );
+                      })
+                  )}
+                </PickerPane>
+              }
+              available={browser}
+            />
           ) : (
-            <></>
+            <div className="folder-browser">{browser}</div>
           )}
-        </Row>
-        <div className="mb-3">
-          <Button onClick={this.props.cancel} variant={this.props.isDarkMode ? "outline-light" : "light"}>
+          {this.state.player && (
+            <div className="mt-3">
+              <video
+                className="preview-player"
+                controls
+                controlsList="nodownload"
+                autoPlay
+                ref={this.videoRef}
+                onEnded={this.handleVideoEnded}
+              >
+                Your browser does not support the video tag.
+              </video>
+              <div className="mt-2">
+                <Button onClick={this.handleStop} variant={variant} size="sm">
+                  Close Preview
+                </Button>
+              </div>
+            </div>
+          )}
+        </SettingsSection>
+
+        <div className="form-actions mb-4">
+          <Button onClick={this.props.cancel} variant={variant}>
             Cancel
           </Button>
-          &nbsp;&nbsp;
-          {this.props.isEdit ? (
-            <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
-              Update
-            </Button>
-          ) : (
-            <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
-              Save
-            </Button>
-          )}
-          &nbsp;&nbsp;
-          {this.state.isIncomplete ? (
-            <i style={{ color: "#f00" }}>
-              &nbsp; There must be at least one item in the list and/or a bucket name must be filled.{" "}
+          <Button type="submit" variant="secondary" onClick={this.handleFormSubmit}>
+            {this.props.isEdit ? "Update" : "Save"}
+          </Button>
+          {this.state.isIncomplete && (
+            <i className="error-text">
+              There must be at least one item in the list and/or a bucket name must be filled.
             </i>
-          ) : (
-            <></>
           )}
-          {this.state.isSaved ? <i style={{ color: "#00a700" }}>&nbsp; Settings saved. </i> : <></>}
+          {this.state.isSaved && <i className="conf-text">Settings saved.</i>}
         </div>
       </Form>
     );

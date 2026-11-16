@@ -5,7 +5,6 @@ import CreateSeq from "../CreateSeq/CreateSeq";
 import Form from "react-bootstrap/Form";
 import Stack from "react-bootstrap/Stack";
 import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
@@ -14,6 +13,8 @@ import SortName from "bootstrap-icons/icons/sort-alpha-up.svg";
 import SortPriority from "bootstrap-icons/icons/sort-numeric-up.svg";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
+import { api } from "../../api";
+import { formatDateTime } from "../../locale";
 import "./Sequences.css";
 
 export default class Sequences extends Component {
@@ -97,6 +98,17 @@ export default class Sequences extends Component {
     });
   };
 
+  // Save, close the dialog (modal = "show" or "showOverride"), then send Plex new prerolls and reload settings
+  saveAndUpdate = (settings, modal) => {
+    api
+      .saveSettings(settings)
+      .then(() => {
+        this.setState({ [modal]: false });
+        return api.updatePrerolls().then(this.refreshSettings);
+      })
+      .catch((err) => this.setState({ [modal]: false, error: err.body || err.message }));
+  };
+
   handleClearOverride = (e) => {
     const settings = { ...this.props.settings };
 
@@ -105,40 +117,7 @@ export default class Sequences extends Component {
       endTimestamp: null,
     };
 
-    const xhr = new XMLHttpRequest();
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ showOverride: false });
-          var xhr2 = new XMLHttpRequest();
-          xhr2.addEventListener("readystatechange", () => {
-            if (xhr2.readyState === 4) {
-              if (xhr2.status === 200) {
-                this.refreshSettings();
-              } else {
-                this.setState({
-                  error: xhr2.responseText,
-                });
-              }
-            }
-          });
-
-          xhr2.open("GET", "webhook", true);
-          xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-          xhr2.send();
-        } else {
-          // error
-          this.setState({
-            showOverride: false,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    this.saveAndUpdate(settings, "showOverride");
 
     this.props.updateSettings(settings);
   };
@@ -240,21 +219,10 @@ export default class Sequences extends Component {
 
     settings.sequences = sequences;
 
-    const xhr = new XMLHttpRequest();
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.refreshSettings();
-        } else {
-          this.setState({
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-    xhr.open("POST", "backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    api
+      .saveSettings(settings)
+      .then(this.refreshSettings)
+      .catch((err) => this.setState({ error: err.body || err.message }));
 
     this.props.updateSettings(settings);
     this.handleSaveCreate();
@@ -280,42 +248,7 @@ export default class Sequences extends Component {
 
     settings.sequences.splice(index, 1);
 
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ show: false });
-
-          var xhr2 = new XMLHttpRequest();
-          xhr2.addEventListener("readystatechange", () => {
-            if (xhr2.readyState === 4) {
-              if (xhr2.status === 200) {
-                this.refreshSettings();
-              } else {
-                this.setState({
-                  error: xhr2.responseText,
-                });
-              }
-            }
-          });
-
-          xhr2.open("GET", "webhook", true);
-          xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-          xhr2.send();
-        } else {
-          // error
-          this.setState({
-            show: false,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    this.saveAndUpdate(settings, "show");
 
     this.props.updateSettings(settings);
     this.handleSaveCreate();
@@ -355,42 +288,7 @@ export default class Sequences extends Component {
       endTimestamp: this.state.endTimestamp,
     };
 
-    var xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          this.setState({ showOverride: false });
-
-          var xhr2 = new XMLHttpRequest();
-          xhr2.addEventListener("readystatechange", () => {
-            if (xhr2.readyState === 4) {
-              if (xhr2.status === 200) {
-                this.refreshSettings();
-              } else {
-                this.setState({
-                  error: xhr2.responseText,
-                });
-              }
-            }
-          });
-
-          xhr2.open("GET", "webhook", true);
-          xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-          xhr2.send();
-        } else {
-          // error
-          this.setState({
-            showOverride: false,
-            error: xhr.responseText,
-          });
-        }
-      }
-    });
-
-    xhr.open("POST", "backend/save", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    xhr.send(JSON.stringify(settings));
+    this.saveAndUpdate(settings, "showOverride");
 
     this.props.updateSettings(settings);
     this.handleSaveCreate();
@@ -425,9 +323,9 @@ export default class Sequences extends Component {
             </OverlayTrigger>
           </div>
         </Row>
-        <Row xs={2} sm="auto">
+        <div className="card-grid">
           {this.props.settings.sequences?.map((sequence) => (
-            <Col key={sequence.id}>
+            <div key={sequence.id}>
               <Sequence
                 settings={this.props.settings}
                 sequence={sequence.name}
@@ -452,11 +350,10 @@ export default class Sequences extends Component {
                 currentOvr={this.props.settings.currentOverride?.id ?? null}
                 endTimestamp={this.props.settings.currentOverride?.endTimestamp ?? null}
               />
-              <br />
-            </Col>
+            </div>
           ))}
 
-          <Col>
+          <div>
             {this.state.isEdit || this.state.isCreating ? (
               <Card
                 className={`card-global ${this.state.id === "-1" ? "card-error" : "card-default"} ${
@@ -477,8 +374,8 @@ export default class Sequences extends Component {
                 </Card.Body>
               </Card>
             )}
-          </Col>
-        </Row>
+          </div>
+        </div>
         <Row className="row-custom">
           {this.state.isCreating ? (
             <CreateSeq
@@ -492,10 +389,17 @@ export default class Sequences extends Component {
             />
           ) : (
             <>
-              <p className="mb-3" style={{ fontSize: "12px" }}>
-                Blue Border: Current Sequence  Red Border: Currently Editing Sequence  Orange Border: Currently
-                Overridden Sequence
-              </p>
+              <div className="card-legend mb-3">
+                <span>
+                  <span className="legend-swatch legend-current" /> Current Sequence
+                </span>
+                <span>
+                  <span className="legend-swatch legend-editing" /> Currently Editing
+                </span>
+                <span>
+                  <span className="legend-swatch legend-override" /> Overridden (click a name to override)
+                </span>
+              </div>
               <h6 className="mb-0">Click the plus to add a new Sequence.</h6>
             </>
           )}
@@ -591,7 +495,7 @@ export default class Sequences extends Component {
                   disabled={this.state.overrideLength === "1"}
                 />
               </Stack>
-              Ends: {this.state.endTimestamp ? new Date(this.state.endTimestamp).toLocaleString() : "N/A"}
+              Ends: {this.state.endTimestamp ? formatDateTime(this.state.endTimestamp) : "N/A"}
               <div className="d-flex justify-content-between align-items-center mt-4">
                 <div className="d-flex gap-2">
                   <Button variant={this.props.isDarkMode ? "secondary" : "primary"} onClick={this.handleOverride}>

@@ -1,23 +1,42 @@
 /* Kill all default FullCalendar underlines and blue links */
-.fc a {
+.calendar-wrapper a {
   text-decoration: none !important;
   color: inherit !important;
 }
 
-/* Day-of-the-week header cells (Sun, Mon, Tue, etc.) */
-.fc .fc-col-header-cell {
-  background-color: #e2e2e2 !important;  /* Light mode: medium-light gray */
-  color: #000000 !important;             /* Black text for readability */
-}
-
-.dark-mode .fc .fc-col-header-cell {
-  background-color: #2c2c2c !important;  /* Dark mode: medium-dark gray */
-  color: #e0e0e0 !important;             /* Light gray text */
-}
-
-/* Optional: Improve text padding/alignment in headers */
-.fc .fc-col-header-cell-cushion {
+/* Day-of-the-week header cells (Sun, Mon, Tue, etc.), set via the dayHeaderClass option */
+.calendar-day-header {
+  background-color: #e2e2e2 !important; /* Light mode: medium-light gray */
+  color: #000000 !important; /* Black text for readability */
   padding: 8px 4px !important;
+}
+
+.calendar-day-header {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+/* Fixed day row height (independent of screen width), same as the FullCalendar 6 calendar.
+   flex-basis overrides the aspect-ratio based height FullCalendar sets inline on each row. */
+.calendar-day-row {
+  flex-basis: auto !important;
+  min-height: 117px;
+}
+
+.calendar-title {
+  font-weight: normal !important;
+}
+
+/* Dark mode: let the page background show through (FullCalendar's dark palette is navy) */
+.calendar-wrapper[data-color-scheme="dark"] {
+  --fc-classic-background: transparent;
+  --fc-classic-border: #444;
+  --fc-classic-strong-border: #555;
+}
+
+.dark-mode .calendar-day-header {
+  background-color: #2c2c2c !important; /* Dark mode: medium-dark gray */
+  color: #e0e0e0 !important; /* Light gray text */
 }
 
 /* Calendar Header */
@@ -46,7 +65,6 @@
   border-radius: 6px;
   background: none;
 }
-
 
 /* Icon - inline SVG uses fill="currentColor", so color drives it */
 .ical-icon {
@@ -116,4 +134,125 @@
 
 .ical-check .form-check-input {
   margin-top: 0;
+}
+
+/* ---------- Phone layout: month agenda ---------- */
+
+.month-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 20px;
+}
+
+.agenda-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.agenda-toolbar .btn {
+  min-width: 40px;
+}
+
+.agenda-title {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-weight: normal;
+}
+
+.agenda-item {
+  border: 1px solid #dee2e6;
+  border-left: 4px solid #3a7bd5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+}
+
+.agenda-item.agenda-empty {
+  border-left-color: #adb5bd;
+  opacity: 0.75;
+}
+
+.agenda-item.agenda-today {
+  background: #fdf7d8;
+}
+
+.agenda-dates {
+  font-size: 13px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agenda-today-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #3a7bd5;
+  color: white;
+}
+
+.agenda-sequence {
+  font-weight: 600;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.agenda-buckets {
+  margin: 6px 0 0;
+  padding-left: 22px;
+  font-size: 13px;
+}
+
+.month-agenda.dark .agenda-item {
+  background: #222;
+  border-color: #444;
+  border-left-color: #3a7bd5;
+}
+
+.month-agenda.dark .agenda-item.agenda-empty {
+  border-left-color: #666;
+}
+
+.month-agenda.dark .agenda-item.agenda-today {
+  background: #2d2a1c;
+}
+
+.month-agenda.dark .agenda-dates {
+  color: #b5b5b5;
+}
+
+/* Bucket list shown when hovering a sequence name (react-bootstrap Tooltip) */
+.bucket-tooltip {
+  --bs-tooltip-max-width: none;
+  --bs-tooltip-opacity: 1;
+}
+
+.bucket-tooltip .tooltip-inner {
+  background: #ffffff;
+  color: #222;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.bucket-tooltip .tooltip-arrow {
+  display: none;
+}
+
+.bucket-tooltip.dark .tooltip-inner {
+  background: #1a1a1a;
+  color: #eee;
+  border-color: #444;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }

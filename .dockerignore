@@ -1,1 +1,6 @@
 node_modules
+frontend/node_modules
+frontend/production
+.git
+dev-config
+docker-config

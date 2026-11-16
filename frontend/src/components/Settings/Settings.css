@@ -1,49 +1,54 @@
 .server-list {
-    width: 100% !important;
+  width: 100% !important;
 }
 
 .sched-style {
-    width: 100px !important;
+  width: 100px !important;
 }
 
 .footnote {
-    font-size: small;
-    color: rgb(255, 94, 0);
+  font-size: small;
+  color: rgb(255, 94, 0);
 }
 
-.form-content.dark-mode .form-control::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
-            color: rgb(141, 141, 141) !important;
-            opacity: 1; /* Firefox */
+.form-content.dark-mode .form-control::placeholder {
+  /* Chrome, Firefox, Opera, Safari 10.1+ */
+  color: rgb(141, 141, 141) !important;
+  opacity: 1; /* Firefox */
 }
 
 .form-content.dark-mode .repeat-icon {
-    filter: invert(100%);
+  filter: invert(100%);
 }
 
 .form-content.dark-mode .btn-outline-light {
-    --bs-btn-hover-bg: rgb(54, 54, 54);
-    --bs-btn-active-bg: #3a1a1a;
-    --bs-btn-border-color: #9f9f9f;
+  --bs-btn-hover-bg: rgb(54, 54, 54);
+  --bs-btn-active-bg: #3a1a1a;
+  --bs-btn-border-color: #9f9f9f;
 }
 
 .form-content.dark-mode .form-control {
-    color: white;
-    background-color: rgb(46, 46, 46);
-    border-color: #898989;
+  color: white;
+  background-color: rgb(46, 46, 46);
+  border-color: #898989;
 }
 
 .form-content.dark-mode .form-select {
-    color: white;
-    background-color: rgb(46, 46, 46);
-    border-color: #898989;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+  color: white;
+  background-color: rgb(46, 46, 46);
+  border-color: #898989;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .form-content.dark-mode .image-info {
-    filter: invert(100%);
+  filter: invert(100%);
 }
 
-.form-content.darkmode .footnote {
-    font-size: small;
-    color: orange;
+.form-content.dark-mode .footnote {
+  color: orange;
+}
+
+.form-content.dark-mode .form-control:disabled {
+  background-color: rgb(30, 30, 30);
+  color: rgb(141, 141, 141);
 }

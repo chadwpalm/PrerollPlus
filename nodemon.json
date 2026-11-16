@@ -1,0 +1,6 @@
+{
+  "watch": ["app.js", "bin", "backend", "webhook", "feed", "version.json"],
+  "ext": "js,json",
+  "ignore": ["frontend/**", "node_modules/**"],
+  "signal": "SIGTERM"
+}

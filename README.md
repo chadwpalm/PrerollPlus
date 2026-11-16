@@ -37,6 +37,10 @@ See our [Introduction](https://prerollplus.org/docs/Introduction) for more detai
 - [Issues](https://github.com/chadwpalm/PrerollPlus/issues)
 - [Discord](https://discord.gg/sXse6H8fMF)
 
+### Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up a development environment and open a pull request.
+
 ### Licenses
 
 - [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)

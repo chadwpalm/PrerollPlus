@@ -1,80 +1,37 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
-
 var app = require("../app");
-var debug = require("debug")("prerollplus:server");
 var http = require("http");
 const { initializeWebSocket } = require("../backend/websocket");
-const { getActivePort } = require("../backend/config");
+const { getActivePort, getBaseURL } = require("../backend/config");
 
-/**
- * Get port from settings and store in Express.
- */
-
-const port = getActivePort();
-
+// Port and base URL come from env vars or settings (see backend/config.js)
+var port = getActivePort();
 app.set("port", port);
-
-console.info(`[STARTUP] Server listening on port ${port}`);
-
-/**
- * Create HTTP server.
- */
 
 var server = http.createServer(app);
 
+// Live updates to open browser tabs (file changes, sequence changes)
 initializeWebSocket(server);
 
-/**
- * Listen on provided port, on all network interfaces.
- */
-
+// Listen on all network interfaces
 server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
 
 function onError(error) {
   if (error.syscall !== "listen") {
     throw error;
   }
 
-  var bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
-
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case "EACCES":
-      console.error(bind + " requires elevated privileges");
+      console.error(`Port ${port} requires elevated privileges`);
       process.exit(1);
       break;
     case "EADDRINUSE":
-      console.error(bind + " is already in use");
+      console.error(`Port ${port} is already in use`);
       process.exit(1);
       break;
     default:
@@ -82,12 +39,19 @@ function onError(error) {
   }
 }
 
-/**
- * Event listener for HTTP server "listening" event.
- */
-
 function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
-  debug("Listening on " + bind);
+  const log = require("../backend/logger").tagged("STARTUP");
+  let version = {};
+  try {
+    version = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../version.json"), "utf8"));
+  } catch {
+    /* version.json missing */
+  }
+  const os = require("os");
+  log.info(
+    `Preroll Plus ${version.version ?? "?"} (${version.branch ?? "?"} branch, build ${process.env.BUILD || "Native"}) ` +
+      `on Node ${process.versions.node}, ${os.platform()} ${os.release()} ${os.arch()}`,
+  );
+  const { CONFIG_DIR } = require("../backend/paths");
+  log.info(`Listening on port ${port} at "${getBaseURL() || "/"}", settings and logs in ${CONFIG_DIR}`);
 }

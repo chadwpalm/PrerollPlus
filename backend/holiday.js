@@ -1,245 +1,89 @@
+// Holiday list for the sequence editor's Holiday dropdown.
 var express = require("express");
 var router = express.Router();
 var fs = require("fs");
-var path = require("path");
-var axios = require("axios").default;
+const { CACHE_DIR } = require("./paths");
+const { getHolidayData } = require("./holidays");
+const log = require("./logger").tagged("HOLIDAY");
 
-const LOG_TAG = "[HOLIDAY]";
-
-const cacheDir = path.join("/", "config", "cache");
-
-if (!fs.existsSync(cacheDir)) {
-  console.info(`${LOG_TAG} Cache directory doesn't exist....creating....`);
+if (!fs.existsSync(CACHE_DIR)) {
   try {
-    fs.mkdirSync(cacheDir, { recursive: true });
-    console.info(`${LOG_TAG} Cache directory has been created at: ${cacheDir}`);
-  } catch {
-    console.error(`${LOG_TAG} Cache directory could not be created. Check file system permissions.`);
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    log.info(`Created holiday cache folder ${CACHE_DIR}`);
+  } catch (err) {
+    log.error(`Could not create holiday cache folder ${CACHE_DIR}. Check file system permissions.`, err);
   }
 }
 
-router.post("/", async function (req, res, next) {
-  const HolidayType = {
-    1: "national",
-    2: "local",
-    3: "religious",
-    4: "observance",
-  };
-
-  const typeName = HolidayType[parseInt(req.body.type, 10)];
-
-  console.debug(
-    `Country: ${req.body.country}, Source: ${req.body.source === "1" ? "Legacy" : "Premier"}, Type: ${typeName}`,
-  );
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const currentYear = today.getFullYear();
-  const userLocale = req.headers["accept-language"]?.split(",")[0] || "en-US"; // So dates are formatted based on location
-
-  console.debug(`Current Year: ${currentYear}, Locale: ${userLocale}`);
-
-  function formatHolidayDate(dateString, locale) {
-    let year, month, day;
-
-    const simpleDateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (simpleDateMatch) {
-      [, year, month, day] = simpleDateMatch;
-      return new Date(year, month - 1, day).toLocaleDateString(locale, {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-    }
-
-    const isoDateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (isoDateMatch) {
-      [, year, month, day] = isoDateMatch;
-      return new Date(year, month - 1, day).toLocaleDateString(locale, {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-    }
-
-    console.warn(`Unrecognized date format: ${dateString}`);
+// "2026-12-25" or "2026-12-25T10:00:00-05:00" -> local date text, e.g. "12/25/2026" for en-US
+function formatHolidayDate(dateString, locale) {
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) {
+    log.warn(`Unrecognized holiday date format: ${dateString}`);
     return dateString;
   }
+  const [, year, month, day] = match;
+  return new Date(year, month - 1, day).toLocaleDateString(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
 
-  const source = req.body.source;
-  let rawData;
+function dedupeHolidays(holidays) {
+  const seen = new Set();
+  return holidays.filter((holiday) => {
+    const key = `${holiday.name}||${holiday.date}||${holiday.states}`;
+    if (seen.has(key)) {
+      log.debug(`Skipped duplicate holiday: ${key}`);
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
 
-  let cacheFile;
-  if (source === "2") {
-    cacheFile = path.join(cacheDir, `${req.body.country}-calendarific-${typeName}-${currentYear}.json`);
+router.post("/", async function (req, res, next) {
+  const { country, source, type, apiKey } = req.body;
+  const year = new Date().getFullYear();
+  const userLocale = req.headers["accept-language"]?.split(",")[0] || "en-US"; // So dates are formatted based on location
+
+  if (source === "2" && !apiKey) {
+    return res.status(400).json({ success: false, message: "Calendarific API key is not set.", apiKeyMissing: true });
   }
 
-  if (source === "2" && fs.existsSync(cacheFile)) {
-    console.log(`${LOG_TAG} Reading Calendarific holidays from cache: ${cacheFile}`);
-    rawData = fs.readFileSync(cacheFile, "utf-8");
-  } else {
-    console.log(
-      `${LOG_TAG} Pulling ${req.body.country}${
-        source === "2" ? ` ${HolidayType[parseInt(req.body.type, 10)]}` : ""
-      } calendar from ${source === "1" ? "Nager" : "Calendarific"}`,
-    );
-    const url =
-      source === "1"
-        ? `https://date.nager.at/api/v3/publicholidays/${currentYear}/${req.body.country}`
-        : `https://calendarific.com/api/v2/holidays?api_key=${req.body.apiKey}&country=${req.body.country}&year=${currentYear}&type=${typeName}`;
+  const data = await getHolidayData({ country, source, type, year, apiKey });
 
-    if (source === "2" && !req.body.apiKey) {
-      return res.status(400).send(
-        JSON.stringify({
-          success: false,
-          message: "Calendarific API key is not set.",
-          apiKeyMissing: true,
-        }),
-      );
-    }
-
-    try {
-      const response = await axios.get(url, { timeout: 10000 });
-      rawData = JSON.stringify(response.data);
-
-      if (source === "2") {
-        console.log(`${LOG_TAG} Saving cache file: ${cacheFile}`);
-        fs.writeFileSync(cacheFile, rawData, "utf-8");
-      }
-    } catch (error) {
-      let source = req.body.source;
-      let type = HolidayType[parseInt(req.body.type, 10)];
-
-      if (error.response) {
-        const status = error.response.status;
-        const data = error.response.data;
-
-        let message = `Error while trying to connect to the ${type} Holiday API. `;
-
-        if (source === "2") {
-          // 📌 Calendarific API
-          switch (status) {
-            case 401:
-              message += "Unauthorized: Missing or incorrect API token.";
-              break;
-            case 422:
-              if (data && data.meta && data.meta.error_code) {
-                switch (data.meta.error_code) {
-                  case 600:
-                    message += "API is offline for maintenance.";
-                    break;
-                  case 601:
-                    message += "Unauthorized: Missing or incorrect API token.";
-                    break;
-                  case 602:
-                    message += "Invalid query parameters.";
-                    break;
-                  case 603:
-                    message += "Subscription level required.";
-                    break;
-                  default:
-                    message += `Unprocessable Entity: ${data.meta.error_detail || "Unknown error"}`;
-                }
-              } else {
-                message += "Unprocessable Entity: Request was malformed.";
-              }
-              break;
-            case 500:
-              message += "Internal server error at Calendarific.";
-              break;
-            case 503:
-              message += "Service unavailable (planned outage).";
-              break;
-            case 429:
-              message += "Too many requests: API rate limit reached.";
-              break;
-            default:
-              message += `Unexpected HTTP status: ${status}`;
-          }
-        } else if (source === "1") {
-          // 📌 date.nager.at API (they only use standard HTTP statuses)
-          switch (status) {
-            case 400:
-              message += "Bad request: invalid parameters.";
-              break;
-            case 401:
-              message += "Unauthorized: Invalid API key or missing auth.";
-              break;
-            case 404:
-              message += "Not found: Invalid endpoint or country code.";
-              break;
-            case 429:
-              message += "Too many requests: API rate limit reached.";
-              break;
-            case 500:
-              message += "Internal server error at Nager.Date.";
-              break;
-            default:
-              message += `Unexpected HTTP status: ${status}`;
-          }
-        } else {
-          message += "Unknown source specified.";
-        }
-
-        console.error(message);
-      } else if (error.request) {
-        console.error(`No response received from API (source=${source}).`);
-      } else {
-        console.error(`Error setting up request (source=${source}): ${error.message}`);
-      }
-    }
-  }
-
-  let countries = [];
+  let holidays = [];
   if (source === "2") {
-    console.debug(`${LOG_TAG} Generating holidays object from Calendarific data`);
-    try {
-      const parsed = JSON.parse(rawData);
-      parsed.response.holidays.forEach((country) => {
-        countries.push({
-          name: country.name,
-          date: formatHolidayDate(country.date.iso, userLocale),
-          rawDate: country.date.iso,
-          states: country.locations,
-        });
-      });
-    } catch {
-      console.error("There was not valid data returned from the Holiday API");
+    if (Array.isArray(data?.response?.holidays)) {
+      holidays = data.response.holidays.map((holiday) => ({
+        name: holiday.name,
+        date: formatHolidayDate(holiday.date.iso, userLocale),
+        rawDate: holiday.date.iso,
+        states: holiday.locations,
+      }));
+    } else if (data) {
+      log.error("The Calendarific holiday API did not return a holiday list");
     }
   } else if (source === "1") {
-    console.debug(`${LOG_TAG} Generating holidays object from Nager data`);
-    try {
-      const parsed = JSON.parse(rawData);
-      parsed
+    if (Array.isArray(data)) {
+      holidays = data
         .filter((holiday) => holiday.types.includes("Public"))
-        .forEach((country) => {
-          countries.push({
-            name: country.name,
-            date: formatHolidayDate(country.date, userLocale),
-            rawDate: country.date,
-            states: country.counties === null ? "All" : country.counties.join(", "),
-          });
-        });
-    } catch {
-      console.error("There was not valid data returned from the Holiday API");
+        .map((holiday) => ({
+          name: holiday.name,
+          date: formatHolidayDate(holiday.date, userLocale),
+          rawDate: holiday.date,
+          states: holiday.counties === null ? "All" : holiday.counties.join(", "),
+        }));
+    } else if (data) {
+      log.error("The Nager.Date holiday API did not return a holiday list");
     }
   }
 
-  function dedupeHolidays(holidays) {
-    const seen = new Set();
-    return holidays.filter((holiday) => {
-      const key = `${holiday.name}||${holiday.date}||${holiday.states}`;
-      if (seen.has(key)) {
-        console.log(`Duplicate removed: ${key}`); // optional logging
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
-  }
-
-  console.debug(`${LOG_TAG} Final holiday list: ${JSON.stringify(countries, null, 2)}`);
-  res.send(JSON.stringify(dedupeHolidays(countries)));
+  holidays = dedupeHolidays(holidays);
+  log.debug(`Sent ${holidays.length} holidays for ${country}`);
+  res.json(holidays);
 });
 
 module.exports = router;
